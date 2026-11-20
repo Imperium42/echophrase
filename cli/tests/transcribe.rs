@@ -153,17 +153,32 @@ fn serve_one_transcribe_response(text: &'static str) -> std::thread::JoinHandle<
 fn read_request(stream: &mut TcpStream) {
     let mut buf = [0u8; 4096];
     let mut data = Vec::new();
-    loop {
+    // Read until the end of the headers.
+    let header_end = loop {
+        let n = stream.read(&mut buf).unwrap_or(0);
+        if n == 0 {
+            return;
+        }
+        data.extend_from_slice(&buf[..n]);
+        if let Some(pos) = data.windows(4).position(|w| w == b"\r\n\r\n") {
+            break pos + 4;
+        }
+    };
+    // Drain the body too. Closing a socket with unread data makes macOS send
+    // a TCP RST, which the client sees as a failed read of our response.
+    let headers = String::from_utf8_lossy(&data[..header_end]).to_ascii_lowercase();
+    let content_length = headers
+        .lines()
+        .find_map(|l| l.strip_prefix("content-length:"))
+        .and_then(|v| v.trim().parse::<usize>().ok())
+        .unwrap_or(0);
+    let mut remaining = content_length.saturating_sub(data.len() - header_end);
+    while remaining > 0 {
         let n = stream.read(&mut buf).unwrap_or(0);
         if n == 0 {
             break;
         }
-        data.extend_from_slice(&buf[..n]);
-        if data.windows(4).any(|w| w == b"\r\n\r\n") {
-            // Headers-only requests (no body) are enough for this fake
-            // server; we don't need to parse Content-Length precisely.
-            break;
-        }
+        remaining = remaining.saturating_sub(n);
     }
 }
 

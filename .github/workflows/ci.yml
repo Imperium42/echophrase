@@ -65,7 +65,15 @@ jobs:
         run: cargo clippy --workspace --all-targets --no-default-features -- -D warnings
 
       - name: Tests
+        if: runner.os != 'Windows'
         run: cargo test --workspace --no-default-features
+
+      # The app crate's test binary can't load on Windows (STATUS_ENTRYPOINT_NOT_FOUND):
+      # it lacks the Common Controls v6 app manifest Tauri embeds into the real exe.
+      # Clippy above still covers it; its tests run on Linux and macOS.
+      - name: Tests (Windows, excluding the app crate)
+        if: runner.os == 'Windows'
+        run: cargo test --workspace --no-default-features --exclude echophrase
 
   reuse:
     name: REUSE compliance
