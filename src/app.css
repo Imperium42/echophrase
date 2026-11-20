@@ -1,0 +1,849 @@
+/*
+ * SPDX-FileCopyrightText: 2025-2026 Imperium42 LLC
+ *
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
+@import 'tailwindcss';
+@import 'tw-animate-css';
+/* Bundled, subsetted Noto Color Emoji - no Google Fonts request at launch */
+@import './lib/styles/emoji-font.css';
+
+/* ============================================
+   shadcn-svelte CSS Variables
+   Hybrid approach: shadcn components + Echophrase palette
+   ============================================ */
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* Original Echophrase colors */
+  --color-primary: theme(colors.cyan.400);
+  --color-background: theme(colors.zinc.950);
+  --color-foreground: theme(colors.zinc.900);
+
+  /* shadcn variables - Light mode (unused, app is always dark) */
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.141 0.005 285.823);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.141 0.005 285.823);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.141 0.005 285.823);
+  --primary: oklch(0.21 0.006 285.885);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.967 0.001 286.375);
+  --secondary-foreground: oklch(0.21 0.006 285.885);
+  --muted: oklch(0.967 0.001 286.375);
+  --muted-foreground: oklch(0.552 0.016 285.938);
+  --accent: oklch(0.967 0.001 286.375);
+  --accent-foreground: oklch(0.21 0.006 285.885);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.92 0.004 286.32);
+  --input: oklch(0.92 0.004 286.32);
+  --ring: oklch(0.705 0.015 286.067);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.141 0.005 285.823);
+  --sidebar-primary: oklch(0.21 0.006 285.885);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.967 0.001 286.375);
+  --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
+  --sidebar-border: oklch(0.92 0.004 286.32);
+  --sidebar-ring: oklch(0.705 0.015 286.067);
+}
+
+/* Dark mode (always active in Echophrase) */
+.dark {
+  /* Hybrid: lime-500 primary accent for Echophrase brand */
+  --background: oklch(0.141 0.005 285.823);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.21 0.006 285.885);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.21 0.006 285.885);
+  --popover-foreground: oklch(0.985 0 0);
+  /* Primary: lime-500 (#84cc16) converted to oklch */
+  --primary: oklch(0.768 0.189 120.61);
+  --primary-foreground: oklch(0.145 0.014 120.61);
+  --secondary: oklch(0.274 0.006 286.033);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.274 0.006 286.033);
+  --muted-foreground: oklch(0.705 0.015 286.067);
+  --accent: oklch(0.274 0.006 286.033);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.768 0.189 120.61);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.21 0.006 285.885);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.768 0.189 120.61);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.274 0.006 286.033);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.552 0.016 285.938);
+}
+
+/* Tailwind v4 uses 'in oklab' color interpolation in gradients by default.
+   WKWebView on macOS < 13.1 (Safari < 16.2) doesn't support this syntax,
+   causing all bg-gradient-* elements to render as transparent/black.
+   Override --tw-gradient-position to strip 'in oklab' for all directions. */
+.bg-gradient-to-r {
+  --tw-gradient-position: to right;
+}
+.bg-gradient-to-l {
+  --tw-gradient-position: to left;
+}
+.bg-gradient-to-t {
+  --tw-gradient-position: to top;
+}
+.bg-gradient-to-b {
+  --tw-gradient-position: to bottom;
+}
+.bg-gradient-to-tr {
+  --tw-gradient-position: to top right;
+}
+.bg-gradient-to-tl {
+  --tw-gradient-position: to top left;
+}
+.bg-gradient-to-br {
+  --tw-gradient-position: to bottom right;
+}
+.bg-gradient-to-bl {
+  --tw-gradient-position: to bottom left;
+}
+
+/* shadcn theme inline mapping */
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Smooth easing curves for buttery-smooth animations */
+.ease-out-cubic {
+  transition-timing-function: cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+.ease-out-quint {
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ease-out-expo {
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* GPU acceleration notes (2025):
+   - Avoid will-change, translateZ(0), backface-visibility hints
+   - They create GPU layers that cause memory pressure and flicker
+   - Modern browsers are smart about GPU promotion automatically
+   - See: https://www.lexo.ch/blog/2025/01/boost-css-performance-with-will-change-and-transform-translate3d-why-gpu-acceleration-matters/
+*/
+
+@keyframes progress-fill {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+.loading-progress-fill {
+  width: 0%;
+  animation: progress-fill 5s ease-out forwards;
+}
+
+/* ============================================
+   Original Echophrase Custom Styles
+   ============================================ */
+
+/* Full-height chain so the UI-scale zoom on :root (useUiScale) keeps the
+   layout box filling the window without viewport units. */
+html,
+body {
+  height: 100%;
+}
+
+/* Belt-and-braces for UI scaling: any residual horizontal overflow from the
+   scaled body must clip, never shift/scroll the page sideways. */
+html {
+  overflow-x: hidden;
+}
+
+body {
+  background: var(--color-background);
+  color: white;
+  /* CJK fonts listed TC-first: default Chinese output is Traditional, so
+     Traditional glyph shapes (JhengHei/PingFang TC) must win over SC fonts. */
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    'Microsoft JhengHei',
+    'PingFang TC',
+    'Noto Sans CJK TC',
+    'Microsoft YaHei',
+    'PingFang SC',
+    'Noto Sans CJK SC',
+    'Noto Color Emoji',
+    'Segoe UI Emoji',
+    'Apple Color Emoji',
+    sans-serif;
+  /* Crisp text on dark backgrounds */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Simplified Chinese UI (locale store sets <html lang="zh-CN">): put the SC
+   fonts first so Simplified text does not render with Taiwan-style glyph
+   variants from the TC-first body stack above. */
+:lang(zh-CN) {
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    'Microsoft YaHei',
+    'PingFang SC',
+    'Noto Sans CJK SC',
+    'Microsoft JhengHei',
+    'PingFang TC',
+    'Noto Sans CJK TC',
+    'Noto Color Emoji',
+    'Segoe UI Emoji',
+    'Apple Color Emoji',
+    sans-serif;
+  /* Native app feel - prevent bounce scrolling and text selection */
+  overflow: hidden;
+  user-select: none;
+  cursor: default;
+}
+
+/* body sets cursor: default, which would leave every unstyled <button> with an
+   arrow cursor. Give interactive controls a pointer by default so individual
+   components don't have to remember `cursor-pointer`. */
+button:not(:disabled),
+[role='button']:not([aria-disabled='true']) {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+/* Main window backdrop. Essentially black, lifted by one soft blue-violet bloom
+   centered on the record button so the light has an obvious source instead of
+   washing the whole window. Deliberately near-threshold: it should register as
+   depth, not as a colored background. The noise overlay in +page.svelte kills
+   banding at these low alphas.
+   The 52% Y matches the record button's optical center, not the window's. */
+.app-backdrop {
+  background-color: theme(colors.zinc.950);
+  background-image:
+    radial-gradient(ellipse 42% 30% at 50% 52%, rgba(139, 92, 246, 0.07), transparent 72%),
+    radial-gradient(ellipse 85% 65% at 50% 52%, rgba(99, 102, 241, 0.045), transparent 75%);
+}
+
+/* Allow text selection in Vite error overlays for debugging */
+vite-error-overlay,
+vite-error-overlay * {
+  user-select: text !important;
+  cursor: text !important;
+}
+
+/* Model selector glow animation (triggered on model change/download complete).
+   Uses opacity on pseudo-element instead of animating box-shadow (GPU-compositable). */
+@keyframes model-selector-pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.model-selector-glow {
+  position: relative;
+}
+
+.model-selector-glow::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow:
+    0 0 16px rgba(132, 204, 22, 0.6),
+    0 0 32px rgba(132, 204, 22, 0.4);
+  animation: model-selector-pulse 0.75s ease-in-out 2;
+  pointer-events: none;
+}
+
+/* Custom scrollbar styling matching Spotify */
+* {
+  scrollbar-width: 10px;
+  scrollbar-color: rgb(50, 50, 50) rgb(30, 30, 30);
+}
+
+*::-webkit-scrollbar {
+  height: 10px;
+  width: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  border-radius: 5px;
+  background-color: transparent;
+}
+
+*::-webkit-scrollbar-track:hover {
+  background-color: rgb(30, 30, 30);
+}
+
+*::-webkit-scrollbar-thumb {
+  border-radius: 5px;
+  background-color: rgb(50, 50, 50);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(70, 70, 70);
+}
+
+/* Standard button animation utilities */
+/* Use .btn-standard-animation for consistent button hover/active effects */
+/* Shared by the header icon buttons */
+.btn-standard-animation {
+  @apply transition-all ease-out duration-200 hover:scale-105 active:brightness-90;
+}
+
+/* Output confirmation toast animation - fade in, pause, fade out */
+@keyframes fade-in-out {
+  0% {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+  15% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  85% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+}
+
+.animate-fade-in-out {
+  animation: fade-in-out 3s ease-out forwards;
+}
+
+/* Subtle glow pulse - animates opacity on pseudo-element (GPU-compositable).
+   Old version animated box-shadow every frame which triggered constant repaints. */
+@keyframes glow-pulse {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Shimmer sweep for banner buttons */
+@keyframes shimmer-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* Word-by-word fade-in animation for realtime preview */
+@keyframes word-fade-in {
+  0% {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Wave shimmer animation for progress bars */
+@keyframes wave {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(200%);
+  }
+}
+
+.animate-word-fade-in {
+  animation: word-fade-in 0.15s ease-out forwards;
+  opacity: 0;
+}
+
+/* Time deduction glow animation */
+.time-deducting-glow {
+  text-shadow:
+    0 0 8px theme(colors.amber.400 / 80%),
+    0 0 16px theme(colors.amber.500 / 50%),
+    0 0 24px theme(colors.amber.600 / 30%);
+  animation: time-deduct-pulse 0.3s ease-out;
+}
+
+@keyframes time-deduct-pulse {
+  0% {
+    text-shadow:
+      0 0 4px theme(colors.amber.400 / 40%),
+      0 0 8px theme(colors.amber.500 / 20%);
+  }
+  50% {
+    text-shadow:
+      0 0 12px theme(colors.amber.400 / 100%),
+      0 0 24px theme(colors.amber.500 / 70%),
+      0 0 36px theme(colors.amber.600 / 40%);
+  }
+  100% {
+    text-shadow:
+      0 0 8px theme(colors.amber.400 / 80%),
+      0 0 16px theme(colors.amber.500 / 50%),
+      0 0 24px theme(colors.amber.600 / 30%);
+  }
+}
+
+/* Model auto-detect toast slide down animation */
+@keyframes slide-down {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.animate-slide-down {
+  animation: slide-down 0.4s ease-out forwards;
+}
+
+/* ============================================
+   GPU Compositing - Prevents animation flicker
+   Apply to any element with transform/opacity transitions
+   ============================================ */
+
+/* Removed: global [class*="transition-"]/[class*="animate-"] compositing rule.
+   It forced will-change:transform on every animated element, which on WKWebView
+   creates composited layers that suppress gradient and shadow rendering. */
+
+/* Smooth easing curves for page load animation */
+.ease-out-cubic {
+  transition-timing-function: cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+.ease-out-quint {
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ease-out-expo {
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Duration utilities for Tailwind */
+.duration-400 {
+  transition-duration: 400ms;
+}
+
+.duration-600 {
+  transition-duration: 600ms;
+}
+
+/* Noise texture for gradient banding prevention */
+/* Used as overlay on subtle dark gradients to break up color bands */
+.bg-noise {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+}
+
+/* ============================================
+   Zen Water Progress Bar Animation System
+   5-layer effect: base gradient, undercurrent,
+   surface current, specular shimmer, ambient glow
+   ============================================ */
+
+/* @property for animated hue shift (must be global, Svelte can't scope it) */
+@property --water-shift {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 0;
+}
+
+/* Layer 1: Base gradient - slow hue breathing between teal and cyan */
+@keyframes water-hue-shift {
+  0%,
+  100% {
+    --water-shift: 0;
+  }
+  50% {
+    --water-shift: 1;
+  }
+}
+
+/* Layer 2: Undercurrent - wide teal gradient translating right */
+@keyframes undercurrent {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(200%);
+  }
+}
+
+/* Layer 3: Surface current - narrow bright shimmer, faster */
+@keyframes surface-current {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(300%);
+  }
+}
+
+/* Layer 4: Specular shimmer - white highlight sweep */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(400%);
+  }
+}
+
+/* Layer 5: Ambient glow - pulse opacity on pseudo (GPU-composited, no repaint) */
+@keyframes water-glow-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Container with ambient glow via pseudo-element */
+.water-bar-container {
+  position: relative;
+  border-radius: 9999px;
+}
+
+.water-bar-container::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  box-shadow:
+    0 0 10px rgba(34, 211, 238, 0.5),
+    0 0 20px rgba(13, 148, 136, 0.25);
+  animation: water-glow-pulse 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Base water bar with animated gradient */
+.water-bar {
+  background: linear-gradient(
+    90deg,
+    hsl(168, 76%, 36%),
+    hsl(187, 85%, 53%),
+    hsl(192, 82%, 59%),
+    hsl(187, 85%, 53%),
+    hsl(168, 76%, 36%)
+  );
+  background-size: 200% 100%;
+  animation: water-hue-shift 8s ease-in-out infinite;
+  background-position: calc(var(--water-shift) * 100%) 0;
+}
+
+/* Layer 2: Wide teal undercurrent */
+.water-undercurrent {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(45, 212, 191, 0.25) 30%,
+    rgba(56, 189, 248, 0.3) 50%,
+    rgba(45, 212, 191, 0.25) 70%,
+    transparent 100%
+  );
+  animation: undercurrent 4s linear infinite;
+}
+
+/* Layer 3: Narrow bright surface current (modal only) */
+.water-surface {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(103, 232, 249, 0.15) 40%,
+    rgba(165, 243, 252, 0.2) 50%,
+    rgba(103, 232, 249, 0.15) 60%,
+    transparent 100%
+  );
+  animation: surface-current 2.5s linear infinite;
+}
+
+/* Layer 4: White specular shimmer */
+.water-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    transparent 35%,
+    rgba(255, 255, 255, 0.2) 48%,
+    rgba(255, 255, 255, 0.3) 50%,
+    rgba(255, 255, 255, 0.2) 52%,
+    transparent 65%,
+    transparent 100%
+  );
+  animation: shimmer 3s linear infinite;
+}
+
+/* Mini bar glow (softer for smaller element) */
+.mini-water-glow {
+  box-shadow:
+    0 0 4px rgba(34, 211, 238, 0.2),
+    0 0 8px rgba(13, 148, 136, 0.1);
+}
+
+/* ---- Completion sequence ---- */
+
+/* Phase 1: Bar turns green */
+.water-bar-complete {
+  background: linear-gradient(
+    90deg,
+    hsl(142, 71%, 40%),
+    hsl(152, 76%, 48%),
+    hsl(160, 84%, 39%),
+    hsl(152, 76%, 48%),
+    hsl(142, 71%, 40%)
+  ) !important;
+  background-size: 100% 100% !important;
+  animation: none !important;
+  transition: background 300ms ease;
+}
+
+/* Phase 2: Green glow pulse (one-shot, 2 pulses).
+   Uses opacity on pseudo-element instead of animating box-shadow (GPU-compositable). */
+@keyframes water-complete-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.water-complete-glow {
+  position: relative !important;
+}
+
+.water-complete-glow::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow:
+    0 0 20px rgba(34, 197, 94, 0.8),
+    0 0 40px rgba(34, 197, 94, 0.4),
+    0 0 60px rgba(34, 197, 94, 0.12);
+  animation: water-complete-pulse 500ms ease-in-out 2 !important;
+  pointer-events: none;
+}
+
+/* Kill the cyan ::after glow during completion */
+.water-bar-container.water-complete-glow::after {
+  animation: none;
+  box-shadow: none;
+}
+
+/* Phase 3: Fade out */
+.water-bar-fade-out {
+  opacity: 0;
+  transition: opacity 400ms ease-out;
+}
+
+/* Fast fade-in for history label */
+@keyframes fade-in-fast {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.animate-fade-in-fast {
+  animation: fade-in-fast 0.15s ease-out forwards;
+}
+
+/* Shared banner entrance animation - used by UpgradeBanner, BetaBanner,
+   LoginBanner, UpdateBanner. Pair with the `pointer-events-none` guard
+   bound to an `animationend` handler (banners must not absorb clicks
+   until they've finished fading in). */
+.banner-entrance {
+  animation: banner-entrance 0.4s ease-out;
+}
+@keyframes banner-entrance {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ----------------------------------------------------------------------------
+ * Banner pill button — shared between UpgradeBanner and BetaBanner.
+ * Owns the glow-pulse pseudo-element, hover scale, and the shimmer sweep.
+ * Override --banner-glow on the host to customize the glow color.
+ * ---------------------------------------------------------------------------- */
+.banner-pill {
+  --banner-glow: 249 115 22; /* default amber/orange (rgb triplet) */
+  position: relative;
+  transition: scale 0.15s ease-out;
+  contain: layout style;
+}
+
+.banner-pill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow:
+    0 10px 18px -3px rgb(var(--banner-glow) / 0.22),
+    0 4px 8px -4px rgb(var(--banner-glow) / 0.22);
+  opacity: 0;
+  animation: glow-pulse 8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.banner-pill:hover {
+  scale: 1.02;
+}
+.banner-pill:active {
+  scale: 0.98;
+}
+
+.banner-pill .banner-shimmer-wrap {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  pointer-events: none;
+}
+
+.banner-pill .banner-shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transform: translateX(-100%);
+}
+
+.banner-pill:hover .banner-shimmer {
+  animation: shimmer-sweep 0.7s ease-out forwards;
+}
+
+/* ----------------------------------------------------------------------------
+ * Settings row layout — shared across the SettingRow primitive and every
+ * hand-rolled row in the sections. One source of truth so visual tweaks
+ * happen here, not in 5 places.
+ *
+ * Hand-rolled rows in AudioInputSection (slider + VAD meter), OutputSection,
+ * RecordingSection, DebugSection have richer composition than the primitive
+ * supports, so they keep their own JSX and just rely on these classes.
+ * ---------------------------------------------------------------------------- */
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.625rem 0.375rem;
+  margin: 0 -0.375rem;
+  border-radius: 0.375rem;
+  transition: background 0.18s ease-out;
+}
+
+.setting-row:hover {
+  background: rgba(255, 255, 255, 0.015);
+  transition: background 0s;
+}
+
+/* Locked / forced-on state (eg Copy to Clipboard when Paste depends on it). */
+.setting-row.locked {
+  opacity: 0.4;
+}
+
+.setting-row.locked:hover {
+  background: transparent;
+}
+
+.setting-label {
+  font-size: 0.8125rem;
+  color: #d4d4d8;
+}

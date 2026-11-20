@@ -1,0 +1,82 @@
+name: winget submit
+
+# Manual (re)submission of an already-published release to microsoft/winget-pkgs.
+# release.yml submits automatically on every tag; use this to backfill a version
+# whose submit step failed, without re-running the whole release (which would
+# rebuild, re-sign and re-publish). The installer must already exist on
+# imperium42/echophrase-releases under the given tag.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'App version, e.g. 0.9.4 or 0.9.4-beta.1 (no leading v)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  submit:
+    runs-on: windows-latest
+    steps:
+      - name: Compute winget package version
+        id: winget_version
+        shell: bash
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          if [[ "$VERSION" =~ ^([0-9]+\.[0-9]+\.[0-9]+)-[A-Za-z]+\.([0-9]+)$ ]]; then
+            WINGET_VERSION="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
+          elif [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            WINGET_VERSION="${VERSION}.0"
+          else
+            echo "::error::Unrecognized version format: ${VERSION}"
+            exit 1
+          fi
+          echo "winget_version=${WINGET_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "winget version: ${WINGET_VERSION}"
+
+      # wingetcreate refuses to submit when the fork is too far behind upstream
+      # ("The forked repository could not be synced"). Best-effort: upstream
+      # commits that touch .github/workflows need the PAT's `workflow` scope, so
+      # without it this warns and wingetcreate gets to try on its own.
+      - name: Sync winget-pkgs fork
+        continue-on-error: true
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.WINGET_PAT }}
+        run: |
+          gh repo sync dylanh724/winget-pkgs --source microsoft/winget-pkgs \
+            || echo "::warning::Could not sync dylanh724/winget-pkgs. If the submit below fails, run 'gh repo sync dylanh724/winget-pkgs --source microsoft/winget-pkgs' locally, or give WINGET_PAT the 'workflow' scope."
+
+      - name: Submit winget manifest update
+        shell: pwsh
+        env:
+          WINGET_PAT: ${{ secrets.WINGET_PAT }}
+          VERSION: ${{ inputs.version }}
+          WINGET_VERSION: ${{ steps.winget_version.outputs.winget_version }}
+        run: |
+          if (-not $env:WINGET_PAT) {
+            Write-Host "::error::WINGET_PAT not configured."
+            exit 1
+          }
+          Invoke-WebRequest -Uri https://aka.ms/wingetcreate/latest -OutFile wingetcreate.exe
+          $installerUrl = "https://github.com/imperium42/echophrase-releases/releases/download/v$env:VERSION/Echophrase_${env:VERSION}_x64-setup.exe"
+          Write-Host "Submitting Imperium42.Echophrase $env:WINGET_VERSION ($installerUrl)"
+          # --display-version is REQUIRED: without it wingetcreate copies the previous
+          # manifest's AppsAndFeaturesEntries DisplayVersion verbatim, and winget-pkgs
+          # validation fails with Manifest-AppsAndFeaturesVersion-Error (PR #437622).
+          # The NSIS installer registers the plain app version (e.g. 0.9.4).
+          .\wingetcreate.exe update Imperium42.Echophrase `
+            --version $env:WINGET_VERSION `
+            --display-version $env:VERSION `
+            --urls $installerUrl `
+            --submit `
+            --token $env:WINGET_PAT
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "::error::wingetcreate submission failed - read the output above for the real cause."
+            exit 1
+          }

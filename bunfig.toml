@@ -1,0 +1,35 @@
+# Bunfig - Hard Bun Configuration
+# Because we're going ALL IN on Bun, not half-measures
+
+[install]
+# Use Bun's lockfile format
+lockfile = true
+# Don't fall back to npm for anything
+exact = false
+# Use hardlinks for better performance
+hardlinks = true
+# Cache everything aggressively
+cache = true
+
+[run]
+# ALWAYS use Bun runtime instead of Node.js
+# This is the key setting your colleague mentioned
+bun = true
+
+[dev]
+# Use Bun's dev server capabilities
+hot = true
+# Better error handling
+sourcemap = true
+
+[test]
+# Use Bun's test runner when possible
+coverage = true
+# Better test performance
+parallel = true
+
+[build]
+# Optimize for production
+minify = true
+# Better tree shaking
+target = "browser"

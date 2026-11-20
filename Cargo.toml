@@ -1,0 +1,43 @@
+# Cargo workspace for the echophrase desktop app and its companion crates.
+#
+# Members:
+#   src-tauri          - the Tauri desktop app (package `echophrase`)
+#   cli                - the `echophrase` terminal helper (package `echophrase-cli`)
+#   crates/echo-audio  - shared audio core: sample math, WAV I/O, AudioSource,
+#                        and cpal live capture (single source of truth for all
+#                        audio handling across the app and the CLI)
+#
+# Build artifacts are pinned to src-tauri/target via .cargo/config.toml so CI
+# and release scripts keep their historical paths.
+
+[workspace]
+resolver = "3"
+members = ["src-tauri", "cli", "crates/echo-audio"]
+
+# Single place to bump shared dependency versions.
+[workspace.dependencies]
+echo-audio = { path = "crates/echo-audio" }
+hound = "3.5.1"
+cpal = "0.18.1"
+anyhow = "1"
+thiserror = "2.0"
+
+# Workspace-level release profile (member [profile.*] sections are ignored in a
+# workspace). These are the desktop app's shipping settings; they also serve the
+# CLI well (small stripped binary).
+[profile.release]
+strip = true          # Remove debug symbols (~15-20MB savings)
+lto = true            # Link-time optimization (10-20% reduction)
+codegen-units = 1     # Better optimization (slower compile, worth it)
+panic = "abort"       # Smaller panic handling code
+opt-level = 3         # Keep speed optimization (balanced choice)
+
+# tray-icon fork: adds a stable NIF_GUID identity for the Windows tray icon so
+# the user's "always show" pin survives updates that move the exe (Scoop
+# installs every version into its own directory). Upstream PR:
+# https://github.com/tauri-apps/tray-icon/pull/366 - drop this patch once it
+# is released and tauri exposes `with_guid`. Branch is 0.24.2 + the PR + a
+# process-wide `set_default_guid` (tauri's builder does not pass attributes
+# through yet).
+[patch.crates-io]
+tray-icon = { git = "https://github.com/dylanh724/tray-icon", rev = "f0d1338a15f79b014180009f3dd55a81544ed244" }

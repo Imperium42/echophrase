@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Microphone access for speech-to-text recording -->
+    <key>com.apple.security.device.audio-input</key>
+    <true/>
+    <!-- Required for ML inference frameworks (Metal shaders, ONNX Runtime JIT) -->
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+    <!-- Allow ORT_DYLIB_PATH env var to influence dyld when Hardened Runtime is active.
+         Currently we are ad-hoc signed (no Hardened Runtime enforcement), but this
+         entitlement is required once notarization is added so dlopen honors ORT_DYLIB_PATH. -->
+    <key>com.apple.security.cs.allow-dyld-environment-variables</key>
+    <true/>
+    <!-- 
+        Accessibility API (Paste at Cursor feature):
+        No entitlement key exists for accessibility - permission is granted at runtime
+        by the user via System Settings → Privacy & Security → Accessibility.
+        enigo will prompt for this permission on first keystroke simulation.
+    -->
+</dict>
+</plist>

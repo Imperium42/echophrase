@@ -1,0 +1,124 @@
+<!--
+SPDX-FileCopyrightText: 2025-2026 Imperium42 LLC
+
+SPDX-License-Identifier: MPL-2.0
+-->
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%sveltekit.assets%/favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Emoji font is bundled locally (src/lib/styles/emoji-font.css) - the app window
+         must never request fonts from Google. See scripts/fonts/subset-emoji.py. -->
+    <title>Echophrase</title>
+    <style>
+      /* Dark background to prevent white flash on load */
+      html,
+      body {
+        background-color: #09090b;
+        min-width: 475px;
+        min-height: 400px;
+      }
+      /* Connection retry overlay */
+      .connection-retry {
+        position: fixed;
+        inset: 0;
+        background: #09090b;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        color: #a1a1aa;
+        z-index: 99999;
+      }
+      .connection-retry .spinner {
+        width: 32px;
+        height: 32px;
+        border: 3px solid rgba(139, 92, 246, 0.2);
+        border-top-color: #8b5cf6;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 1rem;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .connection-retry p {
+        font-size: 0.875rem;
+        margin: 0;
+      }
+    </style>
+    %sveltekit.head%
+  </head>
+  <body data-sveltekit-preload-data="hover">
+    <div style="display: contents">%sveltekit.body%</div>
+    <script>
+      // Auto-retry connection to dev server (handles "Connection refused" errors)
+      (function () {
+        // Check if this is a genuine connection error (dev mode only)
+        function isErrorPage() {
+          // Only trigger on actual connection error text, not missing hydration
+          const bodyText = document.body?.innerText || '';
+          return (
+            bodyText.includes('refused') ||
+            bodyText.includes('ERR_CONNECTION') ||
+            bodyText.includes('could not connect') ||
+            bodyText.includes('This site can')
+          );
+        }
+
+        // Retry logic - reload page every 500ms until app loads
+        function startRetry() {
+          let retryCount = 0;
+          const maxRetries = 60; // 30 seconds max
+
+          function tryReload() {
+            if (retryCount >= maxRetries) return;
+            retryCount++;
+
+            // Check if dev server is ready
+            // Same origin as the dev server (DEV_PORT varies per machine)
+            fetch(location.origin + '/', { method: 'HEAD', mode: 'no-cors' })
+              .then(() => {
+                console.log('Dev server ready, reloading...');
+                location.reload();
+              })
+              .catch(() => {
+                setTimeout(tryReload, 500);
+              });
+          }
+
+          // Show connecting overlay
+          document.body.innerHTML = `
+            <div class="connection-retry">
+              <div class="spinner"></div>
+              <p>Connecting...</p>
+            </div>
+          `;
+
+          tryReload();
+        }
+
+        // Check on page load
+        if (window.__TAURI__) {
+          // Wait for DOM to be ready
+          if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function () {
+              if (isErrorPage()) startRetry();
+            });
+          } else {
+            // DOM already loaded - check immediately
+            setTimeout(function () {
+              if (isErrorPage()) startRetry();
+            }, 100);
+          }
+        }
+      })();
+    </script>
+  </body>
+</html>

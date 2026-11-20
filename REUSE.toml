@@ -1,0 +1,39 @@
+# SPDX-FileCopyrightText: 2025-2026 Imperium42 LLC
+#
+# SPDX-License-Identifier: MPL-2.0
+
+version = 1
+
+# Default for every project file that does not carry its own header
+# (JSON configs, locale JSON, Markdown docs, lockfiles, icons and images,
+# dotfiles, CI workflows, packaging, test audio, etc.).
+[[annotations]]
+path = "**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2025-2026 Imperium42 LLC"
+SPDX-License-Identifier = "MPL-2.0"
+
+# Noto Color Emoji subset (woff2 files and its bundled OFL text).
+[[annotations]]
+path = "static/fonts/emoji/**"
+precedence = "override"
+SPDX-FileCopyrightText = "2013-2021 Google Inc."
+SPDX-License-Identifier = "OFL-1.1"
+
+# Silero VAD model.
+[[annotations]]
+path = "src-tauri/resources/silero_vad.onnx"
+precedence = "override"
+SPDX-FileCopyrightText = "2020-present Silero Team"
+SPDX-License-Identifier = "MIT"
+
+# Whisper mel filterbanks.
+[[annotations]]
+path = [
+  "mel_filters.bytes",
+  "mel_filters_128.bytes",
+  "src-tauri/src/transcription/mel_filters.bytes",
+]
+precedence = "override"
+SPDX-FileCopyrightText = "2022 OpenAI"
+SPDX-License-Identifier = "MIT"

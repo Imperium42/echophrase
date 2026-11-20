@@ -1,0 +1,24 @@
+# Keep build artifacts where CI/release scripts expect them (release.yml,
+# prod-preview-win.ps1, tauri:build:mac all reference src-tauri/target). Without
+# this pin, the cargo workspace would move the target dir to the repo root.
+[build]
+target-dir = "src-tauri/target"
+
+# TODO(cuda-linux): Linux CUDA support is WIP and NOT part of any build yet.
+# These forced every Linux/WSL link against the CUDA toolkit (-lcudart etc.),
+# so a machine without CUDA failed at link time even though the `cuda` cargo
+# feature is off by default. To resume the WIP: uncomment, build with
+# `--features cuda`, and restore the matching env.yaml block. See CLAUDE.md
+# "Linux/WSL (CUDA disabled)".
+#
+# [env]
+# NVCC_APPEND_FLAGS = "-allow-unsupported-compiler"
+# CUDA_TOOLKIT_ROOT_DIR = "/usr/local/cuda"
+#
+# [target.x86_64-unknown-linux-gnu]
+# rustflags = [
+#     "-C", "link-args=-Wl,--no-as-needed -lcudart -lcublas -lcusparse -lcurand -lcufft -lnvrtc -lcuda"
+# ]
+
+# Windows linker is auto-detected by Rust/MSVC - do not hardcode path
+# For local dev issues, set RUSTC_LINKER env var in scripts/win/dev.ps1

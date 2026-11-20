@@ -1,0 +1,116 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Echophrase",
+  "version": "0.9.9",
+  "identifier": "com.imperium42.echophrase",
+  "build": {
+    "frontendDist": "../static",
+    "devUrl": "http://localhost:8420",
+    "beforeDevCommand": "bunx --bun vite dev",
+    // NOTE: vite build is run BEFORE tauri:build in package.json scripts to control --mode
+    // This prevents beforeBuildCommand from overwriting staging builds with production
+    "beforeBuildCommand": "bunx --bun svelte-check"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Echophrase",
+        "width": 650,
+        "height": 720,
+        "minWidth": 475,
+        "minHeight": 400,
+        "resizable": true,
+        "fullscreen": false,
+        "center": true,
+        "decorations": true,
+        "transparent": false,
+        "backgroundColor": "#09090b",
+        "theme": "Dark",
+        "visible": false,
+        "skipTaskbar": false,
+        "devtools": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; connect-src 'self' ipc://localhost http://ipc.localhost https://ipc.localhost ws://localhost:8420 ws://localhost:8421; img-src 'self' data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; style-src-elem 'self' 'unsafe-inline'; font-src 'self'",
+      "dangerousDisableAssetCspModification": ["style-src"]
+    }
+  },
+  "bundle": {
+    "active": true,
+    // "targets": "all",  // MSI is 166MB vs NSIS 9MB - disabled for now
+    "targets": ["nsis", "deb", "appimage", "dmg", "app"],  // NSIS (Windows), deb+AppImage (Linux), DMG + .app (macOS - "app" target is required so Tauri keeps the .app bundle around for the updater .app.tar.gz). Tauri skips irrelevant targets per platform.
+    "createUpdaterArtifacts": true,
+    // ONNX Runtime bundled for transcription (DLLs staged by CI before `tauri build`):
+    //   - `resources/ort/directml/*` is the Windows default (DirectML runtime, ~15MB).
+    //     Contains: onnxruntime.dll, onnxruntime_providers_shared.dll, DirectML.dll.
+    //     CUDA is an opt-in user download (see src/ort_plugin/ - Windows only).
+    // Transform models are pure DLC now (downloaded from HF on demand);
+    // the previously bundled T5-tiny was removed from the registry.
+    "resources": ["resources/ort/directml/*"],
+    "windows": {
+      "nsis": {
+        "installerIcon": "icons/icon.ico",
+        "displayLanguageSelector": false,
+        "installMode": "currentUser",  // No admin needed
+        "installerHooks": "./windows/hooks.nsh"  // Currently no-op (all macros empty); CUDA is a runtime opt-in download from Settings
+      }
+    },
+    "linux": {
+      "deb": {
+        // `parec` (echo-audio's WSL/PulseAudio capture path) and `pactl`
+        // (device enumeration) both ship in pulseaudio-utils. libasound2-plugins
+        // provides the ALSA->PulseAudio bridge for native-Linux cpal capture.
+        "depends": ["pulseaudio-utils", "libasound2-plugins"]
+      }
+    },
+    "macOS": {
+      "minimumSystemVersion": "13.3",
+      "entitlements": "./Echophrase.entitlements",
+      "infoPlist": "./Info.plist",
+      // Force ad-hoc signing (codesign --sign -) so the bundler does not try
+      // to use an empty/missing real identity. APPLE_SIGNING_IDENTITY env (set
+      // by CI when secrets are configured) overrides this for Developer ID
+      // signing + notarization. See .github/workflows/release.yml.
+      "signingIdentity": "-",
+      // libonnxruntime.dylib is staged by CI into macos-frameworks/ before
+      // `tauri build`. Kept OUT of resources/ on purpose so the cross-platform
+      // bundle.resources glob doesn't duplicate the dylib into Contents/Resources/.
+      // Tauri copies this entry into Contents/Frameworks/ inside the .app bundle.
+      // select_ort_runtime() (ort_runtime.rs) sets ORT_DYLIB_PATH at launch to
+      // point at this bundled path so ort's load-dynamic finds it.
+      "frameworks": ["./macos-frameworks/libonnxruntime.dylib"],
+      "dmg": {
+        "background": "./dmg-background.png",
+        "windowSize": { "width": 660, "height": 400 },
+        "appPosition": { "x": 180, "y": 170 },
+        "applicationFolderPosition": { "x": 480, "y": 170 }
+      }
+    },
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "copyright": "© 2025-2026 Imperium42 LLC",
+    "shortDescription": "Privacy-first speech-to-text",
+    "longDescription": "Privacy-1st gpu speech→text desktop app with local processing"
+  },
+  "plugins": {
+    "updater": {
+      "active": true,
+      "dialog": true,
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDQyQkFFMTQyNUFFMTcxNTgKUldSWWNlRmFRdUc2UW1ESHlqRHNSdjlyeWV1RSsybEYwOCsvZDI3SnNXejBKNm5NakcySHozMGwK",
+      // CrabNebula CDN scopes updates by channel; ALL releases publish to the
+      // DEFAULT channel since 2026-08 (the public releases page + bare CDN
+      // URLs only see the default channel), so the endpoint carries no
+      // ?channel= param. Named channels (beta, stable) are legacy transition
+      // targets for older installs only. No CI override needed.
+      "endpoints": [
+        "https://cdn.crabnebula.app/update/imperium42/echophrase/{{target}}-{{arch}}/{{current_version}}"
+      ]
+    }
+  }
+}

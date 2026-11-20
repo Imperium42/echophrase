@@ -1,0 +1,9 @@
+{{#each licenses}}@@BLOCK@@
+@@ID@@{{{id}}}
+@@NAME@@{{{name}}}
+@@PKGS@@
+{{#each used_by}}{{{crate.name}}}	{{{crate.version}}}
+{{/each}}@@TEXT@@
+{{{text}}}
+@@ENDTEXT@@
+{{/each}}

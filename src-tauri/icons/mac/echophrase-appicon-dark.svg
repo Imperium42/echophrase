@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2a2a2e" />
+      <stop offset="100%" stop-color="#0b0b0d" />
+    </linearGradient>
+    <linearGradient id="glyph" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#06b6d4" />
+      <stop offset="50%" stop-color="#8b5cf6" />
+      <stop offset="100%" stop-color="#ec4899" />
+    </linearGradient>
+  </defs>
+  <rect x="100" y="100" width="824" height="824" rx="184" ry="184" fill="url(#tile)" />
+  <g transform="translate(160.42666666666668, 160.42666666666668) scale(14.648888888888889)">
+      <rect x="6" y="19" width="4" height="10" rx="2" fill="url(#glyph)" />
+      <rect x="14" y="15" width="4" height="18" rx="2" fill="url(#glyph)" />
+      <rect x="22" y="10" width="4" height="28" rx="2" fill="url(#glyph)" />
+      <rect x="30" y="13" width="4" height="22" rx="2" fill="url(#glyph)" />
+      <rect x="38" y="17" width="4" height="14" rx="2" fill="url(#glyph)" />
+  </g>
+</svg>

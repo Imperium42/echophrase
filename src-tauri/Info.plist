@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Microphone usage description (required for macOS Mojave+) -->
+    <!-- This is shown to the user when the app first requests microphone access -->
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Echophrase needs microphone access to record audio for local speech-to-text transcription. Your audio is processed on-device and never leaves your Mac.</string>
+
+    <!-- Required for tauri-plugin-global-shortcut to register a system-wide push-to-talk hotkey -->
+    <key>NSInputMonitoringUsageDescription</key>
+    <string>Echophrase listens for your global push-to-talk hotkey when other apps are focused.</string>
+
+    <!-- Required for enigo to synthesize Cmd+V (Paste at Cursor) into the focused app -->
+    <key>NSAccessibilityUsageDescription</key>
+    <string>Echophrase pastes transcribed text into the focused field using accessibility services.</string>
+</dict>
+</plist>

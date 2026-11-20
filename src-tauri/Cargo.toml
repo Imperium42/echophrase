@@ -1,0 +1,158 @@
+[package]
+name = "echophrase"
+version = "0.9.9"
+description = "Privacy-1st gpu speech→text desktop app"
+authors = ["Imperium42"]
+license = "MPL-2.0"
+repository = "https://echophrase.com"
+edition = "2024"
+rust-version = "1.88.0"
+keywords = ["speech-to-text", "transcription", "privacy", "desktop", "gpu"]
+categories = ["multimedia", "accessibility"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "echophrase_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.5.5", features = ["config-json5"] }
+chrono = "0.4"  # For build timestamp in debug info
+
+[dependencies]
+serde_json = "^1.0.142"
+serde = { version = "^1.0.217", features = ["derive"] }
+log = "^0.4.27"
+tracing = "0.1"  # Structured logging - auto-bridges to log crate via tauri_plugin_log
+tauri = { version = "2.11.5", features = ["tray-icon", "test", "webview-data-url"] }
+
+tauri-plugin-log = "2.8.0"
+tauri-plugin-clipboard-manager = "2.3.2"
+# REMOVED: tauri-plugin-shell - spawns cmd.exe on Windows
+tauri-plugin-process = "2"
+# kalosm = { version = "0.4", features = ["sound"] } # Temporarily disabled due to conflict with ct2rs
+futures-util = "0.3"
+dirs = "5.0"
+tokio = { version = "1.0", features = ["time", "macros", "net", "rt-multi-thread", "sync"] }
+tauri-plugin-single-instance = "2.4.0"
+tauri-plugin-global-shortcut = "2.3.1"
+reqwest = { version = "0.12", features = ["json", "stream", "blocking", "multipart"] }
+# ct2rs removed - migrating to Candle backend for GPU transcription
+# Old ct2rs backend had libiomp5 dependency issues
+# ct2rs = { version = "0.9.5", features = ["whisper", "hub"] }
+tokenizers = "0.22.1"
+# Shared audio core: sample math, WAV I/O, AudioSource (path/memory switch).
+echo-audio = { workspace = true, features = ["capture"] }
+anyhow = "1"
+thiserror = "2.0"
+hound = { workspace = true }
+byteorder = "1"
+image = { version = "0.25", default-features = false, features = ["png"] }
+hf-hub = "0.3"
+chrono = { version = "0.4.42", features = ["serde"] }
+uuid = { version = "1.11", features = ["v4", "serde"] }
+serde_yml = "0.0.12"  # Modern replacement for deprecated serde_yaml
+base64 = "0.22"
+sha2 = "0.10"
+rand = "0.8"
+url = "2.5"
+hex = "0.4"
+enigo = "0.3"  # Keyboard simulation for paste at cursor
+sys-locale = "0.3"  # Cross-platform OS locale detection (by 1Password)
+parking_lot = "0.12"  # Non-poisoning mutex for panic recovery
+tauri-plugin-dialog = "2.7.1"  # File save dialog
+libc = "0.2"  # For _exit() - bypasses atexit handlers that deadlock on CUDA/ORT teardown
+ctrlc = "3.5"  # SIGINT/SIGTERM handler so terminal Ctrl+C kills the GUI child cleanly
+fs4 = "1"  # Cross-platform advisory file locks (single-instance fallback when D-Bus absent on WSL). Maintained successor to fs2.
+# Voice Activity Detection: Silero VAD implemented directly with ort (no external crate)
+# This avoids version conflicts with parakeet-rs
+tauri-plugin-updater = "2.10.0"
+# ndarray for tensor manipulation in ONNX pipeline
+ndarray = "0.17"
+# FFT for the Qwen3-ASR Whisper-style log-mel frontend (pure Rust)
+rustfft = "6"
+# Simplified <-> Traditional Chinese conversion (OpenCC lexicons, embedded dicts, no runtime I/O)
+opencc-fmmseg = "0.11"
+libloading = "0.9.0"
+glob = "0.3.3"
+tauri-plugin-notification = "2.3.3"
+axum = { version = "0.8.9", default-features = false, features = ["json", "tokio", "http1"] }
+dunce = "1.0.5"
+# REMOVED: tauri-plugin-opener - uses cmd.exe internally on Windows
+
+# Candle + ONNX Runtime: platform-specific GPU acceleration
+# macOS: Metal GPU (or CPU fallback) - no CUDA
+# Linux/Windows: CPU default, CUDA+cuDNN opt-in via --features cuda
+[target.'cfg(not(target_os = "macos"))'.dependencies]
+candle-core = { version = "0.9.2" }
+candle-nn = { version = "0.9.2" }
+candle-transformers = { version = "0.9.2" }
+# ONNX Runtime: load-dynamic loads onnxruntime.dll at runtime via C API,
+# avoiding MSVC STL ABI coupling from static linking (pykeio/ort#361).
+# Set ORT_DYLIB_PATH to the directory containing onnxruntime.dll.
+ort = { version = "2.0.0-rc.12", features = ["cuda", "directml", "load-dynamic", "preload-dylibs", "ndarray"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+candle-core = { version = "0.9.2", features = ["metal"] }
+candle-nn = { version = "0.9.2", features = ["metal"] }
+candle-transformers = { version = "0.9.2", features = ["metal"] }
+dispatch = "0.2"  # GCD dispatch to main thread for enigo keyboard simulation
+# ONNX Runtime: load-dynamic for macOS too (CoreML EP for Apple Silicon).
+ort = { version = "2.0.0-rc.12", features = ["coreml", "load-dynamic", "preload-dylibs", "ndarray"] }
+# AVFoundation bridge for explicit TCC microphone permission requests.
+# Without this, cpal/CoreAudio enumeration silently returns empty when the user
+# has not yet granted access and the system prompt never appears.
+objc2 = "0.6"
+block2 = "0.6"
+
+# parakeet-rs: NVIDIA TDT model support with proper transducer decoding
+# Platform-specific GPU acceleration
+# Windows: DirectML (primary target for GPU)
+# Linux/macOS: CPU only (no GPU acceleration)
+# Note: must match the `ort` feature flags (load-dynamic)
+# or Cargo's feature unification will conflict.
+[target.'cfg(not(windows))'.dependencies]
+parakeet-rs = { version = "0.3.4", default-features = false, features = ["load-dynamic", "preload-dylibs"] }
+
+# Cross-platform audio device enumeration (Windows + macOS native APIs).
+# Version comes from the workspace root (single cpal across app + echo-audio + cli).
+[target.'cfg(any(target_os = "windows", target_os = "macos"))'.dependencies]
+cpal = { workspace = true }
+
+# NVML in-process bindings - replaces shelling out to nvidia-smi.
+# Windows + Linux only (NVIDIA does not ship NVML on macOS).
+# Loads libnvidia-ml dynamically; init() returns Err on missing/mismatched driver,
+# avoiding the STATUS_DLL_INIT_FAILED (0xC0000142) popup that nvidia-smi.exe triggers.
+[target.'cfg(any(target_os = "windows", target_os = "linux"))'.dependencies]
+nvml-wrapper = "0.12"
+
+[target.'cfg(windows)'.dependencies]
+# Direct dep only to reach `set_default_guid` (see workspace [patch.crates-io]).
+tray-icon = "0.24"
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging", "Win32_System_LibraryLoader", "Win32_System_Diagnostics_Debug", "Win32_System_Threading"] }
+parakeet-rs = { version = "0.3.4", default-features = false, features = ["directml", "load-dynamic", "preload-dylibs"] }
+# CUDA ORT plugin downloader: extracts only the 3 DLLs we need from the GitHub GPU zip.
+# Windows-only since the plugin itself is Windows-only (Linux bundles CUDA ORT at build time,
+# macOS uses CoreML).
+zip = { version = "2", default-features = false, features = ["deflate"] }
+
+[features]
+default = []
+# Enable devtools in release builds (for staging). Production builds omit this.
+devtools = ["tauri/devtools"]
+# CUDA + cuDNN support for Candle backend (requires CUDA 12.0+ and cuDNN 9.5+ installed)
+# Without this, Candle falls back to CPU; ONNX Runtime still uses DirectML via load-dynamic
+cuda = ["candle-core/cuda", "candle-core/cudnn", "candle-nn/cuda", "candle-nn/cudnn", "candle-transformers/cuda", "candle-transformers/cudnn"]
+# Official builds: Aptabase telemetry; CI enables it (needs APTABASE_APP_KEY at build time).
+official = []
+
+[dev-dependencies]
+tempfile = "3.27.0"
+tower = { version = "0.5.3", default-features = false, features = ["util"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+gtk = "0.18"
+glib = "0.18"
+
+# [profile.release] lives at the workspace root Cargo.toml.

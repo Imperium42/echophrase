@@ -1,0 +1,52 @@
+# SPDX-FileCopyrightText: 2025-2026 Imperium42 LLC
+#
+# SPDX-License-Identifier: MPL-2.0
+
+[package]
+name = "echophrase-cli"
+version = "0.1.0"
+edition = "2024"
+description = "Cross-platform CLI helper for Echophrase: record and stop microphone capture from the terminal, and a minimal MCP server for AI agents."
+authors = ["Imperium42"]
+license = "MPL-2.0"
+repository = "https://github.com/Imperium42/echophrase"
+readme = "README.md"
+
+[[bin]]
+name = "echophrase"
+path = "src/main.rs"
+
+[features]
+# `mic` enables real microphone capture (echo-audio's cpal capture module).
+# Disable it (`--no-default-features`) to build the orchestration without
+# audio hardware, e.g. in CI or for the MCP server's headless tests. Without
+# it, the recorder writes silence so the record/stop/session flow (and the
+# `echophrase mcp` server) stay testable.
+default = ["mic"]
+mic = ["echo-audio/capture"]
+
+[dependencies]
+# Shared audio core: sample math, WAV I/O, AudioSource, live capture.
+echo-audio = { workspace = true }
+clap = { version = "4.5", features = ["derive"] }
+ctrlc = "3.5"
+anyhow = { workspace = true }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# Minimal MCP server (`echophrase mcp`): stdio transport, tool router/macros.
+rmcp = { version = "3.0", features = ["server", "transport-io", "macros"] }
+# Async runtime for the MCP server loop only; every other command stays sync.
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "io-std"] }
+schemars = "1"
+ureq = { version = "2", default-features = false, features = ["json"] }
+
+[dev-dependencies]
+# WAV inspection in integration tests.
+hound = { workspace = true }
+# Isolated temp dirs/files for unit + integration tests.
+tempfile = "3"
+# Serialize the few tests that mutate the process-global ECHOPHRASE_HOME env var
+# (std::env::set_var is unsafe in edition 2024 and racy across parallel threads).
+serial_test = "3"
+
+# [profile.release] lives at the workspace root Cargo.toml.

@@ -1,0 +1,47 @@
+# cargo-about configuration for generating third-party crate attribution.
+#
+# Consumed by `scripts/gen-attribution.mjs` (via `bun run licenses:generate`),
+# which runs `cargo about generate about.hbs`, merges the output with the bundled
+# npm license manifest, and writes the committed attribution data to
+# echophrase-www. See the /deploy skill for the release-time regeneration step.
+#
+# `accepted` is the COPYLEFT GUARD: cargo-about fails generation if any crate in
+# the shipped dependency graph carries a license not listed here. There is
+# deliberately NO GPL/AGPL/LGPL entry, so a copyleft crate sneaking in breaks the
+# build instead of silently shipping. The desktop app was audited (2026) to
+# contain only the permissive licenses below.
+
+# All licenses legally present in the tree. Keep sorted; add ONLY permissive /
+# notice-only licenses here. Never add GPL/AGPL/LGPL - that is the guard.
+accepted = [
+    "0BSD",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "BSL-1.0",
+    "CC0-1.0",
+    # Community Data License Agreement - Permissive (webpki-roots: Mozilla's
+    # bundled TLS root certificate data). Permissive, notice-only, not copyleft.
+    "CDLA-Permissive-2.0",
+    "ISC",
+    "MIT",
+    "MIT-0",
+    "MPL-2.0",
+    "OpenSSL",
+    "Unicode-3.0",
+    "Unicode-DFS-2016",
+    "Zlib",
+]
+
+# Dev-only dependencies are not distributed in the shipped binary, so they carry
+# no attribution obligation - exclude them from the notice set.
+ignore-dev-dependencies = true
+
+# Build dependencies compile tooling but can generate code linked into the
+# binary; keep them for a conservative (over-inclusive) notice set.
+ignore-build-dependencies = false
+
+# Workspace members (src-tauri, cli, echo-audio) are first-party - not third
+# party notices.
+private = { ignore = true }

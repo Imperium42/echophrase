@@ -1,0 +1,988 @@
+# Release Workflow - Windows + macOS (Linux = compile check only, not published)
+#
+# Builds and publishes Echophrase desktop app to CrabNebula Cloud.
+# Triggered on v* tag pushes (see `on:` below).
+#
+# Channel model (since 2026-08):
+#   - The tag suffix (-beta/-alpha vs none) controls the BUILD FLAVOR only:
+#     vite mode staging vs production, devtools features,
+#     winget --prerelease.
+#   - ALL releases publish to the CrabNebula DEFAULT channel (no --channel
+#     flag). The public releases page ONLY lists the default channel - named
+#     channels (including one literally called "stable") are invisible to it,
+#     and bare CDN URLs (no ?channel=) only resolve for default-channel
+#     releases.
+#   - TRANSITION: releases are ALSO published to the legacy `beta` channel
+#     (installs <= beta.71 have ?channel=beta baked into their updater) and
+#     the short-lived `stable` channel (beta.72 shipped with ?channel=stable
+#     baked). Once the fleet has migrated past those, delete every step
+#     marked `# TRANSITION:`.
+#
+# Required GitHub Secrets:
+#   - CN_API_KEY: CrabNebula Cloud API key
+#   - TAURI_SIGNING_PRIVATE_KEY: Tauri signing key (~/.tauri/echophrase.key contents)
+#   - TAURI_SIGNING_PRIVATE_KEY_PASSWORD: Signing key password
+#   - APTABASE_APP_KEY: Aptabase telemetry app key (self-hosted)
+#
+# Optional (Azure Trusted Signing for Windows code signing - eliminates SmartScreen):
+#   - AZURE_TENANT_ID: Imperium42 Entra tenant ID
+#   - AZURE_CLIENT_ID: Service principal client ID with Trusted Signing Certificate Profile Signer role
+#   - AZURE_CLIENT_SECRET: Service principal client secret
+#   - AZURE_TRUSTED_SIGNING_ENDPOINT: e.g. https://eus.codesigning.azure.net
+#   - AZURE_TRUSTED_SIGNING_ACCOUNT: Trusted Signing account name
+#   - AZURE_TRUSTED_SIGNING_PROFILE: Certificate profile name
+#   When AZURE_CLIENT_ID is unset, signing steps are skipped and unsigned binaries ship.
+#
+# Optional (Apple Developer ID signing + notarization for macOS - eliminates Gatekeeper
+# block and the App-Translocation TCC reset that causes "mic permission keeps forgetting"):
+#   - APPLE_CERTIFICATE: base64 of exported .p12 (Developer ID Application cert)
+#   - APPLE_CERTIFICATE_PASSWORD: password set when exporting the .p12
+#   - KEYCHAIN_PASSWORD: any random string (ephemeral CI keychain password)
+#   - APPLE_SIGNING_IDENTITY: full identity, e.g. "Developer ID Application: Imperium42 LLC (TEAMID)"
+#   - APPLE_ID: Apple ID email enrolled in the Developer Program
+#   - APPLE_PASSWORD: app-specific password from appleid.apple.com (NOT the Apple ID password)
+#   - APPLE_TEAM_ID: 10-char Team ID from the Developer portal membership page
+#   When APPLE_CERTIFICATE is unset the build still ships, ad-hoc signed (unchanged behaviour).
+#
+# Optional (Homebrew distribution - publishes the notarized macOS .dmg to the public
+# imperium42/echophrase-releases repo and bumps imperium42/homebrew-tap's cask):
+#   - RELEASES_REPO_TOKEN: fine-grained PAT with contents:write on imperium42/echophrase-releases
+#     AND imperium42/homebrew-tap. When unset, the publish + cask-bump steps are skipped with a
+#     warning (the macOS build still ships to CrabNebula as usual).
+#
+# Optional (winget distribution - publishes the signed Windows NSIS installer to
+# imperium42/echophrase-releases and submits a manifest PR to microsoft/winget-pkgs):
+#   - RELEASES_REPO_TOKEN: (shared with Homebrew above) also used by the Windows job
+#     to publish the .exe asset.
+#   - WINGET_PAT: classic PAT with public_repo + workflow scopes (workflow is
+#     needed to sync the winget-pkgs fork); wingetcreate pushes to a
+#     dylanh724/winget-pkgs fork and opens PRs against microsoft/winget-pkgs.
+#     When unset, the winget submission step is skipped with a warning.
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # Triggers on version tags (v0.8.1, v0.8.1-beta.1, etc.)
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: 'Override release channel'
+        required: false
+        type: choice
+        options:
+          - auto
+          - beta
+          - stable
+        default: auto
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CN_APPLICATION: imperium42/echophrase
+  # Opt into Node.js 24 for actions (GitHub is deprecating Node.js 20)
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  # Type-check the frontend before anything else. Prevents shipping a release
+  # where the SvelteKit module graph fails to resolve (see beta.39 splash hang).
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+      - name: Install dependencies
+        run: bun install
+      - name: Svelte type check
+        run: bun run check
+
+  # Create draft release in CrabNebula Cloud
+  draft:
+    needs: check
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+      # Build flavor (beta/stable from tag suffix) - controls vite mode,
+      # devtools, winget --prerelease. NOT the CN channel.
+      channel: ${{ steps.determine_channel.outputs.channel }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # Need full history to generate release notes from git log
+          fetch-depth: 0
+
+      - name: Generate release notes
+        id: notes
+        run: |
+          # Source release notes from CHANGELOG.md (public-facing, cumulative).
+          # Strip the top-level "# Changelog" header and any preamble, keep all
+          # version sections (newest first - matches CHANGELOG ordering convention).
+          if [ -f CHANGELOG.md ]; then
+            awk '
+              /^## \[/ { found=1 }
+              found { print }
+            ' CHANGELOG.md > notes.md
+          fi
+          if [ ! -s notes.md ]; then
+            echo "- Bug fixes and improvements." > notes.md
+          fi
+          echo "----- Release notes -----"
+          cat notes.md
+          echo "-------------------------"
+
+      - name: Get version from tauri.conf.json5
+        id: get_version
+        run: |
+          # Extract version from tauri.conf.json5 (handles json5 format)
+          VERSION=$(grep -oP '"version":\s*"\K[^"]+' src-tauri/tauri.conf.json5)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: Determine channel
+        id: determine_channel
+        run: |
+          # `channel` = build flavor only (beta vs stable UX/config differences).
+          if [ "${{ github.event.inputs.channel }}" != "auto" ] && [ -n "${{ github.event.inputs.channel }}" ]; then
+            echo "channel=${{ github.event.inputs.channel }}" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref_name }}" == *"-beta"* ]] || [[ "${{ github.ref_name }}" == *"-alpha"* ]]; then
+            # Tags like v0.8.1-beta.1 build the beta flavor
+            echo "channel=beta" >> $GITHUB_OUTPUT
+          else
+            # Tags like v0.8.1 build the stable flavor
+            echo "channel=stable" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create draft release
+        id: create_release
+        uses: crabnebula-dev/cloud-release@v0
+        with:
+          command: release draft ${{ env.CN_APPLICATION }} --framework tauri --notes-file notes.md
+          api-key: ${{ secrets.CN_API_KEY }}
+
+      # TRANSITION: also draft on the legacy beta channel (installs <= beta.71)
+      # and stable channel (beta.72) so existing installs still receive updates.
+      - name: Create draft release (legacy beta channel)
+        uses: crabnebula-dev/cloud-release@v0
+        with:
+          command: release draft ${{ env.CN_APPLICATION }} --framework tauri --channel beta --notes-file notes.md
+          api-key: ${{ secrets.CN_API_KEY }}
+      - name: Create draft release (legacy stable channel)
+        uses: crabnebula-dev/cloud-release@v0
+        with:
+          command: release draft ${{ env.CN_APPLICATION }} --framework tauri --channel stable --notes-file notes.md
+          api-key: ${{ secrets.CN_API_KEY }}
+
+  # Build Windows installer
+  build-windows:
+    needs: draft
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v5
+
+      # NOTE: CUDA no longer needed for compilation!
+      # - Candle cuda feature removed (no candle-kernels to compile)
+      # - ort with load-dynamic loads CUDA at runtime
+      # - NSIS hook downloads CUDA DLLs during installation
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          # Cache compiled crates (including CUDA kernels) for faster subsequent builds
+          cache: true
+          # Point rust-cache at the actual Cargo workspace - without this the
+          # post/save step runs `cargo metadata` at the repo root (no Cargo.toml
+          # there), exits 101, and aborts the whole job under `set -e`.
+          cache-workspaces: "src-tauri -> target"
+
+      # Set up MSVC environment for nvcc to find cl.exe
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Install dependencies
+        run: bun install
+
+      # Download ONNX Runtime DirectML + sibling DLLs for bundling with installer.
+      # Path MUST match what `select_ort_runtime()` probes
+      # (src-tauri/src/setup/ort_runtime.rs:148-153):
+      #   <install>/resources/ort/directml/onnxruntime.dll
+      # We also stage onnxruntime_providers_shared.dll (DirectML EP sibling
+      # required by ORT 1.18+) and DirectML.dll itself (from the
+      # microsoft.ai.directml NuGet) so the loader doesn't fall back to a
+      # potentially-stale System32 copy on Win10/early-Win11.
+      - name: Download ONNX Runtime
+        run: |
+          $ORT_VERSION = "1.24.2"
+          $DML_VERSION = "1.15.2"
+          $ORT_URL = "https://www.nuget.org/api/v2/package/Microsoft.ML.OnnxRuntime.DirectML/$ORT_VERSION"
+          $DML_URL  = "https://www.nuget.org/api/v2/package/Microsoft.AI.DirectML/$DML_VERSION"
+          $ORT_DIR = "src-tauri/resources/ort/directml"
+          New-Item -ItemType Directory -Force -Path $ORT_DIR | Out-Null
+
+          # ORT (onnxruntime.dll + onnxruntime_providers_shared.dll)
+          Invoke-WebRequest -Uri $ORT_URL -OutFile "$ORT_DIR/ort.zip"
+          Expand-Archive -Path "$ORT_DIR/ort.zip" -DestinationPath "$ORT_DIR/extracted" -Force
+          Copy-Item "$ORT_DIR/extracted/runtimes/win-x64/native/onnxruntime.dll" "$ORT_DIR/onnxruntime.dll"
+          Copy-Item "$ORT_DIR/extracted/runtimes/win-x64/native/onnxruntime_providers_shared.dll" "$ORT_DIR/onnxruntime_providers_shared.dll"
+          Remove-Item -Recurse -Force "$ORT_DIR/extracted", "$ORT_DIR/ort.zip"
+
+          # DirectML.dll itself (avoid System32 version drift on older Windows)
+          Invoke-WebRequest -Uri $DML_URL -OutFile "$ORT_DIR/dml.zip"
+          Expand-Archive -Path "$ORT_DIR/dml.zip" -DestinationPath "$ORT_DIR/dml-extracted" -Force
+          Copy-Item "$ORT_DIR/dml-extracted/bin/x64-win/DirectML.dll" "$ORT_DIR/DirectML.dll"
+          Remove-Item -Recurse -Force "$ORT_DIR/dml-extracted", "$ORT_DIR/dml.zip"
+
+          Write-Host "Bundled DirectML runtime to ${ORT_DIR}:"
+          Get-ChildItem $ORT_DIR | ForEach-Object {
+            Write-Host ("  {0,-45} {1:N1} MB" -f $_.Name, ($_.Length / 1MB))
+          }
+        shell: pwsh
+
+      # Build and sign Tauri app (per CrabNebula docs - run directly, not via tauri-action)
+      # Split into vite build + tauri build to correctly load .env.{staging|production}
+      # Beta builds include devtools and staging features, production builds don't
+      # All builds use the ?channel=stable updater endpoint from tauri.conf.json5.
+      # Windows code signing (Azure Artifact Signing, formerly Trusted Signing; OV cert).
+      # Signing happens INSIDE `tauri build` via `bundle.windows.signCommand`, so the
+      # app exe is signed before NSIS packs it and the installer is signed after.
+      # (The previous post-build action only reached the installer: the shipped
+      # echophrase.exe was unsigned, which also broke tray-icon pin persistence.)
+      # Skipped when secrets are absent so the workflow stays green.
+      - name: Check Trusted Signing availability
+        id: tsign_check
+        shell: bash
+        run: |
+          # Gate on PROFILE because it's the last piece to land (after Microsoft
+          # identity validation approves and we create the cert profile). Other
+          # five secrets can ship early without enabling signing prematurely.
+          if [ -n "${{ secrets.AZURE_TRUSTED_SIGNING_PROFILE }}" ] && [ -n "${{ secrets.AZURE_CLIENT_ID }}" ]; then
+            echo "available=true" >> $GITHUB_OUTPUT
+          else
+            echo "available=false" >> $GITHUB_OUTPUT
+            echo "::warning::Trusted Signing not fully configured - skipping Windows code signing. SmartScreen warnings will appear for users."
+          fi
+
+      # Pinned prebuilt signer (Rust CLI wrapping signtool; reads AZURE_* env vars).
+      # https://github.com/Levminer/artifact-signing-cli
+      - name: Install artifact-signing-cli
+        if: steps.tsign_check.outputs.available == 'true'
+        shell: pwsh
+        run: |
+          $ver = "0.11.0"
+          $sha = "ddc6f6ef68631bf367ad051d7d37109e58d46095406e1fbba60d553b10f94393"
+          $dir = "$env:RUNNER_TEMP\asc"
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          Invoke-WebRequest -Uri "https://github.com/Levminer/artifact-signing-cli/releases/download/$ver/artifact-signing-cli.exe" -OutFile "$dir\artifact-signing-cli.exe"
+          $got = (Get-FileHash "$dir\artifact-signing-cli.exe" -Algorithm SHA256).Hash.ToLower()
+          if ($got -ne $sha) { throw "artifact-signing-cli sha256 mismatch: $got" }
+          Add-Content -Path $env:GITHUB_PATH -Value $dir
+          # Tauri CLI `--config` merge: sign every exe it produces (app binary before
+          # NSIS packs it, then the installer). `%1` is replaced with the file path.
+          $cfg = @{ bundle = @{ windows = @{ signCommand = "artifact-signing-cli -e ${{ secrets.AZURE_TRUSTED_SIGNING_ENDPOINT }} -a ${{ secrets.AZURE_TRUSTED_SIGNING_ACCOUNT }} -c ${{ secrets.AZURE_TRUSTED_SIGNING_PROFILE }} -d Echophrase %1" } } }
+          $cfg | ConvertTo-Json -Depth 5 -Compress | Set-Content -Path "$env:RUNNER_TEMP\sign-config.json" -Encoding utf8
+          Write-Host "signCommand configured"
+
+      - name: Build Tauri app
+        shell: pwsh
+        run: |
+          bunx --bun vite build --mode ${{ needs.draft.outputs.channel == 'beta' && 'staging' || 'production' }}
+          if ($LASTEXITCODE -ne 0) { throw "vite build failed" }
+          # `official` enables Aptabase telemetry (needs APTABASE_APP_KEY); community builds omit it.
+          $extra = @('--features', 'official')
+          if ('${{ needs.draft.outputs.channel }}' -eq 'beta') { $extra += @('--features', 'devtools') }
+          if ('${{ steps.tsign_check.outputs.available }}' -eq 'true') { $extra += @('--config', "$env:RUNNER_TEMP\sign-config.json") }
+          bunx tauri build --ci @extra
+          if ($LASTEXITCODE -ne 0) { throw "tauri build failed" }
+        env:
+          # Azure Artifact Signing auth for signCommand (empty when signing is skipped)
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # Aptabase telemetry (self-hosted)
+          APTABASE_APP_KEY: ${{ secrets.APTABASE_APP_KEY }}
+          # Allow unused code warnings in CI (codebase has feature flags and future code)
+          # Use dynamic CRT to match ort_sys (ONNX Runtime) which uses MD_DynamicRelease
+          RUSTFLAGS: '-A dead_code -A unused_imports -A unused_variables -A unreachable_code -A unused_assignments -A unused_mut -C target-feature=-crt-static'
+          # Force dynamic CRT for C/C++ code compiled by cc crate (esaxx-rs, onig, etc.)
+          # Without this, cc crate defaults to /MT (static) which conflicts with ort_sys's /MD (dynamic)
+          CFLAGS: '/MD'
+          CXXFLAGS: '/MD'
+
+      # Belt and braces: re-generate Tauri updater (minisign) signatures over the
+      # final installer bytes. With signCommand the bundler signs the installer
+      # before it writes the .sig, so this should be a no-op; it stays because a
+      # stale .sig means every existing install fails its update check.
+      - name: Re-sign updater artifacts (post-Authenticode)
+        if: steps.tsign_check.outputs.available == 'true'
+        shell: pwsh
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          # Updater bundles for Windows are nsis (.exe) and msi (.msi). Re-sign each
+          # one that already has a stale .sig sitting next to it.
+          $targets = Get-ChildItem -Path "src-tauri/target/release/bundle" -Recurse -Include *.exe,*.msi |
+            Where-Object { Test-Path "$($_.FullName).sig" }
+          if ($targets.Count -eq 0) { throw "No artifacts with existing .sig files found to re-sign" }
+          foreach ($f in $targets) {
+            Write-Host "Re-signing $($f.FullName)"
+            bunx tauri signer sign "$($f.FullName)"
+            if ($LASTEXITCODE -ne 0) { throw "Re-sign failed for $($f.FullName)" }
+          }
+
+      - name: Verify signatures
+        if: steps.tsign_check.outputs.available == 'true'
+        shell: pwsh
+        run: |
+          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter signtool.exe |
+            Where-Object { $_.FullName -like '*\x64\*' } |
+            Sort-Object FullName -Descending |
+            Select-Object -First 1
+          if (-not $signtool) { throw "signtool.exe not found" }
+          Write-Host "Using signtool: $($signtool.FullName)"
+          # The bundler signs a working copy of echophrase.exe, packs it into the
+          # installer, then RESTORES the unsigned original to target/release (see
+          # tauri-bundler bundle.rs "restore unsigned and unpatched binary"). So the
+          # exe that ships can only be checked by pulling it back out of the NSIS
+          # installer (7-Zip reads NSIS archives). Verifying target/release/*.exe
+          # is meaningless and was the v0.9.3 first-run failure.
+          $installers = @(Get-ChildItem -Path "src-tauri/target/release/bundle" -Recurse -Include *.exe,*.msi)
+          if ($installers.Count -eq 0) { throw "No installers found to verify" }
+          $extract = "$env:RUNNER_TEMP\nsis-extract"
+          Remove-Item -Recurse -Force $extract -ErrorAction SilentlyContinue
+          $setup = $installers | Where-Object { $_.Name -like '*-setup.exe' } | Select-Object -First 1
+          if (-not $setup) { throw "NSIS installer not found under bundle/" }
+          & 7z x $setup.FullName "-o$extract" echophrase.exe -y | Out-Null
+          if ($LASTEXITCODE -ne 0) { throw "7z failed to extract echophrase.exe from $($setup.FullName)" }
+          $packedExe = Get-Item "$extract\echophrase.exe"
+          $files = @($packedExe) + $installers
+          foreach ($f in $files) {
+            Write-Host "Verifying $($f.FullName)"
+            & $signtool.FullName verify /pa /v $f.FullName
+            if ($LASTEXITCODE -ne 0) { throw "Signature verification failed for $($f.FullName)" }
+          }
+
+      # Publish the signed NSIS installer to the public
+      # imperium42/echophrase-releases repo. winget requires a public,
+      # version-pinned, immutable installer URL per release - the source repo
+      # is private and CrabNebula only serves an unversioned `latest` alias,
+      # so neither works for winget (same reason as the macOS Homebrew leg).
+      # Only runs for Authenticode-signed builds: never publish or submit an
+      # unsigned exe to winget.
+      - name: Publish to echophrase-releases (GitHub Release, winget asset)
+        id: publish_releases_repo
+        if: steps.tsign_check.outputs.available == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_REPO_TOKEN }}
+          VERSION: ${{ needs.draft.outputs.version }}
+          TAG: ${{ github.ref_name }}
+          CHANNEL: ${{ needs.draft.outputs.channel }}
+        run: |
+          set -euo pipefail
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "::warning::RELEASES_REPO_TOKEN not configured; skipping echophrase-releases publish (winget will not see this version)."
+            exit 0
+          fi
+
+          EXE_SRC=$(find ./src-tauri/target/release/bundle/nsis -maxdepth 1 -name '*-setup.exe' | head -1)
+          if [ -z "$EXE_SRC" ]; then
+            echo "::error::No NSIS installer found to publish"
+            exit 1
+          fi
+
+          ASSET_NAME="Echophrase_${VERSION}_x64-setup.exe"
+          cp "$EXE_SRC" "$ASSET_NAME"
+          echo "Publishing ${ASSET_NAME} as ${TAG} on imperium42/echophrase-releases"
+
+          PRERELEASE_FLAG=""
+          if [ "$CHANNEL" = "beta" ]; then
+            PRERELEASE_FLAG="--prerelease"
+          fi
+
+          # Scoop/`checkver` resolves /releases/latest, so stable builds must be
+          # marked latest. Betas must not be, or they'd shadow the stable stream.
+          if [ "$CHANNEL" = "beta" ]; then
+            LATEST_FLAG="--latest=false"
+          else
+            LATEST_FLAG="--latest=true"
+          fi
+
+          REPO="imperium42/echophrase-releases"
+          if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
+            echo "Release ${TAG} already exists on ${REPO}; uploading asset (clobber)."
+            gh release upload "$TAG" "$ASSET_NAME" --repo "$REPO" --clobber
+          else
+            gh release create "$TAG" "$ASSET_NAME" \
+              --repo "$REPO" \
+              --title "Echophrase ${VERSION}" \
+              --notes "Echophrase ${VERSION} (Windows x64, signed NSIS installer). See https://echophrase.com for details." \
+              $LATEST_FLAG $PRERELEASE_FLAG
+          fi
+
+      # winget version mapping: winget-pkgs sorts versions numerically by dot
+      # segment and has no prerelease semantics, so `0.8.0-beta.68` becomes
+      # `0.8.0.68` (beta counter as 4th segment) and a future stable `0.8.1`
+      # becomes `0.8.1.0`, which sorts above every 0.8.0.x beta.
+      - name: Compute winget package version
+        id: winget_version
+        if: steps.publish_releases_repo.outcome == 'success' && steps.tsign_check.outputs.available == 'true'
+        shell: bash
+        env:
+          VERSION: ${{ needs.draft.outputs.version }}
+        run: |
+          set -euo pipefail
+          if [[ "$VERSION" =~ ^([0-9]+\.[0-9]+\.[0-9]+)-[A-Za-z]+\.([0-9]+)$ ]]; then
+            WINGET_VERSION="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
+          elif [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            WINGET_VERSION="${VERSION}.0"
+          else
+            echo "::error::Unrecognized version format: ${VERSION}"
+            exit 1
+          fi
+          echo "winget_version=${WINGET_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "winget version: ${WINGET_VERSION}"
+
+      # wingetcreate refuses to submit when the fork is too far behind upstream
+      # ("The forked repository could not be synced"). That silently dropped
+      # every winget update between 0.8.0.70 and 0.9.4. Best-effort: upstream
+      # commits that touch .github/workflows need the PAT's `workflow` scope.
+      - name: Sync winget-pkgs fork
+        if: steps.winget_version.outputs.winget_version != ''
+        continue-on-error: true
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.WINGET_PAT }}
+        run: |
+          gh repo sync dylanh724/winget-pkgs --source microsoft/winget-pkgs \
+            || echo "::warning::Could not sync dylanh724/winget-pkgs. If the submit below fails, run 'gh repo sync dylanh724/winget-pkgs --source microsoft/winget-pkgs' locally (or give WINGET_PAT the 'workflow' scope), then run the 'winget submit' workflow for this version."
+
+      # Submit the manifest update to microsoft/winget-pkgs via wingetcreate.
+      # continue-on-error so a winget hiccup never blocks the release itself.
+      # The initial manifest was merged 2026-08-14 (PR #408729), so a failure
+      # here is NOT expected - read the step output, fix the cause, then
+      # backfill with the manual `winget submit` workflow (winget-submit.yml).
+      - name: Submit winget manifest update
+        if: steps.winget_version.outputs.winget_version != ''
+        continue-on-error: true
+        shell: pwsh
+        env:
+          WINGET_PAT: ${{ secrets.WINGET_PAT }}
+          VERSION: ${{ needs.draft.outputs.version }}
+          TAG: ${{ github.ref_name }}
+          WINGET_VERSION: ${{ steps.winget_version.outputs.winget_version }}
+        run: |
+          if (-not $env:WINGET_PAT) {
+            Write-Host "::warning::WINGET_PAT not configured; skipping winget manifest submission."
+            exit 0
+          }
+          Invoke-WebRequest -Uri https://aka.ms/wingetcreate/latest -OutFile wingetcreate.exe
+          $installerUrl = "https://github.com/imperium42/echophrase-releases/releases/download/$env:TAG/Echophrase_${env:VERSION}_x64-setup.exe"
+          Write-Host "Submitting Imperium42.Echophrase $env:WINGET_VERSION ($installerUrl)"
+          # --display-version is REQUIRED: without it wingetcreate copies the previous
+          # manifest's AppsAndFeaturesEntries DisplayVersion verbatim, and winget-pkgs
+          # validation fails with Manifest-AppsAndFeaturesVersion-Error (PR #437622).
+          # The NSIS installer registers the plain app version (e.g. 0.9.4).
+          .\wingetcreate.exe update Imperium42.Echophrase `
+            --version $env:WINGET_VERSION `
+            --display-version $env:VERSION `
+            --urls $installerUrl `
+            --submit `
+            --token $env:WINGET_PAT
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "::warning::wingetcreate submission FAILED - winget users will not get this version. Read the output above, fix the cause, then run the 'winget submit' workflow for $env:VERSION."
+            exit 1
+          }
+
+      # Upload artifacts to CrabNebula, with a native retry.
+      # cloud-release is a *composite* action, which retry wrappers
+      # (wretry/nick-fields) can't wrap ("Runner composite not implemented"), so
+      # we retry by repeating the step behind `continue-on-error` guards. A
+      # single transient 408 on upload-finish is what dropped Linux from
+      # v0.8.0-beta.56's published release (CrabNebula serves only `latest`,
+      # which then had no Linux build).
+      - name: Upload to CrabNebula
+        id: cn_upload
+        continue-on-error: true
+        uses: crabnebula-dev/cloud-release@v0
+        with:
+          command: release upload ${{ env.CN_APPLICATION }} --framework tauri
+          api-key: ${{ secrets.CN_API_KEY }}
+          path: ./src-tauri/target/release/bundle
+      - name: Backoff before CrabNebula retry
+        if: steps.cn_upload.outcome == 'failure'
+        run: sleep 25
+      - name: Upload to CrabNebula (retry)
+        if: steps.cn_upload.outcome == 'failure'
+        uses: crabnebula-dev/cloud-release@v0
+        with:
+          command: release upload ${{ env.CN_APPLICATION }} --framework tauri
+          api-key: ${{ secrets.CN_API_KEY }}
+          path: ./src-tauri/target/release/bundle
+
+      # TRANSITION: also upload to the legacy beta + stable channels (see header).
+      - name: Upload to CrabNebula (legacy beta channel)
+        id: cn_upload_beta
+        continue-on-error: true
+        uses: crabnebula-dev/cloud-release@v0
+        with:
+          command: release upload ${{ env.CN_APPLICATION }} --framework tauri --channel beta
+          api-key: ${{ secrets.CN_API_KEY }}
+          path: ./src-tauri/target/release/bundle
+      - name: Backoff before CrabNebula beta retry
+        if: steps.cn_upload_beta.outcome == 'failure'
+        run: sleep 25
+      - name: Upload to CrabNebula (legacy beta channel, retry)
+        if: steps.cn_upload_beta.outcome == 'failure'
+        uses: crabnebula-dev/cloud-release@v0
+        with:
+          command: release upload ${{ env.CN_APPLICATION }} --framework tauri --channel beta
+          api-key: ${{ secrets.CN_API_KEY }}
+          path: ./src-tauri/target/release/bundle
+
+      - name: Upload to CrabNebula (legacy stable channel)
+        id: cn_upload_stable
+        continue-on-error: true
+        uses: crabnebula-dev/cloud-release@v0
+        with:
+          command: release upload ${{ env.CN_APPLICATION }} --framework tauri --channel stable
+          api-key: ${{ secrets.CN_API_KEY }}
+          path: ./src-tauri/target/release/bundle
+      - name: Backoff before CrabNebula stable retry
+        if: steps.cn_upload_stable.outcome == 'failure'
+        run: sleep 25
+      - name: Upload to CrabNebula (legacy stable channel, retry)
+        if: steps.cn_upload_stable.outcome == 'failure'
+        uses: crabnebula-dev/cloud-release@v0
+        with:
+          command: release upload ${{ env.CN_APPLICATION }} --framework tauri --channel stable
+          api-key: ${{ secrets.CN_API_KEY }}
+          path: ./src-tauri/target/release/bundle
+
+  # Linux compile check (not uploaded; Linux is community-supported)
+  build-linux:
+    needs: draft
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libxdo-dev \
+            libasound2-dev
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          cache: true
+          cache-workspaces: "src-tauri -> target"
+
+      - name: Install dependencies
+        run: bun install
+
+      # Download ONNX Runtime for bundling with installer
+      - name: Download ONNX Runtime
+        run: |
+          ORT_VERSION="1.23.2"
+          # NuGet, not GitHub releases: github.com/microsoft/onnxruntime went 404 on
+          # 2026-11-20 and broke the v0.9.8 Linux + macOS builds. NuGet is the same
+          # source the Windows leg already uses. `-f` so a bad URL fails loudly
+          # instead of piping an HTML 404 page into tar.
+          ORT_URL="https://www.nuget.org/api/v2/package/Microsoft.ML.OnnxRuntime/${ORT_VERSION}"
+          ORT_DIR="src-tauri/resources/onnxruntime"
+          mkdir -p "$ORT_DIR"
+          curl -fsSL -o /tmp/ort.nupkg "$ORT_URL"
+          unzip -p /tmp/ort.nupkg runtimes/linux-x64/native/libonnxruntime.so > "$ORT_DIR/libonnxruntime.so"
+          echo "Bundled ONNX Runtime $ORT_VERSION ($(du -h $ORT_DIR/libonnxruntime.so | cut -f1))"
+
+      # Build and sign Tauri app
+      # Split into vite build + tauri build to correctly load .env.{staging|production}
+      # All builds use the ?channel=stable updater endpoint from tauri.conf.json5.
+      - name: Build Tauri app
+        run: |
+          bunx --bun vite build --mode ${{ needs.draft.outputs.channel == 'beta' && 'staging' || 'production' }}
+          bunx tauri build --ci --features ${{ needs.draft.outputs.channel == 'beta' && 'official,devtools' || 'official' }}
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # Aptabase telemetry (self-hosted)
+          APTABASE_APP_KEY: ${{ secrets.APTABASE_APP_KEY }}
+          # Allow unused code warnings in CI (codebase has feature flags and future code)
+          RUSTFLAGS: '-A dead_code -A unused_imports -A unused_variables -A unreachable_code -A unused_assignments -A unused_mut'
+
+      # No CrabNebula upload: Linux is community-supported, build-from-source
+      # (no official Linux artifacts since 2026-11-20). This job stays as a
+      # compile + bundle check so changes don't break Linux.
+
+  # Build macOS DMG (Apple Silicon).
+  # Non-blocking: the `publish` job intentionally does NOT depend on this,
+  # so a macOS-only flake cannot stall a Windows/Linux release.
+  build-macos:
+    needs: draft
+    runs-on: macos-latest  # Apple Silicon (M1+) by default since 2024
+    outputs:
+      dmg_version: ${{ steps.publish_releases_repo.outputs.version }}
+      dmg_sha256: ${{ steps.publish_releases_repo.outputs.sha256 }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          target: aarch64-apple-darwin
+          cache: true
+          cache-workspaces: "src-tauri -> target"
+
+      - name: Install dependencies
+        run: bun install
+
+      # Apple Developer ID signing setup. Imports the .p12 cert into an
+      # ephemeral CI keychain so codesign can find the identity during
+      # `tauri build`. Skipped (with a warning) when APPLE_CERTIFICATE is
+      # unset so unsigned builds still ship.
+      - name: Check Apple signing secrets
+        id: apple-signing-check
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          if [ -n "$APPLE_CERTIFICATE" ] && [ -n "$APPLE_SIGNING_IDENTITY" ] && [ -n "$APPLE_ID" ] && [ -n "$APPLE_PASSWORD" ] && [ -n "$APPLE_TEAM_ID" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+            echo "Apple signing fully configured - .app will be Developer ID signed and notarized"
+            # IMPORTANT: only export these to GITHUB_ENV when fully configured.
+            # If we leak empty strings into Tauri's build env, Tauri sees
+            # APPLE_SIGNING_IDENTITY="" and tries to `codesign --sign ""` which
+            # fails with "specified item could not be found in the keychain"
+            # instead of falling back to ad-hoc signing.
+            {
+              echo "APPLE_SIGNING_IDENTITY=$APPLE_SIGNING_IDENTITY"
+              echo "APPLE_ID=$APPLE_ID"
+              echo "APPLE_PASSWORD=$APPLE_PASSWORD"
+              echo "APPLE_TEAM_ID=$APPLE_TEAM_ID"
+            } >> "$GITHUB_ENV"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Apple signing not fully configured - skipping macOS code signing. App will be ad-hoc signed; users will see Gatekeeper warnings and TCC permissions may not persist due to App Translocation."
+          fi
+
+      - name: Setup signing keychain (macOS)
+        if: steps.apple-signing-check.outputs.configured == 'true'
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          # Decode the base64-encoded .p12 cert
+          CERT_PATH="$RUNNER_TEMP/apple_cert.p12"
+          echo "$APPLE_CERTIFICATE" | base64 --decode > "$CERT_PATH"
+
+          # Create an ephemeral keychain that lives only for this job
+          KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain-db"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # Import the cert + grant codesign access
+          security import "$CERT_PATH" -k "$KEYCHAIN_PATH" -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # Add the new keychain to the search list so codesign finds it
+          security list-keychain -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | xargs)
+
+          # Sanity check - confirms the identity is visible to codesign
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
+
+          # Clean up the on-disk .p12
+          rm "$CERT_PATH"
+
+      # Download ORT CoreML build and stage it for bundling into the .app.
+      # Local dev uses ensure-ort.mjs (writes an absolute path to env.yaml).
+      # Stage the dylib outside src-tauri/resources/ so the cross-platform
+      # bundle.resources glob (resources/onnxruntime/*) does NOT duplicate it
+      # into Contents/Resources/. Only bundle.macOS.frameworks picks it up,
+      # placing it in Contents/Frameworks/ where select_ort_runtime() looks.
+      - name: Download ONNX Runtime (macOS CoreML)
+        run: |
+          ORT_VERSION="1.24.4"
+          # NuGet, not GitHub releases (see the Linux step: GitHub repo went 404).
+          ORT_URL="https://www.nuget.org/api/v2/package/Microsoft.ML.OnnxRuntime/${ORT_VERSION}"
+          ORT_DIR="src-tauri/macos-frameworks"
+          mkdir -p "$ORT_DIR"
+          curl -fsSL -o /tmp/ort.nupkg "$ORT_URL"
+          unzip -p /tmp/ort.nupkg runtimes/osx-arm64/native/libonnxruntime.dylib > "$ORT_DIR/libonnxruntime.dylib"
+          echo "Bundled ONNX Runtime $ORT_VERSION ($(du -h $ORT_DIR/libonnxruntime.dylib | cut -f1))"
+          # Also set ORT_DYLIB_PATH for the Rust build so ort crate resolves the dylib.
+          # This is overridden at runtime inside the .app by select_ort_runtime().
+          echo "ORT_DYLIB_PATH=$(pwd)/$ORT_DIR/libonnxruntime.dylib" >> "$GITHUB_ENV"
+
+      # Build Tauri app. Split into vite build + tauri build to correctly
+      # load .env.{staging|production}. All builds use the ?channel=stable
+      # updater endpoint from tauri.conf.json5.
+      - name: Build Tauri app
+        run: |
+          bunx --bun vite build --mode ${{ needs.draft.outputs.channel == 'beta' && 'staging' || 'production' }}
+          bunx tauri build --ci --target aarch64-apple-darwin --features ${{ needs.draft.outputs.channel == 'beta' && 'official,devtools' || 'official' }}
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APTABASE_APP_KEY: ${{ secrets.APTABASE_APP_KEY }}
+          RUSTFLAGS: '-A dead_code -A unused_imports -A unused_variables -A unreachable_code -A unused_assignments -A unused_mut'
+          # NOTE: APPLE_SIGNING_IDENTITY / APPLE_ID / APPLE_PASSWORD / APPLE_TEAM_ID
+          # are NOT declared here on purpose. The "Check Apple signing secrets"
+          # step writes them to $GITHUB_ENV only when all five secrets are
+          # present, so Tauri either gets the full set OR sees none of them
+          # (and falls back to ad-hoc signing). Declaring them here with
+          # ${{ secrets.X }} would leak empty strings into Tauri's env when
+          # signing isn't configured, breaking the build.
+
+      # Gate the macOS bundle on a valid Developer ID signature + stapled
+      # notarization ticket. Skipped when signing isn't configured so unsigned
+      # builds keep shipping.
+      - name: Verify macOS signature + notarization
+        if: steps.apple-signing-check.outputs.configured == 'true'
+        run: |
+          APP_BUNDLE=$(find ./src-tauri/target/aarch64-apple-darwin/release/bundle/macos -maxdepth 1 -name '*.app' | head -1)
+          if [ -z "$APP_BUNDLE" ]; then
+            echo "::error::No .app bundle found to verify"
+            exit 1
+          fi
+          echo "Verifying $APP_BUNDLE"
+          codesign -dv --verbose=4 "$APP_BUNDLE"
+          codesign --verify --deep --strict --verbose=2 "$APP_BUNDLE"
+          spctl --assess --type execute --verbose=4 "$APP_BUNDLE"
+          xcrun stapler validate "$APP_BUNDLE"
+
+      # Publish the notarized .dmg to the public imperium42/echophrase-releases
+      # repo so the Homebrew tap (imperium42/homebrew-tap) has a versioned,
+      # checksummable, publicly downloadable asset to install from - the
+      # source repo is private and CrabNebula only serves an unversioned
+      # `latest` alias (no per-version URLs), so neither works for Homebrew.
+      # Only runs for real Developer ID signed + notarized builds: an
+      # ad-hoc-signed .dmg would fail Gatekeeper for `brew install` users, so
+      # there is nothing worth publishing when Apple signing isn't configured.
+      - name: Publish to echophrase-releases (GitHub Release + cask asset)
+        id: publish_releases_repo
+        if: steps.apple-signing-check.outputs.configured == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_REPO_TOKEN }}
+          VERSION: ${{ needs.draft.outputs.version }}
+          TAG: ${{ github.ref_name }}
+          CHANNEL: ${{ needs.draft.outputs.channel }}
+        run: |
+          set -euo pipefail
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "::warning::RELEASES_REPO_TOKEN not configured; skipping echophrase-releases publish and cask bump."
+            exit 0
+          fi
+
+          DMG_SRC=$(find ./src-tauri/target/aarch64-apple-darwin/release/bundle/dmg -maxdepth 1 -name '*.dmg' | head -1)
+          if [ -z "$DMG_SRC" ]; then
+            echo "::error::No .dmg found to publish"
+            exit 1
+          fi
+
+          ASSET_NAME="Echophrase_${VERSION}_aarch64.dmg"
+          cp "$DMG_SRC" "$ASSET_NAME"
+          SHA256=$(shasum -a 256 "$ASSET_NAME" | awk '{print $1}')
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "sha256=${SHA256}" >> "$GITHUB_OUTPUT"
+          echo "Publishing ${ASSET_NAME} (sha256 ${SHA256}) as ${TAG} on imperium42/echophrase-releases"
+
+          # Mirrors the Windows leg. Whichever leg wins the race calls
+          # `gh release create`; the loser takes the `upload --clobber` branch,
+          # which never touches these flags, so the two can't disagree - but
+          # they must AGREE, which is why --prerelease is set here too. It was
+          # previously missing, so whenever this leg won the race the beta was
+          # published as a non-prerelease and GitHub's /releases/latest (which
+          # falls back to the newest non-prerelease when nothing is explicitly
+          # flagged latest) resolved to a beta. Scoop's checkver reads exactly
+          # that endpoint.
+          PRERELEASE_FLAG=""
+          LATEST_FLAG="--latest=true"
+          if [ "$CHANNEL" = "beta" ]; then
+            PRERELEASE_FLAG="--prerelease"
+            LATEST_FLAG="--latest=false"
+          fi
+
+          REPO="imperium42/echophrase-releases"
+          if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
+            echo "Release ${TAG} already exists on ${REPO}; uploading asset (clobber)."
+            gh release upload "$TAG" "$ASSET_NAME" --repo "$REPO" --clobber
+          else
+            gh release create "$TAG" "$ASSET_NAME" \
+              --repo "$REPO" \
+              --title "Echophrase ${VERSION}" \
+              --notes "Echophrase ${VERSION} (macOS, Apple Silicon). See https://echophrase.com for details." \
+              $LATEST_FLAG $PRERELEASE_FLAG
+          fi
+
+      # Native retry (see Windows/Linux jobs) so a transient CrabNebula 408
+      # doesn't drop this platform from the published release.
+      - name: Upload to CrabNebula
+        id: cn_upload
+        continue-on-error: true
+        uses: crabnebula-dev/cloud-release@v0
+        with:
+          command: release upload ${{ env.CN_APPLICATION }} --framework tauri
+          api-key: ${{ secrets.CN_API_KEY }}
+          path: ./src-tauri/target/aarch64-apple-darwin/release/bundle
+      - name: Backoff before CrabNebula retry
+        if: steps.cn_upload.outcome == 'failure'
+        run: sleep 25
+      - name: Upload to CrabNebula (retry)
+        if: steps.cn_upload.outcome == 'failure'
+        uses: crabnebula-dev/cloud-release@v0
+        with:
+          command: release upload ${{ env.CN_APPLICATION }} --framework tauri
+          api-key: ${{ secrets.CN_API_KEY }}
+          path: ./src-tauri/target/aarch64-apple-darwin/release/bundle
+
+      # TRANSITION: also upload to the legacy beta + stable channels (see header).
+      - name: Upload to CrabNebula (legacy beta channel)
+        id: cn_upload_beta
+        continue-on-error: true
+        uses: crabnebula-dev/cloud-release@v0
+        with:
+          command: release upload ${{ env.CN_APPLICATION }} --framework tauri --channel beta
+          api-key: ${{ secrets.CN_API_KEY }}
+          path: ./src-tauri/target/aarch64-apple-darwin/release/bundle
+      - name: Backoff before CrabNebula beta retry
+        if: steps.cn_upload_beta.outcome == 'failure'
+        run: sleep 25
+      - name: Upload to CrabNebula (legacy beta channel, retry)
+        if: steps.cn_upload_beta.outcome == 'failure'
+        uses: crabnebula-dev/cloud-release@v0
+        with:
+          command: release upload ${{ env.CN_APPLICATION }} --framework tauri --channel beta
+          api-key: ${{ secrets.CN_API_KEY }}
+          path: ./src-tauri/target/aarch64-apple-darwin/release/bundle
+
+      - name: Upload to CrabNebula (legacy stable channel)
+        id: cn_upload_stable
+        continue-on-error: true
+        uses: crabnebula-dev/cloud-release@v0
+        with:
+          command: release upload ${{ env.CN_APPLICATION }} --framework tauri --channel stable
+          api-key: ${{ secrets.CN_API_KEY }}
+          path: ./src-tauri/target/aarch64-apple-darwin/release/bundle
+      - name: Backoff before CrabNebula stable retry
+        if: steps.cn_upload_stable.outcome == 'failure'
+        run: sleep 25
+      - name: Upload to CrabNebula (legacy stable channel, retry)
+        if: steps.cn_upload_stable.outcome == 'failure'
+        uses: crabnebula-dev/cloud-release@v0
+        with:
+          command: release upload ${{ env.CN_APPLICATION }} --framework tauri --channel stable
+          api-key: ${{ secrets.CN_API_KEY }}
+          path: ./src-tauri/target/aarch64-apple-darwin/release/bundle
+
+  # Bump the Homebrew cask (imperium42/homebrew-tap) to the version + sha256
+  # just published to imperium42/echophrase-releases. Runs for both beta and
+  # stable build flavors - the tap tracks every release since all releases now
+  # ship on the single CrabNebula stable channel. If beta-flavored builds
+  # should ever stop reaching Homebrew users, gate this on
+  # `needs.draft.outputs.channel == 'stable'`.
+  bump-cask:
+    needs: [draft, build-macos]
+    if: needs.build-macos.outputs.dmg_sha256 != ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout homebrew-tap
+        run: |
+          git clone "https://x-access-token:${RELEASES_REPO_TOKEN}@github.com/imperium42/homebrew-tap.git" homebrew-tap
+        env:
+          RELEASES_REPO_TOKEN: ${{ secrets.RELEASES_REPO_TOKEN }}
+
+      - name: Bump cask version + sha256
+        env:
+          VERSION: ${{ needs.build-macos.outputs.dmg_version }}
+          SHA256: ${{ needs.build-macos.outputs.dmg_sha256 }}
+        run: |
+          set -euo pipefail
+          CASK=homebrew-tap/Casks/echophrase.rb
+          sed -i "s/version \".*\"/version \"${VERSION}\"/" "$CASK"
+          sed -i "s/sha256 \".*\"/sha256 \"${SHA256}\"/" "$CASK"
+          echo "Updated ${CASK}:"
+          grep -E "version|sha256" "$CASK"
+
+      - name: Commit + push
+        env:
+          VERSION: ${{ needs.build-macos.outputs.dmg_version }}
+        run: |
+          cd homebrew-tap
+          git config user.name "echophrase-release-bot"
+          git config user.email "release-bot@echophrase.com"
+          if git diff --quiet; then
+            echo "No changes to commit (cask already at this version)."
+            exit 0
+          fi
+          git add Casks/echophrase.rb
+          git commit -m "echophrase ${VERSION}"
+          git push
+
+  # Publish release to appropriate channel
+  # Windows is the primary beta target (Linux/macOS are "Coming Soon" per
+  # the marketing site). publish SUCCEEDS-GATES on Windows only so a Linux or
+  # macOS flake cannot block the Windows installer from shipping, but it WAITS
+  # for every build job to finish first (`!cancelled()` lets it run after a
+  # failed sibling). Publishing while macOS was still building/failing left it
+  # unable to upload ("The release was already published") on rerun (v0.9.6).
+  publish:
+    needs: [draft, build-windows, build-linux, build-macos]
+    if: ${{ !cancelled() && needs.build-windows.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Publish release
+        uses: crabnebula-dev/cloud-release@v0
+        with:
+          command: release publish ${{ env.CN_APPLICATION }} --framework tauri
+          api-key: ${{ secrets.CN_API_KEY }}
+
+      # TRANSITION: also publish on the legacy beta + stable channels (see header).
+      - name: Publish release (legacy beta channel)
+        uses: crabnebula-dev/cloud-release@v0
+        with:
+          command: release publish ${{ env.CN_APPLICATION }} --framework tauri --channel beta
+          api-key: ${{ secrets.CN_API_KEY }}
+      - name: Publish release (legacy stable channel)
+        uses: crabnebula-dev/cloud-release@v0
+        with:
+          command: release publish ${{ env.CN_APPLICATION }} --framework tauri --channel stable
+          api-key: ${{ secrets.CN_API_KEY }}
+
+      - name: Summary
+        run: |
+          echo "## Release Published" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: ${{ needs.draft.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build flavor**: ${{ needs.draft.outputs.channel }} (CN default channel + legacy beta/stable)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Download (Windows NSIS)**: https://cdn.crabnebula.app/download/imperium42/echophrase/latest/platform/nsis-x86_64" >> $GITHUB_STEP_SUMMARY
+          echo "- **Download (macOS DMG, Apple Silicon)**: https://cdn.crabnebula.app/download/imperium42/echophrase/latest/platform/dmg-aarch64" >> $GITHUB_STEP_SUMMARY

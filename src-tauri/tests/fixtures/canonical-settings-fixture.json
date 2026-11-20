@@ -1,0 +1,23 @@
+{
+  "theme": "dark",
+  "ui_scale_x": 1.25,
+  "hotkey": "Ctrl+Shift+\"Space\"",
+  "always_null": null,
+  "output_to": "clipboard",
+  "nested": {
+    "z_last": true,
+    "a_first": 42,
+    "dropped": null,
+    "unicode": "café é中文",
+    "escapes": "tab\there\nnewline\\backslash"
+  },
+  "rules": [
+    { "b": 2, "a": 1 },
+    { "enabled": false, "name": "second" }
+  ],
+  "model": "whisper-large-v3",
+  "big_int": 9007199254740993,
+  "negative": -0.5,
+  "empty_obj": {},
+  "empty_arr": []
+}
