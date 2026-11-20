@@ -45,11 +45,9 @@ tokenizers = "0.22.1"
 # Shared audio core: sample math, WAV I/O, AudioSource (path/memory switch).
 echo-audio = { workspace = true, features = ["capture"] }
 anyhow = "1"
-thiserror = "2.0"
 hound = { workspace = true }
 byteorder = "1"
 image = { version = "0.25", default-features = false, features = ["png"] }
-hf-hub = "0.3"
 chrono = { version = "0.4.42", features = ["serde"] }
 uuid = { version = "1.11", features = ["v4", "serde"] }
 serde_yml = "0.0.12"  # Modern replacement for deprecated serde_yaml

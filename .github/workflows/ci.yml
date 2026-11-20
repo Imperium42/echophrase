@@ -51,11 +51,15 @@ jobs:
 
       - uses: actions-rust-lang/setup-rust-toolchain@v2
         with:
-          components: clippy
+          components: clippy, rustfmt
           # Clippy below already denies warnings; don't also inject -D warnings into test builds.
           build-warnings: warn
           # .cargo/config.toml pins the target dir to src-tauri/target.
           cache-workspaces: ". -> src-tauri/target"
+
+      - name: Format
+        if: runner.os == 'Linux'
+        run: cargo fmt --all --check
 
       - name: Clippy
         run: cargo clippy --workspace --all-targets --no-default-features -- -D warnings

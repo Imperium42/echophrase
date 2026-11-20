@@ -5,31 +5,6 @@
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
-/// Download status enum with proper serialization
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
-pub enum DownloadStatus {
-    Connecting,
-    Downloading,
-    VerifyingIntegrity,
-    Complete,
-    Error,
-    Cancelled,
-}
-
-impl fmt::Display for DownloadStatus {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Connecting => write!(f, "Connecting..."),
-            Self::Downloading => write!(f, "Downloading"),
-            Self::VerifyingIntegrity => write!(f, "Verifying integrity"),
-            Self::Complete => write!(f, "Complete"),
-            Self::Error => write!(f, "Error"),
-            Self::Cancelled => write!(f, "Cancelled"),
-        }
-    }
-}
-
 /// Audio quality levels
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
@@ -66,19 +41,6 @@ impl AudioQuality {
             Self::Ultra => 2,
         }
     }
-}
-
-/// Recording status states
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
-pub enum RecordingStatus {
-    Idle,
-    Initializing,
-    Recording,
-    Paused,
-    Processing,
-    Complete,
-    Error,
 }
 
 /// Error severity levels
@@ -158,36 +120,6 @@ impl fmt::Display for AppError {
 }
 
 impl std::error::Error for AppError {}
-
-/// Model download progress with proper types
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ModelDownloadProgress {
-    pub progress: u8, // 0-100
-    pub speed: String,
-    pub time_remaining: String,
-    pub time_elapsed: String,
-    pub status: DownloadStatus,
-}
-
-/// Audio configuration
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AudioConfig {
-    pub sample_rate: u32,
-    pub channels: u16,
-    pub bit_depth: u16,
-    pub quality: AudioQuality,
-}
-
-impl Default for AudioConfig {
-    fn default() -> Self {
-        Self {
-            sample_rate: 16000,
-            channels: 1,
-            bit_depth: 16,
-            quality: AudioQuality::Medium,
-        }
-    }
-}
 
 /// Audio normalization configuration for Whisper preprocessing
 ///

@@ -110,10 +110,10 @@ mod environment_tests {
         println!("\n📍 Platform:");
         if is_windows_native() {
             println!("   ✅ Native Windows detected");
-            assert!(cfg!(target_os = "windows"));
+            assert_eq!(std::env::consts::OS, "windows");
         } else if is_wsl() {
             println!("   ✅ WSL environment detected");
-            assert!(cfg!(target_os = "linux"));
+            assert_eq!(std::env::consts::OS, "linux");
 
             // Additional WSL checks
             if let Ok(distro) = env::var("WSL_DISTRO_NAME") {
@@ -128,7 +128,7 @@ mod environment_tests {
             }
         } else {
             println!("   ✅ Native Linux detected");
-            assert!(cfg!(target_os = "linux"));
+            assert_eq!(std::env::consts::OS, "linux");
         }
 
         // CUDA detection

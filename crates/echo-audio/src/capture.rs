@@ -253,8 +253,8 @@ fn run_parec_capture(
 fn drain_f32le(carry: &mut Vec<u8>, incoming: &[u8], out: &mut Vec<f32>) {
     carry.extend_from_slice(incoming);
     let full = carry.len() - (carry.len() % 4);
-    for frame in carry[..full].chunks_exact(4) {
-        out.push(f32::from_le_bytes([frame[0], frame[1], frame[2], frame[3]]));
+    for frame in carry[..full].as_chunks::<4>().0 {
+        out.push(f32::from_le_bytes(*frame));
     }
     carry.drain(..full);
 }

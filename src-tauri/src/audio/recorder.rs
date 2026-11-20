@@ -507,7 +507,7 @@ fn run_open_mic_loop(
             let is_speech = probability >= rec.vad_threshold;
 
             // Log every ~1s (62 frames at 16ms each) + all speech detections.
-            if OPEN_MIC_DEBUG && (debug_frame_count % 62 == 0 || is_speech) {
+            if OPEN_MIC_DEBUG && (debug_frame_count.is_multiple_of(62) || is_speech) {
                 log::debug!(
                     "[OpenMic] frame={} prob={:.3} rms={:.5} peak={:.4} speech={} state={:?}",
                     debug_frame_count,

@@ -36,7 +36,8 @@ fn whisper_medium_snapshot() -> Result<std::path::PathBuf> {
 fn test_minimal_candle_whisper() -> Result<()> {
     println!("\n🧪 MINIMAL Candle Whisper Test (EXACT Official Decoder)");
 
-    let audio_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/audio/test-1-2.wav");
+    let audio_path =
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/audio/test-1-2.wav");
     let audio_path = audio_path.display().to_string();
     println!("🎤 Audio: {}", audio_path);
 
