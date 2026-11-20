@@ -126,6 +126,8 @@ mod environment_tests {
             } else {
                 println!("   ⚠️  WSL GPU passthrough: Not configured");
             }
+        } else if cfg!(target_os = "macos") {
+            println!("   ✅ macOS detected");
         } else {
             println!("   ✅ Native Linux detected");
             assert_eq!(std::env::consts::OS, "linux");

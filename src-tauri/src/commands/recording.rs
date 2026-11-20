@@ -432,6 +432,21 @@ pub fn open_url(url: String) -> Result<(), String> {
 /// current_dir("/mnt/c") avoids the UNC path error (\\wsl.localhost\...) that
 /// kills cmd.exe when CWD is inside the WSL filesystem.
 /// Falls back to rundll32 FileProtocolHandler if cmd.exe fails.
+/// Escape cmd.exe metacharacters with `^` so a URL passes through `cmd /c start` literally.
+///
+/// `^` itself MUST be escaped first: otherwise `^&` in the input becomes `^^&`, which cmd
+/// reads as a literal `^` followed by a live `&` (command injection).
+fn escape_cmd_metachars(url: &str) -> String {
+    let mut out = String::with_capacity(url.len() * 2);
+    for c in url.chars() {
+        if matches!(c, '^' | '&' | '|' | '<' | '>' | '%' | '"' | '(' | ')') {
+            out.push('^');
+        }
+        out.push(c);
+    }
+    out
+}
+
 #[tauri::command]
 pub async fn open_url_wsl(url: String) -> Result<(), String> {
     use std::process::Command;
@@ -439,12 +454,7 @@ pub async fn open_url_wsl(url: String) -> Result<(), String> {
     validate_url_scheme(&url)?;
     log::info!("Opening URL in Windows browser (WSL): {}", url);
 
-    // Escape cmd.exe metacharacters with ^ so they pass through literally
-    let escaped = url
-        .replace('&', "^&")
-        .replace('|', "^|")
-        .replace('<', "^<")
-        .replace('>', "^>");
+    let escaped = escape_cmd_metachars(&url);
 
     let status = Command::new("cmd.exe")
         .arg("/c")
@@ -595,6 +605,23 @@ pub fn check_ort_available() -> bool {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn escape_cmd_metachars_blocks_caret_injection() {
+        // A pre-escaped `^&` must not turn into a live `&`.
+        assert_eq!(
+            super::escape_cmd_metachars("https://x/^&calc.exe"),
+            "https://x/^^^&calc.exe"
+        );
+        assert_eq!(
+            super::escape_cmd_metachars("https://a.com/?q=1&r=%PATH%"),
+            "https://a.com/?q=1^&r=^%PATH^%"
+        );
+        assert_eq!(
+            super::escape_cmd_metachars("https://plain.com/x"),
+            "https://plain.com/x"
+        );
+    }
+
     use super::*;
 
     #[test]

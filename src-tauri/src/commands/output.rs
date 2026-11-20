@@ -417,8 +417,8 @@ pub async fn open_directory(path: String) -> Result<(), String> {
     use std::process::Command;
 
     let dir = std::path::Path::new(&path);
-    if !dir.exists() {
-        return Err(format!("Directory does not exist: {}", path));
+    if !dir.is_dir() {
+        return Err(format!("Not a directory: {}", path));
     }
 
     #[cfg(target_os = "windows")]
