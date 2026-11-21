@@ -277,6 +277,12 @@ fn open_stream(
 
     let err_events = events;
     let err_fn = move |e: cpal::Error| {
+        if is_recoverable_stream_error(e.kind()) {
+            // The stream keeps running; killing the recording over a glitch
+            // made stop fail with "Not recording" (cpal 0.18 reports Xrun).
+            eprintln!("[echo-audio] recoverable audio stream error (ignored): {e}");
+            return;
+        }
         let _ = err_events.send(CaptureEvent::Error(format!("audio stream error: {e}")));
     };
 
@@ -332,6 +338,16 @@ fn open_input_device(name: Option<&str>) -> Result<cpal::Device> {
 
 /// Build an input stream for sample type `T`: each callback downmixes the
 /// interleaved frames to mono f32 (via `convert`) and feeds the chunker.
+/// Stream errors after which cpal keeps the stream alive: a buffer glitch,
+/// an automatic reroute, or a refused realtime promotion. Everything else
+/// means the session is dead.
+fn is_recoverable_stream_error(kind: cpal::ErrorKind) -> bool {
+    matches!(
+        kind,
+        cpal::ErrorKind::Xrun | cpal::ErrorKind::DeviceChanged | cpal::ErrorKind::RealtimeDenied
+    )
+}
+
 fn build_stream_for_format<T>(
     device: &cpal::Device,
     config: &cpal::StreamConfig,
@@ -497,5 +513,19 @@ mod tests {
             })
             .sum();
         assert!((399..=400).contains(&total), "total {total}");
+    }
+
+    #[test]
+    fn glitch_errors_do_not_kill_the_session() {
+        assert!(is_recoverable_stream_error(cpal::ErrorKind::Xrun));
+        assert!(is_recoverable_stream_error(cpal::ErrorKind::DeviceChanged));
+        assert!(is_recoverable_stream_error(cpal::ErrorKind::RealtimeDenied));
+        assert!(!is_recoverable_stream_error(
+            cpal::ErrorKind::DeviceNotAvailable
+        ));
+        assert!(!is_recoverable_stream_error(
+            cpal::ErrorKind::StreamInvalidated
+        ));
+        assert!(!is_recoverable_stream_error(cpal::ErrorKind::BackendError));
     }
 }
