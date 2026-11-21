@@ -63,7 +63,10 @@ jobs:
             Write-Host "::error::WINGET_PAT not configured."
             exit 1
           }
-          Invoke-WebRequest -Uri https://aka.ms/wingetcreate/latest -OutFile wingetcreate.exe
+          # Pinned release + hash (keep in sync with release.yml).
+          Invoke-WebRequest -Uri https://github.com/microsoft/winget-create/releases/download/v1.28.1.0/wingetcreate.exe -OutFile wingetcreate.exe
+          $got = (Get-FileHash wingetcreate.exe -Algorithm SHA256).Hash.ToLower()
+          if ($got -ne "63d980ba79e97042395bd6eb5992c2db9e01e9e7a8a22958a95c288f27310413") { throw "wingetcreate sha256 mismatch: $got" }
           $installerUrl = "https://github.com/imperium42/echophrase-releases/releases/download/v$env:VERSION/Echophrase_${env:VERSION}_x64-setup.exe"
           Write-Host "Submitting Imperium42.Echophrase $env:WINGET_VERSION ($installerUrl)"
           # --display-version is REQUIRED: without it wingetcreate copies the previous

@@ -101,7 +101,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
       - name: Install dependencies
-        run: bun install
+        run: bun install --frozen-lockfile
       - name: Svelte type check
         run: bun run check
 
@@ -214,7 +214,7 @@ jobs:
         uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
 
       - name: Install dependencies
-        run: bun install
+        run: bun install --frozen-lockfile
 
       # Download ONNX Runtime DirectML + sibling DLLs for bundling with installer.
       # Path MUST match what `select_ort_runtime()` probes
@@ -228,6 +228,9 @@ jobs:
         run: |
           $ORT_VERSION = "1.24.2"
           $DML_VERSION = "1.15.2"
+          # Pinned nupkg hashes: bump together with the versions above.
+          $ORT_SHA256 = "c9b8adb96dfb5578097bea42a7d9b7ff8f300fb3c3a6f3052fe5b702628ab681"
+          $DML_SHA256 = "9f07482559087088a4dba4ae76eeeee1fad3f7077a92ccfbdb439c6bc2964c09"
           $ORT_URL = "https://www.nuget.org/api/v2/package/Microsoft.ML.OnnxRuntime.DirectML/$ORT_VERSION"
           $DML_URL  = "https://www.nuget.org/api/v2/package/Microsoft.AI.DirectML/$DML_VERSION"
           $ORT_DIR = "src-tauri/resources/ort/directml"
@@ -235,6 +238,8 @@ jobs:
 
           # ORT (onnxruntime.dll + onnxruntime_providers_shared.dll)
           Invoke-WebRequest -Uri $ORT_URL -OutFile "$ORT_DIR/ort.zip"
+          $got = (Get-FileHash "$ORT_DIR/ort.zip" -Algorithm SHA256).Hash.ToLower()
+          if ($got -ne $ORT_SHA256) { throw "ORT nupkg sha256 mismatch: $got" }
           Expand-Archive -Path "$ORT_DIR/ort.zip" -DestinationPath "$ORT_DIR/extracted" -Force
           Copy-Item "$ORT_DIR/extracted/runtimes/win-x64/native/onnxruntime.dll" "$ORT_DIR/onnxruntime.dll"
           Copy-Item "$ORT_DIR/extracted/runtimes/win-x64/native/onnxruntime_providers_shared.dll" "$ORT_DIR/onnxruntime_providers_shared.dll"
@@ -242,6 +247,8 @@ jobs:
 
           # DirectML.dll itself (avoid System32 version drift on older Windows)
           Invoke-WebRequest -Uri $DML_URL -OutFile "$ORT_DIR/dml.zip"
+          $got = (Get-FileHash "$ORT_DIR/dml.zip" -Algorithm SHA256).Hash.ToLower()
+          if ($got -ne $DML_SHA256) { throw "DirectML nupkg sha256 mismatch: $got" }
           Expand-Archive -Path "$ORT_DIR/dml.zip" -DestinationPath "$ORT_DIR/dml-extracted" -Force
           Copy-Item "$ORT_DIR/dml-extracted/bin/x64-win/DirectML.dll" "$ORT_DIR/DirectML.dll"
           Remove-Item -Recurse -Force "$ORT_DIR/dml-extracted", "$ORT_DIR/dml.zip"
@@ -492,7 +499,10 @@ jobs:
             Write-Host "::warning::WINGET_PAT not configured; skipping winget manifest submission."
             exit 0
           }
-          Invoke-WebRequest -Uri https://aka.ms/wingetcreate/latest -OutFile wingetcreate.exe
+          # Pinned release + hash (was aka.ms/wingetcreate/latest). Bump both together.
+          Invoke-WebRequest -Uri https://github.com/microsoft/winget-create/releases/download/v1.28.1.0/wingetcreate.exe -OutFile wingetcreate.exe
+          $got = (Get-FileHash wingetcreate.exe -Algorithm SHA256).Hash.ToLower()
+          if ($got -ne "63d980ba79e97042395bd6eb5992c2db9e01e9e7a8a22958a95c288f27310413") { throw "wingetcreate sha256 mismatch: $got" }
           $installerUrl = "https://github.com/imperium42/echophrase-releases/releases/download/$env:TAG/Echophrase_${env:VERSION}_x64-setup.exe"
           Write-Host "Submitting Imperium42.Echophrase $env:WINGET_VERSION ($installerUrl)"
           # --display-version is REQUIRED: without it wingetcreate copies the previous
@@ -604,12 +614,13 @@ jobs:
           cache-workspaces: "src-tauri -> target"
 
       - name: Install dependencies
-        run: bun install
+        run: bun install --frozen-lockfile
 
       # Download ONNX Runtime for bundling with installer
       - name: Download ONNX Runtime
         run: |
           ORT_VERSION="1.23.2"
+          ORT_SHA256="25fe172f7fcdf34f2b5b02c8b997f6b88abc282956849d4af4335af23d0c4e4a"  # bump with the version
           # NuGet, not GitHub releases: github.com/microsoft/onnxruntime went 404 on
           # 2026-11-20 and broke the v0.9.8 Linux + macOS builds. NuGet is the same
           # source the Windows leg already uses. `-f` so a bad URL fails loudly
@@ -618,6 +629,7 @@ jobs:
           ORT_DIR="src-tauri/resources/onnxruntime"
           mkdir -p "$ORT_DIR"
           curl -fsSL -o /tmp/ort.nupkg "$ORT_URL"
+          echo "${ORT_SHA256}  /tmp/ort.nupkg" | sha256sum -c -
           unzip -p /tmp/ort.nupkg runtimes/linux-x64/native/libonnxruntime.so > "$ORT_DIR/libonnxruntime.so"
           echo "Bundled ONNX Runtime $ORT_VERSION ($(du -h $ORT_DIR/libonnxruntime.so | cut -f1))"
 
@@ -664,7 +676,7 @@ jobs:
           cache-workspaces: "src-tauri -> target"
 
       - name: Install dependencies
-        run: bun install
+        run: bun install --frozen-lockfile
 
       # Apple Developer ID signing setup. Imports the .p12 cert into an
       # ephemeral CI keychain so codesign can find the identity during
@@ -737,11 +749,13 @@ jobs:
       - name: Download ONNX Runtime (macOS CoreML)
         run: |
           ORT_VERSION="1.24.4"
+          ORT_SHA256="4b978d5065b85e7004b6c6f60ca494bd978fbe6836cbf0a0b52d82b61ab99638"  # bump with the version
           # NuGet, not GitHub releases (see the Linux step: GitHub repo went 404).
           ORT_URL="https://www.nuget.org/api/v2/package/Microsoft.ML.OnnxRuntime/${ORT_VERSION}"
           ORT_DIR="src-tauri/macos-frameworks"
           mkdir -p "$ORT_DIR"
           curl -fsSL -o /tmp/ort.nupkg "$ORT_URL"
+          echo "${ORT_SHA256}  /tmp/ort.nupkg" | shasum -a 256 -c -
           unzip -p /tmp/ort.nupkg runtimes/osx-arm64/native/libonnxruntime.dylib > "$ORT_DIR/libonnxruntime.dylib"
           echo "Bundled ONNX Runtime $ORT_VERSION ($(du -h $ORT_DIR/libonnxruntime.dylib | cut -f1))"
           # Also set ORT_DYLIB_PATH for the Rust build so ort crate resolves the dylib.

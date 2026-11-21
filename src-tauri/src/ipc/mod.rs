@@ -153,13 +153,28 @@ fn write_fresh_token() -> io::Result<String> {
     let token = hex::encode(bytes);
 
     let path = paths::ipc_token_file();
-    std::fs::write(&path, &token)?;
 
     #[cfg(unix)]
     {
-        use std::os::unix::fs::PermissionsExt;
-        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600))?;
+        use std::io::Write;
+        use std::os::unix::fs::OpenOptionsExt;
+        // Remove any old file first: `mode` only applies when the file is
+        // created, so this keeps the token owner-only from the first byte
+        // (no window where it is readable before a chmod).
+        match std::fs::remove_file(&path) {
+            Ok(()) => {}
+            Err(e) if e.kind() == io::ErrorKind::NotFound => {}
+            Err(e) => return Err(e),
+        }
+        let mut file = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .mode(0o600)
+            .open(&path)?;
+        file.write_all(token.as_bytes())?;
     }
+    #[cfg(not(unix))]
+    std::fs::write(&path, &token)?;
 
     Ok(token)
 }

@@ -81,7 +81,11 @@ export function generateTemplatePreview(template: string): string {
 
 /** Apply syntax highlighting to a JSON string (returns HTML) */
 export function highlightJSON(json: string): string {
-  let highlighted = json.replace(/\{\{(\w+)\}\}/g, '<<<TEMPLATE_$1>>>');
+  // The result is rendered with {@html}, so escape markup characters first.
+  // Quotes stay as-is: they're harmless in element content and the regexes
+  // below key off them.
+  let highlighted = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  highlighted = highlighted.replace(/\{\{(\w+)\}\}/g, '\u0000TEMPLATE_$1\u0000');
   highlighted = highlighted
     .replace(/("(?:[^"\\]|\\.)*")\s*:/g, '<span class="json-key">$1</span>:')
     .replace(/:\s*("(?:[^"\\]|\\.)*")/g, ': <span class="json-string">$1</span>')
@@ -89,7 +93,7 @@ export function highlightJSON(json: string): string {
     .replace(/:\s*(true|false|null)/g, ': <span class="json-boolean">$1</span>')
     .replace(/([{}[\],])/g, '<span class="json-punctuation">$1</span>');
   highlighted = highlighted.replace(
-    /<<<TEMPLATE_(\w+)>>>/g,
+    /\u0000TEMPLATE_(\w+)\u0000/g,
     '<span class="json-template">{<!-- -->{$1}<!-- -->}</span>'
   );
   return highlighted;

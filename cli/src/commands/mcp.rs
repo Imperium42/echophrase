@@ -20,7 +20,7 @@ use rmcp::{
         router::tool::ToolRouter,
         wrapper::{Json, Parameters},
     },
-    model::{Implementation, ServerCapabilities, ServerInfo},
+    model::{Implementation, ServerCapabilities, ServerConfig},
     tool, tool_handler, tool_router,
 };
 use schemars::JsonSchema;
@@ -67,7 +67,8 @@ struct TranscodeInput {
     /// Source WAV file to convert.
     input: PathBuf,
     /// Where to write the 16 kHz mono WAV. Defaults to a sibling of `input`
-    /// named `<input>.16k.wav`.
+    /// named `<input>.16k.wav`. An explicit path must end in `.wav` and must
+    /// not already exist.
     output: Option<PathBuf>,
     /// Peak-normalize the output. Defaults to true.
     #[serde(default = "default_true")]
@@ -139,6 +140,9 @@ impl McpServer {
         &self,
         Parameters(input): Parameters<TranscodeInput>,
     ) -> Result<Json<ops::TranscodeResult>, McpError> {
+        if let Some(output) = &input.output {
+            check_mcp_output_path(output).map_err(to_mcp_error)?;
+        }
         ops::transcode(&input.input, input.output, input.normalize)
             .map(Json)
             .map_err(to_mcp_error)
@@ -165,8 +169,8 @@ impl McpServer {
 
 #[tool_handler]
 impl ServerHandler for McpServer {
-    fn get_info(&self) -> ServerInfo {
-        let mut info = ServerInfo::default()
+    fn get_info(&self) -> ServerConfig {
+        let mut info = ServerConfig::default()
             .with_server_info(Implementation::new("echophrase", env!("CARGO_PKG_VERSION")));
         info.capabilities = ServerCapabilities::builder().enable_tools().build();
         info.instructions = Some(
@@ -182,6 +186,43 @@ impl ServerHandler for McpServer {
 
 /// Map an `anyhow::Error` from the ops layer to an MCP internal error,
 /// preserving the message so the agent sees why the tool call failed.
+/// Guard for agent-supplied output paths. MCP callers are AI agents that can
+/// be prompt-injected, so an explicit `transcode` output may only create a new
+/// `.wav` file, never overwrite an existing one. The CLI command is unaffected.
+fn check_mcp_output_path(output: &std::path::Path) -> anyhow::Result<()> {
+    let is_wav = output
+        .extension()
+        .is_some_and(|ext| ext.eq_ignore_ascii_case("wav"));
+    if !is_wav {
+        anyhow::bail!("output must be a .wav file: {}", output.display());
+    }
+    if output.exists() {
+        anyhow::bail!(
+            "output already exists (refusing to overwrite): {}",
+            output.display()
+        );
+    }
+    Ok(())
+}
+
 fn to_mcp_error(err: anyhow::Error) -> McpError {
     McpError::internal_error(err.to_string(), None)
+}
+
+#[cfg(test)]
+mod output_path_tests {
+    use super::check_mcp_output_path;
+
+    #[test]
+    fn rejects_non_wav_and_existing_outputs() {
+        let dir = tempfile::TempDir::new().unwrap();
+        assert!(check_mcp_output_path(&dir.path().join("x.txt")).is_err());
+        assert!(check_mcp_output_path(&dir.path().join("x")).is_err());
+
+        let existing = dir.path().join("taken.wav");
+        std::fs::write(&existing, b"x").unwrap();
+        assert!(check_mcp_output_path(&existing).is_err());
+
+        assert!(check_mcp_output_path(&dir.path().join("new.WAV")).is_ok());
+    }
 }
