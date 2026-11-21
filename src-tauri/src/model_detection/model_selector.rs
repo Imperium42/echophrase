@@ -125,7 +125,7 @@ pub struct ModelSelection {
 ///
 /// When ONNX Runtime is available (all platforms except macOS < 13.3), Parakeet is
 /// preferred because it supports 25 European languages with auto-detection and
-/// runs on any GPU via DirectML (Windows) or CUDA (Linux/Windows with addon).
+/// runs on any GPU via DirectML (Windows) or CoreML (macOS), and on CPU elsewhere.
 /// Falls back to Candle/Whisper models when ORT is unavailable.
 ///
 /// Selection priority with ORT available:

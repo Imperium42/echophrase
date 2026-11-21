@@ -7,9 +7,8 @@
 //! Every exit path in the app funnels through [`force_exit`]. This exists
 //! because graceful Rust/libc shutdown deadlocks on Linux in this app:
 //!
-//! - `ort` CUDA EP atexit handlers call `dlclose()` on `libcublas`, whose
-//!   own static destructors race with the CUDA driver shutdown
-//!   (onnxruntime#21207, NVIDIA forum guidance is to use `_exit` directly).
+//! - `ort` / ONNX Runtime atexit handlers can deadlock during `dlclose()` of
+//!   provider libraries (onnxruntime#21207).
 //! - `webkit2gtk` can block on GTK main-loop teardown when a window was
 //!   never fully realised.
 //! - `tauri-plugin-updater` may still be holding a `reqwest` request when
@@ -66,7 +65,7 @@ pub fn force_exit(code: i32) -> ! {
     #[cfg(target_os = "macos")]
     crate::macos_dictation::revert_remap();
     log::info!(
-        "force_exit({}) - bypassing atexit to avoid CUDA/ORT teardown deadlock",
+        "force_exit({}) - bypassing atexit to avoid ORT teardown deadlock",
         code
     );
 

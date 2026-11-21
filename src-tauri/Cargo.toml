@@ -60,7 +60,7 @@ enigo = "0.3"  # Keyboard simulation for paste at cursor
 sys-locale = "0.3"  # Cross-platform OS locale detection (by 1Password)
 parking_lot = "0.12"  # Non-poisoning mutex for panic recovery
 tauri-plugin-dialog = "2.7.1"  # File save dialog
-libc = "0.2"  # For _exit() - bypasses atexit handlers that deadlock on CUDA/ORT teardown
+libc = "0.2"  # For _exit() - bypasses atexit handlers that deadlock on ORT teardown
 ctrlc = "3.5"  # SIGINT/SIGTERM handler so terminal Ctrl+C kills the GUI child cleanly
 fs4 = "1"  # Cross-platform advisory file locks (single-instance fallback when D-Bus absent on WSL). Maintained successor to fs2.
 # Voice Activity Detection: Silero VAD implemented directly with ort (no external crate)
@@ -72,16 +72,15 @@ ndarray = "0.17"
 rustfft = "6"
 # Simplified <-> Traditional Chinese conversion (OpenCC lexicons, embedded dicts, no runtime I/O)
 opencc-fmmseg = "0.11"
-libloading = "0.9.0"
-glob = "0.3.3"
 tauri-plugin-notification = "2.3.3"
 axum = { version = "0.8.9", default-features = false, features = ["json", "tokio", "http1"] }
 dunce = "1.0.5"
 # REMOVED: tauri-plugin-opener - uses cmd.exe internally on Windows
 
 # Candle + ONNX Runtime: platform-specific GPU acceleration
-# macOS: Metal GPU (or CPU fallback) - no CUDA
-# Linux/Windows: CPU default, CUDA+cuDNN opt-in via --features cuda
+# macOS: Metal GPU (or CPU fallback)
+# Windows: ONNX Runtime uses DirectML; Candle runs on CPU
+# Linux/WSL: CPU only. There is no CUDA support (see docs/gpu-and-cuda.md).
 [target.'cfg(not(target_os = "macos"))'.dependencies]
 candle-core = { version = "0.9.2" }
 candle-nn = { version = "0.9.2" }
@@ -89,7 +88,7 @@ candle-transformers = { version = "0.9.2" }
 # ONNX Runtime: load-dynamic loads onnxruntime.dll at runtime via C API,
 # avoiding MSVC STL ABI coupling from static linking (pykeio/ort#361).
 # Set ORT_DYLIB_PATH to the directory containing onnxruntime.dll.
-ort = { version = "2.0.0-rc.12", features = ["cuda", "directml", "load-dynamic", "preload-dylibs", "ndarray"] }
+ort = { version = "2.0.0-rc.12", features = ["directml", "load-dynamic", "preload-dylibs", "ndarray"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 candle-core = { version = "0.9.2", features = ["metal"] }
@@ -130,18 +129,11 @@ nvml-wrapper = "0.12"
 tray-icon = "0.24"
 windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging", "Win32_System_LibraryLoader", "Win32_System_Diagnostics_Debug", "Win32_System_Threading"] }
 parakeet-rs = { version = "0.3.4", default-features = false, features = ["directml", "load-dynamic", "preload-dylibs"] }
-# CUDA ORT plugin downloader: extracts only the 3 DLLs we need from the GitHub GPU zip.
-# Windows-only since the plugin itself is Windows-only (Linux bundles CUDA ORT at build time,
-# macOS uses CoreML).
-zip = { version = "2", default-features = false, features = ["deflate"] }
 
 [features]
 default = []
 # Enable devtools in release builds (for staging). Production builds omit this.
 devtools = ["tauri/devtools"]
-# CUDA + cuDNN support for Candle backend (requires CUDA 12.0+ and cuDNN 9.5+ installed)
-# Without this, Candle falls back to CPU; ONNX Runtime still uses DirectML via load-dynamic
-cuda = ["candle-core/cuda", "candle-core/cudnn", "candle-nn/cuda", "candle-nn/cudnn", "candle-transformers/cuda", "candle-transformers/cudnn"]
 # Official builds: Aptabase telemetry; CI enables it (needs APTABASE_APP_KEY at build time).
 official = []
 

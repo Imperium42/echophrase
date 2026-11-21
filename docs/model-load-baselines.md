@@ -43,7 +43,7 @@ Implications:
 
 1. Run the app (`bun run tauri:dev`) and watch the `[ONNX timing]` log lines, or
    tail `../logs/Echophrase.log`.
-2. Note: model id, execution provider (DirectML/CUDA/CoreML), GPU, and whether
+2. Note: model id, execution provider (DirectML/CoreML), GPU, and whether
    the shader cache was warm (a prior run on this machine+GPU) or cold.
 3. Add a row to the table above. Keep warm and cold rows distinct - never
    collapse them into one "average."

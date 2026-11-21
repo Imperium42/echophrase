@@ -12,9 +12,8 @@ SPDX-License-Identifier: MPL-2.0
    * Stays on the main screen - not a separate wizard.
    *
    * Note: as of the ort 2.0.0-rc.12 upgrade, GPU acceleration is auto-detected
-   * by ort's `with_auto_device(MaxPerformance)` at session creation time. The
-   * old "set up CUDA" step (and the CudaSetupModal it opened) was deleted -
-   * users no longer need to manually point at libcudart.so / cuDNN paths.
+   * by ort's `with_auto_device(MaxPerformance)` at session creation time, so
+   * there is no GPU setup step.
    */
 
   import { onMount, onDestroy } from 'svelte';

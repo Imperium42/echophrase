@@ -36,8 +36,7 @@ const ORT_DIR = join(REPO_ROOT, '.ort');
 
 // Per-platform install specs. Windows is intentionally omitted:
 //   - Prod: DirectML runtime is bundled into the installer (~15MB).
-//   - Dev:  Run `scripts/win/dev.ps1` which handles its own staging, OR let the
-//           user opt-in to CUDA via Settings > GPU (src-tauri/src/ort_plugin/).
+//   - Dev:  Run `scripts/win/dev.ps1` which handles its own staging.
 //
 // Source is the Microsoft.ML.OnnxRuntime NuGet package (same source the release
 // workflow uses), NOT github.com/microsoft/onnxruntime releases: that repo went

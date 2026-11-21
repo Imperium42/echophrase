@@ -14,7 +14,7 @@
 //
 // Modified for integration with Echophrase by adding:
 // - Async API wrappers
-// - CUDA device caching
+// - Device caching (Metal on macOS, CPU elsewhere)
 // - Model path resolution from HuggingFace cache
 // - Audio file I/O utilities
 
@@ -665,26 +665,8 @@ static CACHED_DEVICE: LazyLock<Result<Device, anyhow::Error>> = LazyLock::new(||
     }
     #[cfg(not(target_os = "macos"))]
     {
-        #[cfg(feature = "cuda")]
-        {
-            match Device::new_cuda(0) {
-                Ok(device) => {
-                    log::debug!("🎮 CUDA device initialized for Candle");
-                    log::info!("🎮 CUDA device initialized for Candle backend");
-                    Ok(device)
-                }
-                Err(e) => {
-                    log::warn!("❌ Failed to initialize CUDA device: {}", e);
-                    log::error!("❌ CUDA device initialization failed: {}", e);
-                    Err(anyhow!("CUDA device initialization failed: {}", e))
-                }
-            }
-        }
-        #[cfg(not(feature = "cuda"))]
-        {
-            log::info!("Candle using CPU (build without --features cuda)");
-            Ok(Device::Cpu)
-        }
+        log::info!("Candle using CPU");
+        Ok(Device::Cpu)
     }
 });
 
@@ -919,7 +901,7 @@ pub async fn transcribe_audio_buffer_with_preview(
 /// 1. The model configured in AppSettings (user selection or auto-detected)
 /// 2. Any cached Candle model in platform-aware fallback order:
 ///    - macOS (CPU): lightest first to avoid OOM
-///    - Other (CUDA): heaviest first for best quality
+///    - Other: heaviest first for best quality
 fn get_model_path_sync() -> Result<PathBuf> {
     use crate::models::utils::get_model_snapshot_dir;
     use crate::models::{ModelBackend, get_model_info};
@@ -995,9 +977,9 @@ fn get_hf_cache_dir() -> Result<PathBuf> {
     Ok(cache_path)
 }
 
-/// Load Whisper model with CUDA support
+/// Load Whisper model onto the given device
 fn load_whisper_model(model_path: &Path, device: &Device) -> Result<(Model, Tokenizer, Config)> {
-    log::debug!("🔧 [Candle] Loading Whisper model with CUDA...");
+    log::debug!("🔧 [Candle] Loading Whisper model...");
 
     let config_file = model_path.join("config.json");
     let tokenizer_file = model_path.join("tokenizer.json");
@@ -1104,7 +1086,7 @@ use super::TranscriptionBackend;
 /// Candle transcription backend implementation
 ///
 /// Pure Rust implementation using HuggingFace Candle framework.
-/// Supports CUDA acceleration with GGUF quantized models and safetensors.
+/// Supports Metal acceleration on macOS (CPU elsewhere) with GGUF quantized models and safetensors.
 ///
 /// **Advantages:**
 /// - Pure Rust - no C++ FFI issues

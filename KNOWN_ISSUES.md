@@ -17,8 +17,6 @@ real cause, where the workaround lives, and what would let us drop it.
 | [WSLg render tearing](#wslg-dma-buf-renderer-tearing) | Linux/WSL | Environment workaround |
 | [ORT static linking ABI](#ort-msvc-stl-abi-coupling-when-statically-linked) | Transcription | Resolved by load-dynamic |
 | [Parakeet TDT drops sentences](#parakeet-tdt-collapses-tokens-without-timestampmodewords) | Transcription | Workaround required |
-| [No ORT CUDA 13 Windows build](#no-onnx-runtime-cuda-13-windows-gpu-prebuild) | GPU | Blocked upstream |
-| [CUDA EP preload fails on Linux](#ort-cuda-provider-preload-cannot-work-on-linux) | GPU | Won't fix (by design) |
 | [cpal pulls a conflicting windows-core](#cpal-can-resolve-a-conflicting-windows-core) | Windows build | Held by Cargo.lock only |
 
 ---
@@ -106,50 +104,6 @@ tokens.
 
 **Enforced by:** `src-tauri/src/transcription/onnx_backend.rs:374` (comment) and
 `:380` (the call). Nothing fails if you drop it, so leave the comment in place.
-
----
-
-## No ONNX Runtime CUDA 13 Windows GPU prebuild
-
-**Upstream:** [onnxruntime#26238](https://github.com/microsoft/onnxruntime/issues/26238),
-[discussion#26586](https://github.com/microsoft/onnxruntime/discussions/26586),
-[onnxruntime#27944](https://github.com/microsoft/onnxruntime/issues/27944)
-
-**Symptom.** The Windows CUDA plugin cannot load for most users.
-
-**Cause.** Microsoft's stable ORT 1.24.x Windows GPU build is compiled against
-the CUDA 12 runtime and hardcodes `cudart64_12.dll` / `cublas64_12.dll` as PE
-imports. Most NVIDIA users are on CUDA 13, which RTX 50-series Blackwell
-(`sm_120`) requires. Bundling the CUDA 12 runtime does not fix Blackwell, since
-that build lacks `sm_120` kernels.
-
-**Status.** The plugin is disabled everywhere as of 2026-04-15. Windows uses
-DirectML, which covers NVIDIA, AMD, Intel and Qualcomm with no extra install.
-
-**Enforced by:** `src/lib/config/featureFlags.ts`, which also carries the
-migration checklist for when ORT 1.25 stable ships.
-
----
-
-## ORT CUDA provider preload cannot work on Linux
-
-**Not an upstream bug** - a consequence of how ELF symbol scoping works. Recorded
-here because the failure looks alarming and invites a wrong fix.
-
-**Symptom.** `[ORT preload] failed for libonnxruntime_providers_cuda.so:
-undefined symbol: Provider_GetHost` on every launch.
-
-**Cause.** `ort::util::preload_dylib` opens with `RTLD_LOCAL`, so
-`libonnxruntime_providers_shared.so`'s symbols stay out of the global namespace.
-`providers_cuda.so` does not name `providers_shared` in its `DT_NEEDED` - it
-expects those symbols to already be globally visible. Linux only: Windows PE
-imports name their source DLL, and macOS ships no CUDA provider.
-
-**Workaround.** The Linux preload list omits `providers_cuda`. Nothing is lost:
-ORT loads the CUDA EP itself at session creation via `with_auto_device`.
-
-**Enforced by:** `src-tauri/src/setup/ort_runtime.rs` (see the `TODO(cuda-linux)`
-comment on the Linux `next_to_ort` list).
 
 ---
 

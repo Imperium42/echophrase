@@ -38,24 +38,6 @@ fn nvml() -> Option<&'static Nvml> {
         .as_ref()
 }
 
-/// Returns `true` when an NVIDIA driver is loadable and at least one GPU is
-/// reported. Cheap (cached after first call). Use as a CUDA-presence probe in
-/// place of the old `nvidia_smi_ok()` shell-out.
-#[allow(dead_code)]
-pub fn is_nvidia_present() -> bool {
-    #[cfg(any(target_os = "windows", target_os = "linux"))]
-    {
-        match nvml() {
-            Some(n) => n.device_count().map(|c| c > 0).unwrap_or(false),
-            None => false,
-        }
-    }
-    #[cfg(target_os = "macos")]
-    {
-        false
-    }
-}
-
 /// Returns `(name, vram_mb)` for GPU index 0, or `None` if no NVIDIA GPU is
 /// reachable. Replaces the `nvidia-smi --query-gpu=name,memory.total` parse.
 pub fn primary_gpu_info() -> Option<(String, u32)> {
@@ -73,10 +55,4 @@ pub fn primary_gpu_info() -> Option<(String, u32)> {
     {
         None
     }
-}
-
-/// Just the GPU name. Convenience wrapper for callsites that only need a label.
-#[allow(dead_code)]
-pub fn primary_gpu_name() -> Option<String> {
-    primary_gpu_info().map(|(name, _)| name)
 }

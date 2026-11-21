@@ -18,6 +18,9 @@ All notable changes to Echophrase will be documented in this file.
 ### Improved
 - Small branding touch-up: a trademark mark next to the Echophrase name.
 
+### Removed
+- The unused CUDA plugin and all CUDA code paths. Windows uses DirectML, macOS uses CoreML, Linux runs on CPU.
+
 ## [v0.9.9] - 2026-11-20
 
 ### Improved

@@ -19,7 +19,6 @@ Users on Intel Macs can browse the UI but recording is disabled with an explanat
 |---------|-----|-------|
 | Candle | Metal | `Device::new_metal(0)` - requires macOS 13+ |
 | ONNX | CoreML EP | Requires macOS 13.3+ (ORT dylib requirement) |
-| CUDA | N/A | Not available on macOS |
 
 ## WKWebView / Safari Quirks
 

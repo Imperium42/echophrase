@@ -65,7 +65,6 @@ SPDX-License-Identifier: MPL-2.0
   // Short labels for display
   const providerShortLabels: Record<string, string> = {
     direct_ml: 'DML',
-    cuda: 'CUDA',
     cpu: 'CPU',
     core_ml: 'ML',
   };
@@ -73,7 +72,6 @@ SPDX-License-Identifier: MPL-2.0
   // Full label keys for tooltips (localized)
   const providerFullLabelKeys: Record<string, string> = {
     direct_ml: 'modelSelector.gpuDirectml',
-    cuda: 'modelSelector.gpuCuda',
     cpu: 'modelSelector.gpuCpu',
     core_ml: 'modelSelector.gpuCoreml',
   };

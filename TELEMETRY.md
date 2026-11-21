@@ -27,7 +27,7 @@ Events are queued locally and sent in batches only while the app is idle (at lea
 | `first_launch` | `arch` (x86_64/aarch64) | Very first launch ever on a machine (once, marker file) |
 | `app_updated` | `from`, `to` (version strings) | First launch after an update |
 | `daily_active` | `recording_mode` (push_to_talk/open_mic), `arch` | App launch (at most once per 24h) |
-| `gpu_backend` | `backend` (cuda/directml/cpu/metal), `vram_bucket` (<4GB/4-8GB/8-16GB/>16GB/unknown) | First transcription per session |
+| `gpu_backend` | `backend` (directml/cpu/metal), `vram_bucket` (<4GB/4-8GB/8-16GB/>16GB/unknown) | First transcription per session |
 | `transcription_completed` | `model`, `transform_used`, `paste_at_cursor`, `remove_filler_words`, `gpu_backend`, `processing_ms` | After transcription |
 | `transcription_failed` | `model`, `gpu_backend`, `error_category` | Transcription error |
 | `model_changed` | `model` (e.g. "parakeet-tdt-0.6b-v3") | User saves model selection |

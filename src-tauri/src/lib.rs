@@ -37,34 +37,6 @@ mod vad;
 // Cross-platform module (command is a no-op off macOS) so the frontend can
 // invoke set_dictation_key_remap unconditionally.
 mod macos_dictation;
-#[cfg(feature = "cuda")]
-mod ort_plugin;
-
-#[cfg(feature = "cuda")]
-use ort_plugin as cuda_plugin_stub;
-
-#[cfg(not(feature = "cuda"))]
-mod cuda_plugin_stub {
-    #[tauri::command]
-    pub async fn get_cuda_plugin_status() -> Result<serde_json::Value, String> {
-        Ok(
-            serde_json::json!({"installed": false, "reason": "CUDA support disabled at compile time"}),
-        )
-    }
-    #[tauri::command]
-    pub async fn install_cuda_plugin() -> Result<(), String> {
-        Err("CUDA support is disabled at compile time".to_string())
-    }
-    #[tauri::command]
-    pub async fn cancel_cuda_plugin_install() -> Result<(), String> {
-        Err("CUDA support is disabled at compile time".to_string())
-    }
-    #[tauri::command]
-    pub async fn uninstall_cuda_plugin() -> Result<(), String> {
-        Err("CUDA support is disabled at compile time".to_string())
-    }
-}
-
 #[cfg(test)]
 mod tests;
 use std::sync::Arc;
@@ -81,10 +53,6 @@ pub static ONNX_RUNTIME_AVAILABLE: AtomicBool = AtomicBool::new(true);
 pub fn is_onnx_runtime_available() -> bool {
     ONNX_RUNTIME_AVAILABLE.load(Ordering::Relaxed)
 }
-
-// Re-export preload_cuda_deps for ort_plugin::downloader which calls crate::preload_cuda_deps().
-#[allow(unused_imports)]
-pub(crate) use setup::ort_runtime::preload_cuda_deps;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -124,14 +92,9 @@ pub fn run() {
         );
     }
 
-    // 1) Extend PATH (belt-and-braces) so any DLL loads that DO honor PATH find CUDA bits.
-    setup::ort_runtime::extend_path_for_cuda_deps();
-    // 2) Open the CUDA transitive deps (cuDNN, cudart, cublas, ...) by absolute path
-    //    so their handles exist before the CUDA EP DLL is loaded.
-    setup::ort_runtime::preload_cuda_deps();
-    // 3) Pick which ORT runtime (DirectML bundled vs CUDA plugin).
+    // 1) Pick which ORT runtime to load (dev override or bundled).
     setup::ort_runtime::select_ort_runtime();
-    // 4) Preload ORT provider DLLs before any ORT API is touched.
+    // 2) Preload ORT provider DLLs before any ORT API is touched.
     setup::ort_runtime::preload_ort_providers();
 
     // Validate environment configuration (debug mode only - fails fast on errors)
@@ -559,13 +522,6 @@ pub fn run() {
       commands::execution_provider::get_execution_provider,
       commands::execution_provider::set_preferred_execution_provider,
       commands::execution_provider::list_ort_devices,
-      commands::execution_provider::test_cuda_env_paths,
-      // CUDA ORT runtime plugin (opt-in download, Windows)
-      // Stubs when cuda feature is off to prevent frontend invoke errors.
-      cuda_plugin_stub::get_cuda_plugin_status,
-      cuda_plugin_stub::install_cuda_plugin,
-      cuda_plugin_stub::cancel_cuda_plugin_install,
-      cuda_plugin_stub::uninstall_cuda_plugin,
       // CT2RS commands disabled - using candle instead
       // commands::transcription_ct2::transcribe_audio_ct2,
       // commands::transcription_ct2::download_whisper_model_ct2,

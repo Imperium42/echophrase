@@ -35,7 +35,7 @@ Or download the installer from [echophrase.com](https://echophrase.com). The app
 
 | Platform | Status |
 |----------|--------|
-| **Windows 10/11** | Official builds. GPU via DirectML (any DirectX 12 GPU), optional CUDA plugin for NVIDIA. |
+| **Windows 10/11** | Official builds. GPU via DirectML (any DirectX 12 GPU). |
 | **macOS 13.3+ (Apple Silicon)** | Official builds, signed and notarized. GPU via CoreML/Metal. Intel Macs are not supported ([MAC.md](MAC.md)). |
 | **Linux** | **Community-supported, build from source.** CPU-only today. No official binaries; PRs welcome. |
 

@@ -485,21 +485,11 @@ fn detect_gpu_backend() -> &'static str {
 
     #[cfg(target_os = "windows")]
     {
-        if let Ok(settings) = AppSettings::load() {
-            if settings.execution_provider.as_deref() == Some("cuda") {
-                return "cuda";
-            }
-        }
         return "directml";
     }
 
     #[cfg(target_os = "linux")]
     {
-        if let Ok(settings) = AppSettings::load() {
-            if settings.execution_provider.as_deref() == Some("cuda") {
-                return "cuda";
-            }
-        }
         return "cpu";
     }
 

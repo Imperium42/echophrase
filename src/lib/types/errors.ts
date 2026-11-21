@@ -182,7 +182,6 @@ export function classifyRecordingError(
   }
 
   if (
-    lower.includes('cuda') ||
     lower.includes('gpu') ||
     lower.includes('directml') ||
     lower.includes('onnx')

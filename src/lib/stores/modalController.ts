@@ -40,7 +40,7 @@ export enum ModalPriority {
   BACKGROUND = 0,
   /** Standard modals: settings, model download (base z-index: 200) */
   NORMAL = 1,
-  /** High-priority modals that overlay other modals: CUDA setup, confirm (base z-index: 300) */
+  /** High-priority modals that overlay other modals: confirm (base z-index: 300) */
   HIGH = 2,
   /** Blocking overlays: install/loading (base z-index: 9999) */
   BLOCKING = 3,
@@ -63,7 +63,7 @@ interface ModalStore {
 // Z-index layers architecture (priority-tiered):
 // - Debug tools: 10000 (always on top, never blocked)
 // - BLOCKING overlays: 9999 (install/loading)
-// - HIGH modals: 300+ (cuda setup, confirm)
+// - HIGH modals: 300+ (confirm)
 // - NORMAL modals: 200+ (settings, model download)
 // - BACKGROUND overlays: 100+ (onboarding)
 // - Main content: default (< 100)

@@ -99,7 +99,7 @@ SPDX-License-Identifier: MPL-2.0
     language: ['language', 'locale', 'translation', 'i18n'],
     model: ['model', 'whisper', 'download', 'ai', 'transcription', 'distil'],
     customModel: ['custom model', 'byo', 'onnx', 'import', 'huggingface'],
-    gpu: ['gpu', 'cuda', 'directml', 'acceleration', 'nvidia', 'graphics', 'vram'],
+    gpu: ['gpu', 'directml', 'acceleration', 'nvidia', 'graphics', 'vram'],
     optimization: ['optimization', 'memory', 'ram', 'unload', 'idle', 'model', 'gaming', 'vram'],
     transform: ['transform', 'grammar', 'ai', 'rewrite', 'rules', 'post-processing'],
     output: ['output', 'clipboard', 'paste', 'copy', 'file', 'save', 'post-record'],

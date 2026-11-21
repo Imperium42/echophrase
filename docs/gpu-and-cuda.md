@@ -21,32 +21,20 @@ a constant source of "works on my machine" breakage:
   DirectML on a modern NVIDIA GPU is in the same performance bracket as CUDA,
   ships with Windows, and also works on AMD / Intel / Qualcomm.
 
-### What's still in the tree
+### What's in the tree
 
-Some backend modules (e.g. `candle_whisper.rs`, `parakeet.rs`) still have
-CUDA `cfg` paths, and `ort_plugin/downloader.rs` can still fetch a CUDA-enabled
-ONNX Runtime prebuilt. None of it is wired into release builds. Don't build new
-features on it.
+Nothing CUDA-related. The CUDA plugin downloader, the `cuda` cargo feature, the
+CUDA execution-provider code and the CUDA UI were all deleted. Build-affecting
+CUDA variables (`CC`, `CXX`, `RUSTFLAGS`, `LIBRARY_PATH`, `NVCC_PREPEND_FLAGS`,
+`CMAKE_CUDA_COMPILER`, `CUDA_TOOLKIT_ROOT_DIR`, `ORT_CUDA_VERSION`) and runtime
+ones (`CUDA_HOME`, `CUDNN_PATH`) are deliberately absent from `env.yaml.template`
+and from `scripts/env/schema.ts`. On WSL, `LD_LIBRARY_PATH` keeps
+`/usr/lib/wsl/lib` because the GPU probe reads NVML (VRAM size) from there.
 
-Build-affecting CUDA variables (`CC`, `CXX`, `RUSTFLAGS`, `LIBRARY_PATH`,
-`NVCC_PREPEND_FLAGS`, `CMAKE_CUDA_COMPILER`, `CUDA_TOOLKIT_ROOT_DIR`,
-`ORT_CUDA_VERSION`) and runtime ones (`CUDA_HOME`, `CUDNN_PATH`) are deliberately
-absent from `env.yaml.template` and from `scripts/env/schema.ts`. On WSL,
-`LD_LIBRARY_PATH` keeps `/usr/lib/wsl/lib` because the GPU probe reads NVML from
-there.
+Settings files written by older builds may still contain `execution_provider:
+"cuda"`. It is ignored and treated as auto-detect.
 
 GPU acceleration on Linux/WSL is a wanted future feature (see the TODO in
 `env.yaml.template`). Linux has no out-of-the-box GPU path like DirectML or
-CoreML, so it needs its own design rather than the old CUDA setup.
-
-### Re-enabling CUDA (unsupported, at your own risk)
-
-The env schema objects are `.passthrough()`, so:
-
-1. Re-add the build vars to the `wsl:` / `linux:` blocks of your `env.yaml`.
-2. Optionally re-declare them in `scripts/env/schema.ts` to validate them.
-3. Uncomment the CUDA exports in `scripts/wsl/dev.sh`.
-4. Build with `--features cuda`.
-
-Host requirements: CUDA Toolkit 13.0+, cuDNN 9.19+, driver 525+, GCC-12.
-Blackwell (RTX 50-series) needs CUDA 13+.
+CoreML, so it needs its own design rather than the old CUDA setup. Bringing CUDA
+back would be new work, not a flag flip.

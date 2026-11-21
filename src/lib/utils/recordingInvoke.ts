@@ -35,7 +35,7 @@ const TRANSCRIPTION_FALLBACK_AUDIO_SEC = 300;
  * Formula:
  *   base = 60s (model load + startup overhead)
  *   first_run_penalty = 120s (DirectML shader JIT grace period)
- *   realtime_factor = 0.5 (cuda) | 1.0 (directml) | 0.8 (coreml) | 6.0 (cpu)
+ *   realtime_factor = 1.0 (directml) | 0.8 (coreml) | 6.0 (cpu)
  *   timeout_sec = base + first_run_penalty + audio_sec * realtime_factor
  *
  * Floor: 60s. Ceiling: 1800s (30 min).
@@ -46,13 +46,11 @@ export function computeTranscriptionTimeoutMs(audioSec: number, ep: string): num
   // Normalize: backend may report 'direct_ml', 'directml', 'DirectML', 'core_ml', etc.
   const epNorm = ep.toLowerCase().replace(/[_\s-]/g, '');
   const realtimeFactor =
-    epNorm === 'cuda'
-      ? 0.5
-      : epNorm === 'directml'
-        ? 1.0
-        : epNorm === 'coreml'
-          ? 0.8
-          : /* cpu fallback */ 6.0;
+    epNorm === 'directml'
+      ? 1.0
+      : epNorm === 'coreml'
+        ? 0.8
+        : /* cpu fallback */ 6.0;
   const timeoutSec = baseSec + firstRunPenaltySec + audioSec * realtimeFactor;
   const clampedSec = Math.max(
     TRANSCRIPTION_TIMEOUT_FLOOR_MS / 1000,

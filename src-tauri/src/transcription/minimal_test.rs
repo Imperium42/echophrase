@@ -80,9 +80,6 @@ fn test_minimal_candle_whisper() -> Result<()> {
     println!("🎵 Loaded {} mel filter coefficients", mel_filters.len());
 
     // 3. Create mel spectrogram (using Candle's audio module directly)
-    #[cfg(feature = "cuda")]
-    let device = Device::new_cuda(0)?;
-    #[cfg(not(feature = "cuda"))]
     let device = Device::Cpu;
     println!("🎮 Device created: {:?}", device);
 

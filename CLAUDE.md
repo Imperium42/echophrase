@@ -45,7 +45,7 @@ cd src-tauri && cargo add <crate>  # Add Rust crate
 - **Backend**: Tauri 2.0 (Rust 2024 edition)
 - **ML Frameworks**: Trait-based backends - Candle (safetensors), ONNX Runtime (parakeet-rs for NVIDIA TDT)
 - **Audio**: `crates/echo-audio` (shared audio core: cpal capture, resampling, WAV I/O, AudioSource) + Voice Activity Detection (self-implemented Silero VAD V5). Live capture is fully in-memory on all platforms - no temp WAVs.
-- **GPU**: DirectML (Windows, plus an opt-in CUDA plugin), CoreML (macOS); Linux/WSL is CPU-only. ORT is loaded dynamically via ort `load-dynamic`
+- **GPU**: DirectML (Windows), CoreML (macOS); Linux/WSL is CPU-only. There is no CUDA. ORT is loaded dynamically via ort `load-dynamic`
 - **No server, no account**: since the v1.0.0 open-source move, the app is fully free and local. There is no login, tier, trial, payment, heartbeat, MOTD or server cloud sync. The only network calls are model downloads, the CrabNebula updater, the GitHub release archive and (official builds only) Aptabase telemetry.
 - **Icons**: import `<Icon>` from `$lib/icons` only — never directly from `@lucide/svelte` or `simple-icons`. Add new icons to `src/lib/icons/registry.ts` (Lucide v1 for functional, Simple Icons for brand logos).
 - **Styling**: Tailwind CSS 4.x
@@ -88,7 +88,7 @@ commands/               # Tauri command handlers
 
 transcription/          # ML backends (trait-based, swappable)
 ├── backend.rs          # TranscriptionBackend trait - interface for all backends
-├── candle_whisper.rs   # Candle backend (Whisper safetensors, CUDA)
+├── candle_whisper.rs   # Candle backend (Whisper safetensors; Metal on macOS, CPU elsewhere)
 ├── onnx_backend.rs     # ONNX backend (generic ONNX models)
 └── parakeet.rs         # parakeet-rs backend (NVIDIA TDT with RNN-T decoding)
 
@@ -114,7 +114,7 @@ model_detection/        # Auto model selection
 
 | Backend | Models | Format | GPU Provider | VRAM |
 |---------|--------|--------|--------------|------|
-| Candle | Distil-Whisper Large-v3 (recommended), Whisper variants | safetensors | Metal/CPU (CUDA cfg dormant) | 2-6GB |
+| Candle | Distil-Whisper Large-v3 (recommended), Whisper variants | safetensors | Metal/CPU | 2-6GB |
 | parakeet-rs | NVIDIA Parakeet-TDT 0.6B v3 | ONNX (TDT decode) | DirectML/CoreML/CPU | 2GB |
 | ONNX (generic) | Any ONNX model | ONNX | DirectML/CoreML/CPU | Varies |
 
@@ -156,7 +156,7 @@ pub trait VadBackend: Send {
 
 This allows:
 - Swapping ONNX, Candle, or future backends (safetensors, GGUF, etc.)
-- Platform-specific GPU providers (CUDA, DirectML, ROCm, CoreML, NPU)
+- Platform-specific GPU providers (DirectML, CoreML, NPU)
 - Auto-device EP selection via ort 2.0.0-rc.12+ `with_auto_device(MaxPerformance)`
 
 ### Environment Configuration
@@ -199,45 +199,24 @@ See [TELEMETRY.md](TELEMETRY.md) for what data is collected.
 > **Verify against the code.** Docs drift; when this file and the code disagree,
 > the code wins - fix the doc in the same change.
 
-> **CUDA is NOT required to build on Linux/WSL.** macOS
-> requires Apple Silicon (M1+, no Intel). Windows builds run on bundled DirectML.
+> **There is no CUDA.** Nothing CUDA-related is needed to build or run, and no CUDA
+> code remains in the tree. macOS requires Apple Silicon (M1+, no Intel). Windows
+> builds run on bundled DirectML.
 
-### Linux/WSL (CUDA disabled)
-CUDA is **off** on Linux/WSL and nothing about it is needed to build or run:
+### Linux/WSL (CPU only)
+- Transcription runs on CPU. `ort` uses `load-dynamic`, so ORT is loaded at runtime
+  from `ORT_DYLIB_PATH`; nothing GPU-related is linked or downloaded at build time.
+- Dev builds run `--no-default-features`; the only cargo feature besides `devtools` is `official`.
+- GPU acceleration on Linux is a wanted future feature (see the TODO in
+  `env.yaml.template`).
 
-- The `cuda` cargo feature is opt-in (`default = []` in `src-tauri/Cargo.toml`)
-  and dev builds run `--no-default-features`, so Candle's CUDA path is compiled out.
-- `ort` uses `load-dynamic`, so ORT is loaded at runtime from `ORT_DYLIB_PATH`;
-  nothing CUDA is linked or downloaded at build time.
-- The CUDA link flags and env in `.cargo/config.toml` are commented out under
-  the same `TODO(cuda-linux)` tag. They used to force `-lcudart` etc. into every
-  Linux link, so a machine without the CUDA toolkit failed to build at all.
-- The build-affecting CUDA vars are absent from `env.yaml.template` and are not
-  declared in `scripts/env/schema.ts` (the schema is `.passthrough()`).
-  `RUSTFLAGS` sat in cargo's fingerprint and `CC`/`CXX` pinned all native deps
-  to gcc-12 for nvcc's sake; the system default gcc-13 builds fine.
-- The Linux ORT preload no longer lists `libonnxruntime_providers_cuda.so` - it
-  could never load (`RTLD_LOCAL` hides `providers_shared`'s `Provider_GetHost`)
-  and only printed an error each launch. ORT still loads the CUDA EP itself at
-  session creation via `with_auto_device`.
+Why there is no CUDA, and what was removed: [docs/gpu-and-cuda.md](docs/gpu-and-cuda.md).
 
-To re-enable: re-add the vars to your `env.yaml`, optionally re-declare them in the schema, build with
-`--features cuda`. Historical host requirements, if you do: CUDA Toolkit 13.0+
-with cuDNN 9.19+ (`sudo apt install cuda-toolkit-13-0 libcudnn9-cuda-13`),
-driver 525+, GCC-12, 2GB+ VRAM. Blackwell (RTX 50-series) needs CUDA 13+ since
-the CUDA 12 ORT prebuilt lacks sm_120 gencode.
-
-See [docs/gpu-and-cuda.md](docs/gpu-and-cuda.md).
-
-### Windows (DirectML default, CUDA opt-in plugin)
-- **DirectML** (default): DirectX 12 compatible GPU (NVIDIA, AMD, Intel). No additional
+### Windows (DirectML)
+- **DirectML**: DirectX 12 compatible GPU (NVIDIA, AMD, Intel). No additional
   drivers required. Bundled with installer (~15MB).
-- **CUDA** (opt-in, NVIDIA only): downloaded as a runtime plugin from Settings > GPU
-  when the user has CUDA Toolkit 13.0+ and cuDNN 9.19+ installed. Plugin DLLs land in
-  `%LOCALAPPDATA%/com.imperium42.echophrase/ort/cuda/` (~650MB). Activation requires app
-  restart. Plugin lifecycle lives in `src-tauri/src/ort_plugin/`; runtime selection in
-  `src-tauri/src/setup/ort_runtime.rs::select_ort_runtime()`.
 - Automatic fallback to CPU if GPU unavailable
+- Runtime selection lives in `src-tauri/src/setup/ort_runtime.rs::select_ort_runtime()`.
 
 ### macOS (Apple Silicon)
 - Apple Silicon required (M1/M2/M3/M4) - Intel Macs not supported
@@ -251,7 +230,7 @@ via the C API. This avoids MSVC STL ABI coupling from static linking (pykeio/ort
 
 - **Dev setup (Linux/WSL/macOS)**: **automatic.** `scripts/ensure-ort.mjs` runs as a
   prerequisite of `bun run tauri:dev` (and `bun run setup:ort` standalone). It
-  detects the platform, downloads ORT 1.24.4 from microsoft/onnxruntime releases to
+  detects the platform, downloads the ORT CPU/CoreML build from NuGet to
   a gitignored repo-local `.ort/<platform>/`, and writes an absolute `ORT_DYLIB_PATH`
   into the correct section of `env.yaml`. Idempotent — fast no-op when already installed.
   Skip it (e.g. in CI) by calling `bun x tauri dev` directly.
@@ -261,9 +240,8 @@ via the C API. This avoids MSVC STL ABI coupling from static linking (pykeio/ort
     EXISTS at compile time - so a bare `cargo build` / `bun run tauri:dev:mac` on a fresh
     clone fails with `Library not found: ./macos-frameworks/libonnxruntime.dylib` unless the
     dylib is staged there first. Both `.ort/` and `macos-frameworks/` are gitignored.
-- **Dev setup (Windows)**: use `scripts/win/dev.ps1` or the in-app CUDA plugin
-  (Settings > GPU). `ensure-ort.mjs` deliberately skips Windows since DirectML is
-  bundled at build time and CUDA is a user-opt-in runtime download.
+- **Dev setup (Windows)**: use `scripts/win/dev.ps1`. `ensure-ort.mjs` deliberately
+  skips Windows since DirectML is bundled at build time.
 - **Manual override**: setting `ORT_DYLIB_PATH` manually in `env.yaml` still works;
   the auto-script will overwrite that line on next run. If you need a custom path,
   don't run `ensure-ort.mjs` (call `bun x tauri dev` directly).
@@ -272,24 +250,14 @@ via the C API. This avoids MSVC STL ABI coupling from static linking (pykeio/ort
   comes from Windows System32 (1.15+, shipped on Win11 22H2+).
   Download: `curl -L -o ort-dml.nupkg https://www.nuget.org/api/v2/package/Microsoft.ML.OnnxRuntime.DirectML/1.24.2`
   Production path: `<install>/resources/ort/directml/onnxruntime.dll` (CI stages DLLs before `tauri build`).
-- **Windows CUDA** (NVIDIA only, user-opt-in downloadable plugin):
-  `onnxruntime-win-x64-gpu-1.24.2.zip` from [GitHub](https://github.com/microsoft/onnxruntime/releases/tag/v1.24.2).
-  Users trigger the download from Settings > GPU > CUDA modal when both CUDA_PATH and
-  CUDNN_PATH are set. `src-tauri/src/ort_plugin/downloader.rs` streams the zip, verifies
-  SHA256, and extracts only `onnxruntime.dll` + `onnxruntime_providers_cuda.dll` +
-  `onnxruntime_providers_shared.dll` into `%LOCALAPPDATA%/com.imperium42.echophrase/ort/cuda/`.
-  CAUTION: GitHub's `-gpu-` zip has CUDA+TensorRT but NOT DirectML — you can't mix
-  providers across ORT builds, which is why we ship two runtimes.
-- **Linux**: `onnxruntime-linux-x64-gpu-1.24.2.tgz` (CUDA)
+- **Linux**: CPU build (`Microsoft.ML.OnnxRuntime` NuGet, staged by `ensure-ort.mjs`)
 - **macOS**: `onnxruntime-osx-arm64-1.24.2.tgz` (CoreML)
-- **Required system libraries**: NVIDIA CUDA Toolkit 13.0+ and cuDNN 9.19+ (for the
-  CUDA EP - DirectML and CoreML have no system requirements beyond the OS itself).
+- **Required system libraries**: none beyond the OS itself (DirectML and CoreML ship with it).
 - **EP selection**: ort's `with_auto_device(MaxPerformance)` enumerates devices at session
-  creation time and picks the best one (CUDA > DirectML > CoreML > NPU > CPU). The user can
+  creation time and picks the best one (DirectML > CoreML > NPU > CPU). The user can
   override via Settings > GPU Acceleration radio buttons.
 - **Runtime selection (Windows)**: `select_ort_runtime()` in `setup/ort_runtime.rs` runs before any ORT
-  API is touched and sets `ORT_DYLIB_PATH`. Precedence: installed CUDA plugin + NVIDIA +
-  CUDA_PATH/CUDNN_PATH → plugin runtime; else dev override from env.yaml; else bundled DirectML.
+  API is touched and sets `ORT_DYLIB_PATH`. Precedence: dev override from env.yaml, else bundled DirectML.
 - **NPU auto-use**: Copilot+ PCs (Snapdragon X) and Intel Core Ultra get NPU acceleration
   for free via ort's device enumeration. No code changes needed.
 - **Bundling**: The ORT DLLs must be shipped alongside the executable for production builds.

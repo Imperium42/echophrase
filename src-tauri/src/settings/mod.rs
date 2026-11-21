@@ -480,7 +480,7 @@ pub struct AppSettings {
     /// If false (user manually selected), auto-detection is skipped.
     #[serde(default)]
     pub auto_detected_model: bool,
-    /// Preferred execution provider: "directml", "cuda", "cpu", or None (auto-detect)
+    /// Preferred execution provider: "directml", "coreml", "cpu", or None (auto-detect)
     #[serde(default)]
     pub execution_provider: Option<String>,
     /// Enable post-processing with transform LLM
@@ -1000,7 +1000,7 @@ mod tests {
     fn patch_distinguishes_absent_from_explicit_null() {
         let mut settings = AppSettings {
             save_directory: Some("D:/transcripts".to_string()),
-            execution_provider: Some("cuda".to_string()),
+            execution_provider: Some("directml".to_string()),
             ..Default::default()
         };
 
@@ -1015,7 +1015,7 @@ mod tests {
         assert_eq!(settings.save_directory, None, "explicit null clears");
         assert_eq!(
             settings.execution_provider.as_deref(),
-            Some("cuda"),
+            Some("directml"),
             "unmentioned nullable field survives"
         );
     }

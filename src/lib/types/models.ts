@@ -14,11 +14,10 @@
 /**
  * ONNX-Only Mode: When true, hides safetensors models (Candle backend)
  *
- * Why: Candle with CUDA links cudart at compile time, putting it in the PE
- * import table. This causes Windows to crash before main() if CUDA DLLs are missing.
- * ONNX Runtime with load-dynamic loads CUDA at runtime, allowing graceful fallback.
+ * Why: Candle has no GPU acceleration on Windows/Linux (CPU only), so ONNX
+ * Runtime (DirectML on Windows, CoreML on macOS) is the supported path.
  *
- * Set to false to re-enable Whisper safetensors models (requires bundled CUDA DLLs).
+ * Set to false to re-enable Whisper safetensors models (Candle, CPU on Windows/Linux).
  */
 export const ONNX_ONLY_MODE = true;
 

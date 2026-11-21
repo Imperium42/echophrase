@@ -98,14 +98,6 @@ export function isDirectMLAvailable(): boolean {
 }
 
 /**
- * Check if CUDA should be the default accelerator
- * CUDA is default on Linux/WSL (required), optional on Windows
- */
-export function shouldDefaultToCUDA(): boolean {
-  return isLinux();
-}
-
-/**
  * Check if CoreML is available (macOS only)
  */
 export function isCoreMLAvailable(): boolean {

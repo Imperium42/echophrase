@@ -44,7 +44,6 @@
     // ONNX Runtime bundled for transcription (DLLs staged by CI before `tauri build`):
     //   - `resources/ort/directml/*` is the Windows default (DirectML runtime, ~15MB).
     //     Contains: onnxruntime.dll, onnxruntime_providers_shared.dll, DirectML.dll.
-    //     CUDA is an opt-in user download (see src/ort_plugin/ - Windows only).
     // Transform models are pure DLC now (downloaded from HF on demand);
     // the previously bundled T5-tiny was removed from the registry.
     "resources": ["resources/ort/directml/*"],
@@ -53,7 +52,7 @@
         "installerIcon": "icons/icon.ico",
         "displayLanguageSelector": false,
         "installMode": "currentUser",  // No admin needed
-        "installerHooks": "./windows/hooks.nsh"  // Currently no-op (all macros empty); CUDA is a runtime opt-in download from Settings
+        "installerHooks": "./windows/hooks.nsh"  // Currently no-op (all macros empty)
       }
     },
     "linux": {

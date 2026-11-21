@@ -5,19 +5,14 @@
 //! Execution Provider abstraction for ONNX Runtime.
 //!
 //! Provides a unified interface for selecting GPU acceleration backends:
-//! - DirectML (Windows default - works on NVIDIA, AMD, Intel)
-//! - CUDA (NVIDIA only, fastest)
+//! - DirectML (Windows - works on NVIDIA, AMD, Intel)
 //! - CoreML (macOS via Apple Metal)
-//! - CPU (fallback)
+//! - CPU (fallback, and the only option on Linux/WSL)
 //!
-//! Since ort 2.0.0-rc.12 with `load-dynamic`, ort loads the ORT shared
-//! library at runtime and detects available devices via `Environment::devices()`.
-//! The hand-rolled scanning of `/usr/local/cuda` / `Program Files\NVIDIA`
-//! was deleted - it duplicated what ort does natively.
+//! With ort's `load-dynamic` feature, ort loads the ORT shared library at
+//! runtime and detects available devices via `Environment::devices()`.
 
 use log::{info, warn};
-#[cfg(feature = "cuda")]
-use ort::execution_providers::CUDAExecutionProvider;
 #[cfg(target_os = "macos")]
 use ort::execution_providers::CoreMLExecutionProvider;
 #[cfg(target_os = "windows")]
@@ -36,8 +31,6 @@ use std::fmt;
 pub enum ExecutionProviderType {
     /// DirectML - Windows default, works on any GPU (NVIDIA, AMD, Intel)
     DirectMl,
-    /// CUDA - NVIDIA GPUs only
-    Cuda,
     /// CoreML - macOS via Apple Metal
     CoreMl,
     /// CPU fallback - no GPU acceleration
@@ -48,7 +41,6 @@ impl fmt::Display for ExecutionProviderType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::DirectMl => write!(f, "DirectML"),
-            Self::Cuda => write!(f, "CUDA"),
             Self::CoreMl => write!(f, "CoreML"),
             Self::Cpu => write!(f, "CPU"),
         }
@@ -66,7 +58,6 @@ impl ExecutionProviderType {
     pub fn description(&self) -> &'static str {
         match self {
             Self::DirectMl => "Windows GPU (any vendor)",
-            Self::Cuda => "NVIDIA CUDA (fastest)",
             Self::CoreMl => "Apple Silicon",
             Self::Cpu => "CPU (no GPU)",
         }
@@ -76,7 +67,7 @@ impl ExecutionProviderType {
     ///
     /// Returns None for CPU (parakeet-rs uses default) or unsupported providers.
     /// Note: Available variants depend on parakeet-rs feature flags:
-    /// - Windows: DirectML only (cuda feature not enabled)
+    /// - Windows: DirectML only
     /// - Linux/macOS: CPU only
     pub fn to_parakeet_provider(&self) -> Option<parakeet_rs::ExecutionProvider> {
         match self {
@@ -84,8 +75,7 @@ impl ExecutionProviderType {
             Self::DirectMl => Some(parakeet_rs::ExecutionProvider::DirectML),
             #[cfg(not(windows))]
             Self::DirectMl => None,
-            Self::Cuda => None, // ORT handles CUDA directly, not via parakeet-rs
-            Self::Cpu => None,  // parakeet-rs uses default for CPU
+            Self::Cpu => None,    // parakeet-rs uses default for CPU
             Self::CoreMl => None, // Not supported by parakeet-rs
         }
     }
@@ -98,12 +88,8 @@ pub struct ExecutionProviderStatus {
     pub available: bool,
     pub reason: String,
     pub requires_download: bool,
-    /// True when the user's hardware fundamentally cannot run this provider
-    /// (eg CUDA on a machine with no NVIDIA GPU). Hard-incompatible providers
-    /// should be HIDDEN in the UI, not shown disabled -- there's nothing the
-    /// user can install to fix it. Soft-incompatible (eg NVIDIA GPU present
-    /// but CUDA/cuDNN missing) stays visible-but-disabled so the user knows
-    /// what to install.
+    /// True when the user's hardware fundamentally cannot run this provider.
+    /// Hard-incompatible providers should be HIDDEN in the UI, not shown disabled.
     pub hard_incompatible: bool,
 }
 
@@ -125,10 +111,10 @@ pub struct ExecutionProviderSelection {
 /// Hardware device discovered by ort's `Environment::devices()`.
 ///
 /// Used by the `list_ort_devices` Tauri command so the UI can show what
-/// ort actually sees on the system (e.g. "NVIDIA GeForce RTX 3090 - CUDA").
+/// ort actually sees on the system (e.g. "Intel Arc - DirectML").
 #[derive(Debug, Clone, Serialize)]
 pub struct DeviceInfo {
-    /// Execution provider name (e.g. "CUDAExecutionProvider", "CPUExecutionProvider")
+    /// Execution provider name (e.g. "DmlExecutionProvider", "CPUExecutionProvider")
     pub ep_name: String,
     /// EP vendor (e.g. "NVIDIA", "Microsoft")
     pub ep_vendor: String,
@@ -210,7 +196,7 @@ pub fn get_platform_default() -> ExecutionProviderType {
     }
     #[cfg(target_os = "linux")]
     {
-        // Linux: CPU default; ort auto-device picks CUDA if hardware is present
+        // Linux/WSL: CPU only
         ExecutionProviderType::Cpu
     }
     #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
@@ -223,146 +209,12 @@ pub fn get_platform_default() -> ExecutionProviderType {
 // Device Enumeration (ort native)
 // ============================================================================
 
-/// Log CUDA-relevant environment state once per process.
-///
-/// Ort's bundled CUDA EP fails silently when it cannot `dlopen` its provider
-/// library (missing cuDNN, wrong CUDA major, Blackwell gencode not in the
-/// prebuilt, etc.) - `Environment::devices()` just omits the CUDA entry and
-/// we get a bogus "incompatible" badge. This helper surfaces the actual
-/// environment state so we can tell which of those it is. Runs at most once
-/// to avoid log spam.
-#[cfg(feature = "cuda")]
-fn log_cuda_env_diagnostics_once() {
-    use std::sync::OnceLock;
-    static ONCE: OnceLock<()> = OnceLock::new();
-    ONCE.get_or_init(|| {
-        let ort_cuda_version =
-            std::env::var("ORT_CUDA_VERSION").unwrap_or_else(|_| "<unset>".to_string());
-        info!("[CUDA diag] ORT_CUDA_VERSION={}", ort_cuda_version);
-
-        #[cfg(target_os = "linux")]
-        {
-            let ld_library_path = std::env::var("LD_LIBRARY_PATH").unwrap_or_default();
-            let cuda_entries: Vec<&str> = ld_library_path
-                .split(':')
-                .filter(|p| {
-                    let lower = p.to_lowercase();
-                    lower.contains("cuda") || lower.contains("cudnn")
-                })
-                .collect();
-            info!(
-                "[CUDA diag] LD_LIBRARY_PATH cuda/cudnn entries ({}): {:?}",
-                cuda_entries.len(),
-                cuda_entries
-            );
-
-            // `ldconfig -p` is a read-only query of the system's dynamic
-            // linker cache; it does not modify anything. We filter for
-            // libcudart / libcudnn so the log stays focused.
-            match std::process::Command::new("ldconfig").arg("-p").output() {
-                Ok(out) if out.status.success() => {
-                    let stdout = String::from_utf8_lossy(&out.stdout);
-                    let matches: Vec<&str> = stdout
-                        .lines()
-                        .filter(|l| {
-                            let lower = l.to_lowercase();
-                            lower.contains("libcudart") || lower.contains("libcudnn")
-                        })
-                        .collect();
-                    info!(
-                        "[CUDA diag] ldconfig libcudart/libcudnn matches: {}",
-                        matches.len()
-                    );
-                    for m in matches.iter().take(20) {
-                        info!("[CUDA diag]   {}", m.trim());
-                    }
-                }
-                Ok(out) => warn!(
-                    "[CUDA diag] ldconfig -p exited {}: {}",
-                    out.status,
-                    String::from_utf8_lossy(&out.stderr).trim()
-                ),
-                Err(e) => warn!("[CUDA diag] ldconfig -p failed to spawn: {}", e),
-            }
-        }
-
-        #[cfg(target_os = "windows")]
-        {
-            let path_var = std::env::var("PATH").unwrap_or_default();
-            let cuda_entries: Vec<&str> = path_var
-                .split(';')
-                .filter(|p| {
-                    let lower = p.to_lowercase();
-                    lower.contains("cuda") || lower.contains("cudnn")
-                })
-                .collect();
-            info!(
-                "[CUDA diag] PATH cuda/cudnn entries ({}): {:?}",
-                cuda_entries.len(),
-                cuda_entries
-            );
-        }
-    });
-}
-
-/// Register the CUDA EP shared library with ort's environment so that
-/// `devices()` can enumerate CUDA GPUs. Without this, `GetEpDevices` only
-/// returns the CPU provider because ORT hasn't loaded the CUDA EP yet.
-///
-/// The `.virtual` suffix on the name tells ORT to create virtual device
-/// entries for enumeration (required for `devices()` to see CUDA GPUs).
-///
-/// Runs at most once per process -- subsequent calls are no-ops.
-#[cfg(feature = "cuda")]
-fn register_cuda_ep_once(env: &std::sync::Arc<ort::environment::Environment>) {
-    use std::sync::OnceLock;
-    static ONCE: OnceLock<()> = OnceLock::new();
-    ONCE.get_or_init(|| {
-        // The CUDA EP .so is placed next to the binary by ort's copy-dylibs feature.
-        let exe_dir = std::env::current_exe()
-            .ok()
-            .and_then(|p| p.parent().map(|d| d.to_path_buf()));
-
-        if let Some(dir) = exe_dir {
-            #[cfg(target_os = "linux")]
-            let cuda_lib = dir.join("libonnxruntime_providers_cuda.so");
-            #[cfg(target_os = "windows")]
-            let cuda_lib = dir.join("onnxruntime_providers_cuda.dll");
-
-            if cuda_lib.exists() {
-                match env.register_ep_library("CUDA.virtual", &cuda_lib) {
-                    Ok(_handle) => {
-                        info!("[CUDA diag] Registered CUDA EP library from {:?}", cuda_lib);
-                    }
-                    Err(e) => {
-                        warn!(
-                            "[CUDA diag] Failed to register CUDA EP library {:?}: {} ({:?})",
-                            cuda_lib, e, e
-                        );
-                    }
-                }
-            } else {
-                warn!(
-                    "[CUDA diag] CUDA EP library not found at {:?} -- copy-dylibs may not have placed it",
-                    cuda_lib
-                );
-            }
-        }
-    });
-}
-
 /// Enumerate all devices ort can see on this system.
 ///
-/// Replaces the hand-rolled `find_cuda_installation()` /
-/// `find_cuda_dll_in_dir()` / `find_cudnn_in_cuda_dir()` helpers from before
-/// the rc.12 upgrade. Now ort tells us natively what's available.
 pub fn list_devices() -> Vec<DeviceInfo> {
     if !crate::is_onnx_runtime_available() {
         return Vec::new();
     }
-
-    #[cfg(feature = "cuda")]
-    log_cuda_env_diagnostics_once();
 
     let env = match ort::environment::current() {
         Ok(env) => env,
@@ -371,9 +223,6 @@ pub fn list_devices() -> Vec<DeviceInfo> {
             return Vec::new();
         }
     };
-
-    #[cfg(feature = "cuda")]
-    register_cuda_ep_once(&env);
 
     let devices: Vec<DeviceInfo> = env
         .devices()
@@ -406,116 +255,6 @@ pub fn list_devices() -> Vec<DeviceInfo> {
     }
 
     devices
-}
-
-/// Tri-state CUDA availability. Distinguishes "no NVIDIA GPU at all" (hard
-/// incompat, hide the option) from "GPU present but libraries missing" (soft
-/// incompat, show disabled with install hint).
-///
-/// - `HardIncompat`: `nvidia-smi` failed -- no NVIDIA GPU. Nothing the user can
-///   install will fix it. UI should HIDE the CUDA option entirely.
-/// - `SoftIncompat`: NVIDIA GPU present but CUDA EP library missing. UI should
-///   show CUDA as disabled with a "Download CUDA/cuDNN" hint.
-/// - `Available`: `nvidia-smi` OK + CUDA EP library present. Good to go.
-#[cfg(feature = "cuda")]
-#[derive(Debug, Clone)]
-pub enum CudaAvailability {
-    Available,
-    SoftIncompat,
-    HardIncompat,
-}
-
-#[cfg(feature = "cuda")]
-impl CudaAvailability {
-    pub fn is_available(&self) -> bool {
-        matches!(self, Self::Available)
-    }
-    pub fn is_hard_incompat(&self) -> bool {
-        matches!(self, Self::HardIncompat)
-    }
-}
-
-/// In-process NVIDIA-GPU-present check via NVML. Returns true when the driver
-/// is loadable AND at least one GPU is reported. Replaces the previous
-/// `nvidia-smi` shell-out and `nvml.dll` `LoadLibraryExW` pre-flight.
-///
-/// Why: spawning `nvidia-smi.exe` on Windows can fail with
-/// `STATUS_DLL_INIT_FAILED` (0xC0000142) when *any* of its DLL deps
-/// (`nvml.dll`, `nvapi64.dll`, `cudart64_*.dll`, ...) fail to initialize after
-/// a partial driver update. The previous fix only checked `nvml.dll`, missing
-/// the other failure paths. Calling NVML in-process via `nvml-wrapper` has the
-/// same failure mode as our old probe (Err on init, no popup) but covers the
-/// real cases and avoids the child-process WER dialog entirely.
-///
-/// Result is cached by `gpu_probe::is_nvidia_present()` (one syscall per
-/// process).
-#[cfg(feature = "cuda")]
-pub(crate) fn nvidia_smi_ok() -> bool {
-    crate::gpu_probe::is_nvidia_present()
-}
-
-#[cfg(feature = "cuda")]
-fn probe_cuda_available() -> CudaAvailability {
-    use std::sync::OnceLock;
-    static RESULT: OnceLock<CudaAvailability> = OnceLock::new();
-    RESULT
-        .get_or_init(|| {
-            // Check 1: nvidia-smi succeeds (driver + GPU present).
-            // If this fails, the user has no NVIDIA GPU -- hard incompatible.
-            let smi_ok = nvidia_smi_ok();
-
-            if !smi_ok {
-                info!("[CUDA probe] nvidia-smi failed or no GPU found (hard incompat)");
-                return CudaAvailability::HardIncompat;
-            }
-
-            // Check 2: CUDA EP .so exists next to binary (placed by ort's copy-dylibs).
-            // Soft incompat -- user has NVIDIA GPU but missing CUDA libraries.
-            let lib_exists = std::env::current_exe()
-                .ok()
-                .and_then(|p| {
-                    p.parent().map(|d| {
-                        #[cfg(target_os = "linux")]
-                        let lib = d.join("libonnxruntime_providers_cuda.so");
-                        #[cfg(target_os = "windows")]
-                        let lib = d.join("onnxruntime_providers_cuda.dll");
-                        #[cfg(not(any(target_os = "linux", target_os = "windows")))]
-                        let lib = d.join("nonexistent");
-                        lib.exists()
-                    })
-                })
-                .unwrap_or(false);
-
-            if !lib_exists {
-                info!("[CUDA probe] CUDA EP library not found next to binary (soft incompat)");
-                return CudaAvailability::SoftIncompat;
-            }
-
-            info!("[CUDA probe] CUDA available (nvidia-smi OK + EP library present)");
-            CudaAvailability::Available
-        })
-        .clone()
-}
-
-/// Actionable hint shown in the Settings UI when ort did not report a CUDA
-/// device. Platform-specific so users know where to look first.
-#[cfg(all(feature = "cuda", target_os = "linux"))]
-fn cuda_unavailable_hint() -> String {
-    "CUDA not detected. Install CUDA Toolkit 13.0+ and cuDNN 9.19+, ensure both are on \
-     LD_LIBRARY_PATH, and restart. On Ubuntu/WSL: sudo apt install cuda-toolkit-13-0 libcudnn9-cuda-13"
-        .to_string()
-}
-
-#[cfg(all(feature = "cuda", target_os = "windows"))]
-fn cuda_unavailable_hint() -> String {
-    "CUDA not detected. Install CUDA Toolkit 13.0+ and cuDNN 9.19+, ensure both are on PATH, \
-     and restart. DirectML is used as a fallback on Windows."
-        .to_string()
-}
-
-#[cfg(all(feature = "cuda", not(any(target_os = "linux", target_os = "windows"))))]
-fn cuda_unavailable_hint() -> String {
-    "No CUDA-capable device detected by ONNX Runtime".to_string()
 }
 
 // ============================================================================
@@ -563,7 +302,7 @@ pub fn verify_directml_available() -> Result<bool, String> {
 ///
 /// When the user has no preference, callers should use
 /// `SessionBuilder::with_auto_device(AutoDevicePolicy::MaxPerformance)` instead -
-/// it lets ort pick the best device natively (CUDA, DirectML, CoreML, NPU, CPU).
+/// it lets ort pick the best device natively (DirectML, CoreML, NPU, CPU).
 pub fn build_execution_providers(
     preferred: Option<ExecutionProviderType>,
 ) -> Vec<ExecutionProviderDispatch> {
@@ -574,14 +313,6 @@ pub fn build_execution_providers(
     log::info!("Building explicit execution providers for: {:?}", preferred);
 
     match preferred {
-        ExecutionProviderType::Cuda => {
-            #[cfg(feature = "cuda")]
-            providers.push(CUDAExecutionProvider::default().build());
-            #[cfg(not(feature = "cuda"))]
-            log::warn!("CUDA requested but cuda feature is disabled at compile time");
-            #[cfg(target_os = "windows")]
-            providers.push(DirectMLExecutionProvider::default().build());
-        }
         ExecutionProviderType::DirectMl => {
             #[cfg(target_os = "windows")]
             providers.push(DirectMLExecutionProvider::default().build());
@@ -613,10 +344,12 @@ pub fn build_execution_providers(
 // ============================================================================
 
 /// Parse execution provider string to type.
+///
+/// Unrecognized values (including the retired `"cuda"` that older settings
+/// files may still contain) return `None`, which callers treat as auto-detect.
 pub fn parse_execution_provider(s: &str) -> Option<ExecutionProviderType> {
     match s.to_lowercase().as_str() {
         "directml" | "direct_ml" => Some(ExecutionProviderType::DirectMl),
-        "cuda" => Some(ExecutionProviderType::Cuda),
         "coreml" | "core_ml" => Some(ExecutionProviderType::CoreMl),
         "cpu" => Some(ExecutionProviderType::Cpu),
         _ => None,
@@ -625,9 +358,7 @@ pub fn parse_execution_provider(s: &str) -> Option<ExecutionProviderType> {
 
 /// Get status of all execution providers for UI display.
 ///
-/// Uses ort's native `Environment::devices()` to determine availability
-/// instead of scanning `/usr/local/cuda` and friends. CUDA is reported as
-/// available if ort enumerates a `CUDAExecutionProvider` device.
+/// Built from compiled-in platform knowledge only; no ORT calls.
 #[allow(clippy::vec_init_then_push)]
 pub fn get_execution_provider_status(preferred_str: Option<&str>) -> ExecutionProviderSelection {
     let platform_default = get_platform_default();
@@ -639,11 +370,6 @@ pub fn get_execution_provider_status(preferred_str: Option<&str>) -> ExecutionPr
     // ORT device enumeration is only needed for the Settings detail view
     // (list_ort_devices command), not for determining which EP is active.
 
-    #[cfg(feature = "cuda")]
-    let cuda_state = probe_cuda_available();
-    #[cfg(feature = "cuda")]
-    let cuda_available = cuda_state.is_available();
-
     let mut providers = Vec::new();
 
     // DirectML (Windows only - always available on Windows 10+)
@@ -654,21 +380,6 @@ pub fn get_execution_provider_status(preferred_str: Option<&str>) -> ExecutionPr
         reason: "Built-in Windows GPU support".to_string(),
         requires_download: false,
         hard_incompatible: false,
-    });
-
-    // CUDA - only when cuda feature is enabled at compile time
-    #[cfg(feature = "cuda")]
-    providers.push(ExecutionProviderStatus {
-        provider: ExecutionProviderType::Cuda,
-        available: cuda_available,
-        reason: if cuda_available {
-            // In-process NVML query - no nvidia-smi spawn, no 0xC0000142 popup.
-            crate::gpu_probe::primary_gpu_name().unwrap_or_else(|| "NVIDIA GPU".to_string())
-        } else {
-            cuda_unavailable_hint()
-        },
-        requires_download: false,
-        hard_incompatible: cuda_state.is_hard_incompat(),
     });
 
     // CoreML (macOS only - available if macOS 13.3+)
@@ -703,7 +414,6 @@ pub fn get_execution_provider_status(preferred_str: Option<&str>) -> ExecutionPr
     } else {
         match active {
             ExecutionProviderType::DirectMl => "Using DirectML (Windows GPU)".to_string(),
-            ExecutionProviderType::Cuda => "Using CUDA".to_string(),
             ExecutionProviderType::CoreMl => "Using CoreML (Apple GPU)".to_string(),
             ExecutionProviderType::Cpu => "Using CPU".to_string(),
         }
@@ -720,7 +430,7 @@ pub fn get_execution_provider_status(preferred_str: Option<&str>) -> ExecutionPr
 
 /// Determine which provider will actually be used based on preference and availability.
 ///
-/// Fallback: preferred -> platform default (DirectML/CoreML) -> CUDA -> CPU
+/// Fallback: preferred -> platform default (DirectML/CoreML) -> CPU
 fn determine_active_provider(
     preferred: ExecutionProviderType,
     providers: &[ExecutionProviderStatus],
@@ -737,15 +447,6 @@ fn determine_active_provider(
             if status.available {
                 return platform_default;
             }
-        }
-    }
-
-    if preferred != ExecutionProviderType::Cuda && platform_default != ExecutionProviderType::Cuda {
-        if providers
-            .iter()
-            .any(|p| p.provider == ExecutionProviderType::Cuda && p.available)
-        {
-            return ExecutionProviderType::Cuda;
         }
     }
 
@@ -775,7 +476,6 @@ mod tests {
     #[test]
     fn test_execution_provider_display() {
         assert_eq!(ExecutionProviderType::DirectMl.to_string(), "DirectML");
-        assert_eq!(ExecutionProviderType::Cuda.to_string(), "CUDA");
         assert_eq!(ExecutionProviderType::Cpu.to_string(), "CPU");
     }
 
@@ -792,7 +492,6 @@ mod tests {
     #[test]
     fn test_execution_provider_is_gpu() {
         assert!(ExecutionProviderType::DirectMl.is_gpu());
-        assert!(ExecutionProviderType::Cuda.is_gpu());
         assert!(ExecutionProviderType::CoreMl.is_gpu());
         assert!(!ExecutionProviderType::Cpu.is_gpu());
     }
@@ -812,5 +511,11 @@ mod tests {
     fn test_build_providers_cpu_mode() {
         let providers = build_execution_providers(Some(ExecutionProviderType::Cpu));
         assert!(providers.is_empty());
+    }
+
+    #[test]
+    fn test_parse_retired_cuda_is_auto() {
+        // Old settings files may still hold "cuda"; it must degrade to auto-detect.
+        assert_eq!(parse_execution_provider("cuda"), None);
     }
 }

@@ -39,8 +39,7 @@ SPDX-License-Identifier: MPL-2.0
   $: displayVersion = betaMatch ? `beta.${betaMatch[1]}` : `v${appVersion ?? ''}`;
 
   async function copyDebugInfo() {
-    // ort native device enumeration (replaces the old check_cuda_availability
-    // / check_cudnn_availability hand-rolled checks since the rc.12 upgrade).
+    // ort native device enumeration.
     let ortDevices = 'unknown';
     try {
       const devices =

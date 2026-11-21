@@ -46,7 +46,7 @@ export interface Settings {
   show_model_switcher?: boolean; // Show model switcher in main UI (default true)
   show_transcription_speed?: boolean; // Show transcription speed toast (default false)
   append_space_incomplete?: boolean; // Append trailing space when output lacks sentence-ending punctuation (default true)
-  execution_provider?: string; // Preferred execution provider: directml, cuda, cpu
+  execution_provider?: string; // Preferred execution provider: directml, coreml, cpu
   // Transform model settings
   transform_enabled?: boolean; // Enable post-processing with LLM
   transform_model?: string | null; // Transform model ID (eg "qwen2.5-0.5b-instruct")

@@ -5,14 +5,6 @@
 fn main() {
     let target_os = std::env::var("CARGO_CFG_TARGET_OS").unwrap_or_default();
 
-    if target_os != "macos" {
-        // Fix for CUDA 12 + GCC 13 header conflicts in WSL2
-        unsafe {
-            std::env::set_var("CXXFLAGS", "-D__STRICT_ANSI__");
-            std::env::set_var("CUDAFLAGS", "--compiler-options -D__STRICT_ANSI__");
-        }
-    }
-
     // Set build timestamp for debug info (friendly format: "Jan 06, 2026 5:30 PM")
     let now = chrono::Local::now();
     println!(

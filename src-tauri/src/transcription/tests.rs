@@ -6,7 +6,7 @@ use super::candle_whisper;
 use std::env;
 
 #[tokio::test]
-#[ignore = "Requires CUDA/GPU - run with: cargo test -- --ignored"]
+#[ignore = "Requires a model download - run with: cargo test -- --ignored"]
 async fn test_transcribe_test_one_two() {
     // Skip if no model directory and offline
     if env::var("WHISPER_MODEL_DIR").is_err() && env::var("OFFLINE_TESTS").is_ok() {

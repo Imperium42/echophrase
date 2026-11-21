@@ -541,7 +541,7 @@ pub async fn transcribe_audio_file(
             }
             #[cfg(target_os = "linux")]
             {
-                "CUDA".to_string()
+                "CPU".to_string()
             }
         };
         ("ONNX Runtime", provider)
@@ -555,7 +555,7 @@ pub async fn transcribe_audio_file(
             }
         };
         #[cfg(not(target_os = "macos"))]
-        let device = "CPU/CUDA";
+        let device = "CPU";
         ("Candle", device.to_string())
     };
 
@@ -1041,9 +1041,7 @@ mod tests {
             log::info!("   (macOS: CoreML expected - confirmed)");
         }
 
-        // Linux (and other non-macOS Unix): CPU today.
-        // TODO: assert CUDA here once optional NVIDIA CUDA support lands on Linux
-        // (build with the CUDA EP + CUDA_PATH/CUDNN_PATH present).
+        // Linux (and other non-macOS Unix): CPU only.
         #[cfg(all(not(windows), not(target_os = "macos")))]
         {
             use crate::transcription::execution_provider::ExecutionProviderType;

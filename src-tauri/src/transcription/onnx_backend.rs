@@ -150,7 +150,7 @@ struct CachedParakeetTDT {
 /// execution mode. parakeet-rs 0.3.4 defaults to 4 intra threads, mem-pattern
 /// ON, and parallel execution - all unsupported on DML. The
 /// `with_custom_configure` closure runs LAST in `apply_to_session_builder`, so
-/// it can override those defaults. We gate this on DirectML only; CUDA/CoreML/CPU
+/// it can override those defaults. We gate this on DirectML only; CoreML/CPU
 /// keep parakeet-rs defaults.
 fn build_parakeet_exec_config(
     preferred: ExecutionProviderType,
@@ -169,36 +169,6 @@ fn build_parakeet_exec_config(
     }
 
     Some(config)
-}
-
-/// Bail out early when the user picked DirectML but `select_ort_runtime` left
-/// `ORT_DYLIB_PATH` pointing at the CUDA-only plugin DLL (which lacks the DML
-/// EP and would hang during session creation on external-data models).
-/// Belt-and-suspenders - should be unreachable after the runtime selector fix.
-fn check_runtime_matches_preference(preferred: ExecutionProviderType) -> Result<()> {
-    let dll = std::env::var_os("ORT_DYLIB_PATH");
-    log::info!(
-        "[ONNX] ORT_DYLIB_PATH={:?}, preferred EP={}",
-        dll,
-        preferred
-    );
-    if preferred == ExecutionProviderType::DirectMl {
-        if let Some(p) = dll {
-            let s = p.to_string_lossy().to_ascii_lowercase();
-            if s.contains("/ort/cuda/") || s.contains("\\ort\\cuda\\") {
-                let msg = format!(
-                    "Runtime mismatch: user requested DirectML but ORT_DYLIB_PATH \
-                     points at the CUDA-only plugin DLL ({}). Refusing to load the \
-                     model to avoid a session-creation hang. Restart the app or \
-                     switch GPU back to CUDA in Settings.",
-                    p.to_string_lossy()
-                );
-                log::error!("{}", msg);
-                return Err(anyhow!(msg));
-            }
-        }
-    }
-    Ok(())
 }
 
 /// Load a Parakeet TDT v3 model from disk and return it wrapped in a shareable mutex.
@@ -236,7 +206,6 @@ fn load_parakeet_tdt(model_id: &str) -> Result<Arc<Mutex<parakeet_rs::ParakeetTD
 
     let t_pref = std::time::Instant::now();
     let preferred = get_preferred_provider();
-    check_runtime_matches_preference(preferred)?;
     let exec_config = match build_parakeet_exec_config(preferred) {
         Some(config) => {
             log::debug!(
@@ -469,7 +438,6 @@ fn load_parakeet_eou(model_id: &str) -> Result<Arc<Mutex<parakeet_rs::ParakeetEO
     );
 
     let preferred = get_preferred_provider();
-    check_runtime_matches_preference(preferred)?;
     let exec_config = match build_parakeet_exec_config(preferred) {
         Some(config) => {
             log::info!("[ONNX timing] EOU requesting {} GPU provider", preferred);
@@ -657,7 +625,7 @@ struct CachedOnnxSession {
 
 /// ONNX Runtime backend for speech-to-text transcription
 ///
-/// Supports CUDA-accelerated inference for ONNX-exported models.
+/// Supports GPU-accelerated inference (DirectML/CoreML) for ONNX-exported models.
 pub struct OnnxRuntimeBackend {
     model_id: String,
     model_type: OnnxModelType,
@@ -742,7 +710,7 @@ impl OnnxRuntimeBackend {
         //
         // rc.12 session builder policy:
         //   - ep_preference == None            -> with_auto_device(MaxPerformance)
-        //                                         (ort picks best CUDA/DirectML/CoreML/NPU/CPU)
+        //                                         (ort picks best DirectML/CoreML/NPU/CPU)
         //   - ep_preference == Some(Cpu)       -> no EP calls; CPU is the implicit default
         //   - ep_preference == Some(explicit)  -> with_execution_providers([explicit, ...])
         //

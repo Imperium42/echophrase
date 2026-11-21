@@ -7,7 +7,7 @@
 # Dev launcher dispatcher - detects the current platform and execs the right worker script.
 #
 # Platforms handled:
-#   WSL   -> scripts/wsl/dev.sh  (CUDA + GPU passthrough)
+#   WSL   -> scripts/wsl/dev.sh  (CPU-only)
 #   macOS -> scripts/mac/dev.sh  (Metal / CoreML)
 #   Linux -> bun run tauri:dev   (native Linux, no separate worker)
 #   Other -> bun run tauri:dev   (best-effort fallback)
