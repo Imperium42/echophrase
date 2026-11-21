@@ -30,9 +30,14 @@ features on it.
 
 Build-affecting CUDA variables (`CC`, `CXX`, `RUSTFLAGS`, `LIBRARY_PATH`,
 `NVCC_PREPEND_FLAGS`, `CMAKE_CUDA_COMPILER`, `CUDA_TOOLKIT_ROOT_DIR`,
-`ORT_CUDA_VERSION`) are deliberately absent from `env.yaml.template` and from
-`scripts/env/schema.ts`. Runtime-only vars (`CUDA_HOME`, `CUDNN_PATH`,
-`LD_LIBRARY_PATH`) are kept because the GPU probe uses NVML.
+`ORT_CUDA_VERSION`) and runtime ones (`CUDA_HOME`, `CUDNN_PATH`) are deliberately
+absent from `env.yaml.template` and from `scripts/env/schema.ts`. On WSL,
+`LD_LIBRARY_PATH` keeps `/usr/lib/wsl/lib` because the GPU probe reads NVML from
+there.
+
+GPU acceleration on Linux/WSL is a wanted future feature (see the TODO in
+`env.yaml.template`). Linux has no out-of-the-box GPU path like DirectML or
+CoreML, so it needs its own design rather than the old CUDA setup.
 
 ### Re-enabling CUDA (unsupported, at your own risk)
 

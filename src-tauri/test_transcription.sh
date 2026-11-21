@@ -9,17 +9,10 @@ echo "🧪 Echophrase Transcription Test"
 echo "================================"
 echo ""
 
-# Set CUDA environment variables for optimal GPU performance
-export CT2_CUDA_TRUE_FP16_GEMM=1
-export CT2_USE_EXPERIMENTAL_PACKED_GEMM=0
-export CUDA_VISIBLE_DEVICES=0
-
 # Set Rust backtrace for debugging
 export RUST_BACKTRACE=1
 
 echo "📊 Environment:"
-echo "   CUDA_HOME: ${CUDA_HOME:-not set}"
-echo "   CT2_CUDA_TRUE_FP16_GEMM: $CT2_CUDA_TRUE_FP16_GEMM"
 echo "   RUST_BACKTRACE: $RUST_BACKTRACE"
 echo ""
 

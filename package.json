@@ -53,7 +53,6 @@
     "tauri:dev:wsl": "bun scripts/ensure-ort.mjs && bun scripts/env/load.mjs wsl bun x tauri dev",
     "tauri:dev:wsl:staging": "bun scripts/ensure-ort.mjs && bun scripts/env/load.mjs wsl --staging bun x tauri dev",
     "tauri:dev:windows": "bun scripts/env/load.mjs windows bun x tauri dev",
-    "tauri:dev:windows:cuda": "bun scripts/env/load.mjs windows bun x tauri dev -- --features cuda",
     "tauri:dev:windows:staging": "bun scripts/env/load.mjs windows --staging bun x tauri dev",
     "tauri:dev:mac": "bun scripts/ensure-ort.mjs && bun scripts/env/load.mjs macos bun x tauri dev",
     "tauri:dev:mac:staging": "bun scripts/ensure-ort.mjs && bun scripts/env/load.mjs macos --staging bun x tauri dev",

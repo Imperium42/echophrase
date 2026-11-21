@@ -7,7 +7,7 @@
 # Dev server port (DEV_PORT from env.yaml, default 8420)
 DEV_PORT="${DEV_PORT:-8420}"
 # WSL Development Launch Script
-# Launches Echophrase with GPU+CUDA support in WSL
+# Launches Echophrase in WSL (CPU-only; see docs/gpu-and-cuda.md)
 
 set -e
 
@@ -17,7 +17,7 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-echo -e "${GREEN}🚀 Starting Echophrase (WSL + CUDA)${NC}"
+echo -e "${GREEN}🚀 Starting Echophrase (WSL)${NC}"
 
 # Navigate to project root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

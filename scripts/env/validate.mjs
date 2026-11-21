@@ -89,29 +89,20 @@ async function validateEnv(checkPaths = false) {
       console.log('Schema is valid\n');
     }
 
-    // Check platform-specific paths if requested.
-    //
-    // Note: ORT_DYLIB_PATH is required - ort 2.0.0-rc.12 uses load-dynamic
-    // to load onnxruntime at runtime. We check that model directories
-    // exist (or will be created on first use).
+    // Check platform-specific paths if requested. ORT_DYLIB_PATH is required:
+    // ort uses load-dynamic to load onnxruntime at runtime.
     if (checkPaths) {
       const platform = detectPlatform();
       console.log(`Checking ${platform}-specific paths...\n`);
 
-      const platformConfig = config[platform === 'macos' ? 'macos' : platform];
-      if (platformConfig) {
-        const modelDirs = ['CT2_MODEL_DIR', 'WHISPER_MODELS_PATH'];
-        for (const key of modelDirs) {
-          const path = platformConfig[key];
-          if (path) {
-            const expanded = expandVars(path);
-            console.log(`   Checking ${key}: ${expanded}`);
-            if (!existsSync(expanded)) {
-              console.warn(`   Warning: directory will be created on first use`);
-            } else {
-              console.log(`   Found`);
-            }
-          }
+      const ortPath = config[platform]?.ORT_DYLIB_PATH;
+      if (ortPath) {
+        const expanded = expandVars(ortPath);
+        console.log(`   Checking ORT_DYLIB_PATH: ${expanded}`);
+        if (!existsSync(expanded)) {
+          console.warn('   Warning: not found - run `bun run setup:ort`');
+        } else {
+          console.log('   Found');
         }
       }
     }

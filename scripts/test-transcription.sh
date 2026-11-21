@@ -18,9 +18,8 @@ NC='\033[0m' # No Color
 echo -e "${YELLOW}🧪 Running Transcription Tests${NC}"
 echo "================================"
 
-# Set environment variables for optimal GPU performance
+# Environment for the test run
 export RUST_BACKTRACE=1
-export CT2_CUDA_TRUE_FP16_GEMM=1
 export RUST_LOG=info
 
 # Navigate to src-tauri directory

@@ -259,8 +259,7 @@ export async function loadEnv(platformOverride = null) {
 
     console.log('\nEnvironment loaded successfully!');
     console.log('\nKey variables set:');
-    console.log(`   CUDA_HOME: ${process.env.CUDA_HOME || 'not set'}`);
-    console.log(`   CT2_CUDA_TRUE_FP16_GEMM: ${process.env.CT2_CUDA_TRUE_FP16_GEMM || 'not set'}`);
+    console.log(`   ORT_DYLIB_PATH: ${process.env.ORT_DYLIB_PATH || 'not set'}`);
     if (platform === 'wsl') {
       console.log(`   PULSE_SERVER: ${process.env.PULSE_SERVER || 'not set'}`);
     }
