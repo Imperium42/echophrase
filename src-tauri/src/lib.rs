@@ -398,6 +398,9 @@ pub fn run() {
         });
       }
 
+      #[cfg(windows)]
+      commands::output::focus::start_tracker();
+
       log::info!("Tauri app setup complete with native microphone plugin and system tray");
       Ok(())
     })

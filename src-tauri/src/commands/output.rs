@@ -84,6 +84,15 @@ pub async fn simulate_paste() -> Result<(), String> {
     // Small delay to ensure clipboard is ready and focus is on target window
     tokio::time::sleep(std::time::Duration::from_millis(100)).await;
 
+    #[cfg(windows)]
+    {
+        focus::restore_last_external_window().await;
+        log::debug!(
+            "Paste target (foreground window): {:?}",
+            focus::foreground_window_title()
+        );
+    }
+
     // Run enigo on a dedicated thread (not tokio worker) to avoid macOS main-thread assertions.
     // On macOS, enigo's key mapping calls HIToolbox APIs that assert dispatch_queue_main.
     // Using spawn_blocking moves it off the async runtime but still isn't the main thread,
@@ -91,6 +100,100 @@ pub async fn simulate_paste() -> Result<(), String> {
     tokio::task::spawn_blocking(do_simulate_paste)
         .await
         .map_err(|e| format!("spawn_blocking join error: {}", e))?
+}
+
+/// Paste-target focus tracking (Windows).
+///
+/// Ctrl+V goes to the foreground window. When that is Echophrase itself (eg
+/// the user clicked in the app, then open mic's countdown finished), the paste
+/// landed nowhere and the text only sat on the clipboard. A background thread
+/// remembers the last foreground window owned by another process, and paste
+/// hands focus back to it first.
+#[cfg(windows)]
+pub mod focus {
+    use std::sync::atomic::{AtomicIsize, Ordering};
+    use std::time::Duration;
+    use windows_sys::Win32::System::Threading::GetCurrentProcessId;
+    use windows_sys::Win32::UI::WindowsAndMessaging::{
+        GetForegroundWindow, GetWindowTextW, GetWindowThreadProcessId, IsWindow,
+        SetForegroundWindow,
+    };
+
+    const POLL_INTERVAL: Duration = Duration::from_millis(150);
+    /// Time for the target window to take focus before Ctrl+V is sent.
+    const REFOCUS_SETTLE: Duration = Duration::from_millis(80);
+
+    /// Last foreground HWND owned by another process (0 = none yet).
+    static LAST_EXTERNAL: AtomicIsize = AtomicIsize::new(0);
+
+    fn foreground_is_ours() -> Option<isize> {
+        // SAFETY: GetForegroundWindow takes no args and may return null;
+        // GetWindowThreadProcessId only writes the pid into our local.
+        unsafe {
+            let hwnd = GetForegroundWindow();
+            if hwnd.is_null() {
+                return None;
+            }
+            let mut pid: u32 = 0;
+            GetWindowThreadProcessId(hwnd, &mut pid);
+            if pid == GetCurrentProcessId() {
+                Some(0)
+            } else {
+                Some(hwnd as isize)
+            }
+        }
+    }
+
+    /// Start the tracker thread. Call once at app setup.
+    pub fn start_tracker() {
+        std::thread::Builder::new()
+            .name("paste-focus-tracker".into())
+            .spawn(|| {
+                loop {
+                    if let Some(hwnd) = foreground_is_ours().filter(|h| *h != 0) {
+                        LAST_EXTERNAL.store(hwnd, Ordering::Relaxed);
+                    }
+                    std::thread::sleep(POLL_INTERVAL);
+                }
+            })
+            .map(|_| ())
+            .unwrap_or_else(|e| log::warn!("paste focus tracker failed to start: {e}"));
+    }
+
+    /// If Echophrase holds focus, give it back to the last external window.
+    pub async fn restore_last_external_window() {
+        if foreground_is_ours() != Some(0) {
+            return;
+        }
+        let target = LAST_EXTERNAL.load(Ordering::Relaxed);
+        if target == 0 {
+            log::warn!("Paste: Echophrase has focus and no previous window is known");
+            return;
+        }
+        let hwnd = target as windows_sys::Win32::Foundation::HWND;
+        // SAFETY: IsWindow validates the handle (it may have closed since);
+        // SetForegroundWindow is allowed because our process is foreground.
+        let ok = unsafe { IsWindow(hwnd) != 0 && SetForegroundWindow(hwnd) != 0 };
+        if !ok {
+            log::warn!("Paste: could not refocus the previous window");
+            return;
+        }
+        tokio::time::sleep(REFOCUS_SETTLE).await;
+    }
+
+    /// Title of the current foreground window, for the paste log line.
+    pub fn foreground_window_title() -> String {
+        // SAFETY: GetWindowTextW writes at most `buf.len()` UTF-16 units.
+        unsafe {
+            let hwnd = GetForegroundWindow();
+            if hwnd.is_null() {
+                return "<none>".to_string();
+            }
+            let mut buf = [0u16; 256];
+            let len = GetWindowTextW(hwnd, buf.as_mut_ptr(), buf.len() as i32);
+            String::from_utf16_lossy(&buf[..len.max(0) as usize])
+        }
+    }
 }
 
 fn do_simulate_paste() -> Result<(), String> {

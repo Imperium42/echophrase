@@ -5,7 +5,7 @@
 import { writable, get } from 'svelte/store';
 import { beginRun, publishRun, type LastRunAction, type LastRunSpeed } from '$lib/stores/lastRun';
 import { useOutputHandler, type OutputMode } from '$lib/composables/useOutputHandler';
-import { tauriSettings } from '$lib/composables/useTauriSettings';
+import { tauriSettings, type TauriSettings } from '$lib/composables/useTauriSettings';
 import { defaultSettings } from '$lib/types/settings';
 import {
   removeFillerWords,
@@ -136,6 +136,47 @@ function addOutputToast(
   }, OUTPUT_TOAST_DURATION_MS);
 
   toastTimers.set(toast.id, timerId);
+}
+
+/** The user's output modes (Settings > Output). Shared by push-to-talk and open mic. */
+function resolveOutputModes(settings: TauriSettings | null): string[] {
+  if (Array.isArray(settings?.output_to) && settings.output_to.length > 0) {
+    return settings.output_to;
+  }
+  if (typeof settings?.output_to === 'string' && settings.output_to !== 'none') {
+    return [settings.output_to];
+  }
+  console.warn('⚠️ No output_to setting found, defaulting to copy_to_clipboard');
+  return ['copy_to_clipboard']; // Safe fallback - never auto-pastes
+}
+
+/** Run every configured output mode; returns the ones that succeeded. */
+async function deliverOutput(
+  formattedOutput: string,
+  settings: TauriSettings | null
+): Promise<LastRunAction[]> {
+  const outputModes = resolveOutputModes(settings);
+  console.log('📤 Output modes from settings:', JSON.stringify(outputModes));
+
+  const succeededActions: LastRunAction[] = [];
+  const outputHandler = useOutputHandler();
+  for (const mode of outputModes) {
+    const result = await outputHandler.handleOutput(formattedOutput, mode as OutputMode);
+    if (!result.success) {
+      console.warn(`⚠️ Output handling failed for ${mode}: ${result.error}`);
+      continue;
+    }
+    if (mode === 'copy_to_clipboard' || mode === 'paste_at_cursor' || mode === 'save_as_file') {
+      succeededActions.push(mode);
+    }
+    if (settings?.show_output_confirmations !== false) {
+      addOutputToast(mode, {
+        text: formattedOutput,
+        filePath: (result as { savedPath?: string }).savedPath,
+      });
+    }
+  }
+  return succeededActions;
 }
 
 /** Re-schedule toast dismiss (called when hover ends) */
@@ -767,45 +808,7 @@ export function useRecording(getModelExists?: () => boolean, showDownloadDialog?
             console.log(`📄 Formatted output as ${outputFormat}`);
           }
 
-          // Support both legacy string and new array format
-          let outputModes: string[] = [];
-          if (Array.isArray(settings?.output_to) && settings.output_to.length > 0) {
-            outputModes = settings.output_to;
-          } else if (typeof settings?.output_to === 'string' && settings.output_to !== 'none') {
-            outputModes = [settings.output_to];
-          } else {
-            console.warn('⚠️ No output_to setting found, defaulting to copy_to_clipboard');
-            outputModes = ['copy_to_clipboard']; // Safe fallback - never auto-pastes
-          }
-          console.log('📤 Output modes from settings:', JSON.stringify(outputModes));
-
-          const succeededActions: LastRunAction[] = [];
-          if (outputModes.length > 0) {
-            const outputHandler = useOutputHandler();
-            for (const mode of outputModes) {
-              console.log(`📤 Handling output with mode: ${mode}`);
-              const result = await outputHandler.handleOutput(formattedOutput, mode as OutputMode);
-              if (result.success) {
-                console.log(`✅ Output handled successfully (${mode})`);
-                if (
-                  mode === 'copy_to_clipboard' ||
-                  mode === 'paste_at_cursor' ||
-                  mode === 'save_as_file'
-                ) {
-                  succeededActions.push(mode);
-                }
-                // Show toast notification if enabled
-                if (settings?.show_output_confirmations !== false) {
-                  addOutputToast(mode, {
-                    text: formattedOutput,
-                    filePath: (result as any).savedPath,
-                  });
-                }
-              } else {
-                console.warn(`⚠️ Output handling failed for ${mode}: ${result.error}`);
-              }
-            }
-          }
+          const succeededActions = await deliverOutput(formattedOutput, settings);
 
           // Show transform toast if transform was applied
           if (originalTextBeforeTransform) {
@@ -1220,16 +1223,9 @@ export function useRecording(getModelExists?: () => boolean, showDownloadDialog?
         { customTemplate: settings?.json_metadata_template || undefined }
       );
 
-      // Force copy-to-clipboard only (paste-at-cursor unreliable when unfocused)
-      const outputHandler = useOutputHandler();
-      const result = await outputHandler.handleOutput(
-        formattedOutput,
-        'copy_to_clipboard' as OutputMode
-      );
-      const actions: LastRunAction[] = result.success ? ['copy_to_clipboard'] : [];
-      if (result.success && settings?.show_output_confirmations !== false) {
-        addOutputToast('copy_to_clipboard', { text: formattedOutput });
-      }
+      // Same output modes as push-to-talk. This used to force clipboard-only,
+      // which silently ignored a user's "Paste at cursor" setting.
+      const actions = await deliverOutput(formattedOutput, settings);
 
       // Publish aggregated last-run summary for the left chip stack (each chunk = a micro-run).
       const lastRunSpeed: LastRunSpeed | null =
