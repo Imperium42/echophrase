@@ -53,18 +53,9 @@ SPDX-License-Identifier: MPL-2.0
 </SettingsSection>
 
 <style>
-  .setting-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 0.5rem 0;
-  }
-
-  .setting-label {
-    font-size: 0.8125rem;
-    color: #d4d4d8;
-  }
+  /* `.setting-row` / `.setting-label` come from app.css. Do not redeclare
+     the row's padding here: the global rule pairs it with a negative margin,
+     and zeroing the side padding pushed the label under the clip edge. */
 
   .select-wrapper {
     position: relative;

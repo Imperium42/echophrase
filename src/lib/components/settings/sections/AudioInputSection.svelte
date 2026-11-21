@@ -15,7 +15,7 @@ SPDX-License-Identifier: MPL-2.0
    */
 
   import { onMount, onDestroy } from 'svelte';
-  import { SettingsSection, HintTooltip, SettingSlider } from '../primitives';
+  import { SettingsSection, HintTooltip, SettingSlider, FeatureBadge } from '../primitives';
   import { getSettingsContext } from '../context';
   import { mustInvoke, safeInvoke } from '$lib/ipc/invoke';
   import { useVadTest } from '$lib/composables/useVadTest';
@@ -329,6 +329,7 @@ SPDX-License-Identifier: MPL-2.0
           </span>
         {/if}
         {t('audioInput.openMic')}
+        <FeatureBadge variant="beta" />
       </button>
     </div>
   </div>

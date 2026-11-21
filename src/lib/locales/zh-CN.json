@@ -705,6 +705,7 @@
   "badges": {
     "development": "开发中",
     "comingSoon": "即将推出",
-    "alpha": "Alpha"
+    "alpha": "Alpha",
+    "beta": "Beta"
   }
 }

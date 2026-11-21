@@ -705,6 +705,7 @@
   "badges": {
     "development": "Development",
     "comingSoon": "Coming Soon",
-    "alpha": "Alpha"
+    "alpha": "Alpha",
+    "beta": "Beta"
   }
 }

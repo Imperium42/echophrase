@@ -9,13 +9,13 @@ SPDX-License-Identifier: MPL-2.0
    * Feature Badge
    *
    * Small maturity badge shown beside a section title or model name.
-   * Variants: 'dev' (blue), 'coming-soon' (gray), 'alpha' (amber - experimental).
+   * Variants: 'dev' (blue), 'coming-soon' (gray), 'alpha' and 'beta' (amber - not final).
    */
 
   import { t } from '$lib/locales';
 
   interface Props {
-    variant: 'dev' | 'coming-soon' | 'alpha';
+    variant: 'dev' | 'coming-soon' | 'alpha' | 'beta';
     /** Show as section-level tag (larger) vs inline tag */
     section?: boolean;
   }
@@ -26,6 +26,7 @@ SPDX-License-Identifier: MPL-2.0
     dev: t('badges.development'),
     'coming-soon': t('badges.comingSoon'),
     alpha: t('badges.alpha'),
+    beta: t('badges.beta'),
   });
 </script>
 
@@ -34,7 +35,7 @@ SPDX-License-Identifier: MPL-2.0
   class:section
   class:dev={variant === 'dev'}
   class:coming-soon={variant === 'coming-soon'}
-  class:alpha={variant === 'alpha'}
+  class:alpha={variant === 'alpha' || variant === 'beta'}
 >
   {labels[variant]}
 </span>
