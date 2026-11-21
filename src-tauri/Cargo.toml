@@ -65,7 +65,8 @@ ctrlc = "3.5"  # SIGINT/SIGTERM handler so terminal Ctrl+C kills the GUI child c
 fs4 = "1"  # Cross-platform advisory file locks (single-instance fallback when D-Bus absent on WSL). Maintained successor to fs2.
 # Voice Activity Detection: Silero VAD implemented directly with ort (no external crate)
 # This avoids version conflicts with parakeet-rs
-tauri-plugin-updater = "2.10.0"
+# Keep the same minor as @tauri-apps/plugin-updater in package.json (tauri build fails on a mismatch).
+tauri-plugin-updater = "~2.12.0"
 # ndarray for tensor manipulation in ONNX pipeline
 ndarray = "0.17"
 # FFT for the Qwen3-ASR Whisper-style log-mel frontend (pure Rust)
