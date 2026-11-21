@@ -30,17 +30,20 @@ Write-Host "Target directory: $env:CARGO_TARGET_DIR" -ForegroundColor DarkGray
 # Enable ONNX Runtime verbose logging to verify actual execution provider
 $env:ORT_LOG_LEVEL = "verbose"
 
-# Check for ONNX Runtime on Windows (ort 2.0.0-rc.11 requires 1.23.2)
+# Check for ONNX Runtime on Windows (ort 2.0.0-rc.12 requires 1.24.x; a 1.23
+# DLL crashes the test with STATUS_ENTRYPOINT_NOT_FOUND). An ORT_DYLIB_PATH
+# already in the environment wins.
 $ortPaths = @(
-    "$env:USERPROFILE\.local\lib\onnxruntime\onnxruntime-win-x64-1.23.2\lib\onnxruntime.dll",
-    "$env:USERPROFILE\.local\lib\onnxruntime\onnxruntime-win-x64-gpu-1.23.2\lib\onnxruntime.dll",
+    $env:ORT_DYLIB_PATH,
+    "$env:USERPROFILE\.local\lib\onnxruntime\ort-directml-1.24.2\runtimes\win-x64\native\onnxruntime.dll",
+    "$env:USERPROFILE\onnxruntime-directml-1.24.2\runtimes\win-x64\native\onnxruntime.dll",
     "C:\Program Files\onnxruntime\lib\onnxruntime.dll",
     "$env:LOCALAPPDATA\onnxruntime\onnxruntime.dll"
 )
 
 $foundOrt = $null
 foreach ($path in $ortPaths) {
-    if (Test-Path $path) {
+    if ($path -and (Test-Path $path)) {
         $foundOrt = $path
         break
     }
@@ -57,14 +60,14 @@ if ($foundOrt) {
 
     # Windows DirectML build via NuGet (github.com/microsoft/onnxruntime went 404
     # on 2026-11-20; NuGet is the same source the release workflow uses).
-    $ortUrl = "https://www.nuget.org/api/v2/package/Microsoft.ML.OnnxRuntime.DirectML/1.23.2"
-    $ortZip = "$ortDir\ort-directml-1.23.2.zip"
+    $ortUrl = "https://www.nuget.org/api/v2/package/Microsoft.ML.OnnxRuntime.DirectML/1.24.2"
+    $ortZip = "$ortDir\ort-directml-1.24.2.zip"
 
     Write-Host "Downloading from $ortUrl..." -ForegroundColor Cyan
     Invoke-WebRequest -Uri $ortUrl -OutFile $ortZip -UseBasicParsing
 
     Write-Host "Extracting..." -ForegroundColor Cyan
-    $extract = "$ortDir\ort-directml-1.23.2"
+    $extract = "$ortDir\ort-directml-1.24.2"
     Expand-Archive -Path $ortZip -DestinationPath $extract -Force
     Remove-Item $ortZip -Force
 

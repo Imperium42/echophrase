@@ -18,6 +18,12 @@ All notable changes to Echophrase will be documented in this file.
 ### Improved
 - Small branding touch-up: a trademark mark next to the Echophrase name.
 
+### Fixed
+- Open mic now follows your output setting, so "Paste at cursor" pastes when the countdown ends instead of only copying.
+- On Windows, pasting no longer lands in Echophrase itself when it has focus - the text goes to the app you were using.
+- A brief audio glitch no longer cancels your recording with a "Not recording" error.
+- The "Language (UI)" label in Settings is no longer cut off.
+
 ### Removed
 - The unused CUDA plugin and all CUDA code paths. Windows uses DirectML, macOS uses CoreML, Linux runs on CPU.
 

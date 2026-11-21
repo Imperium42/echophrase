@@ -24,6 +24,14 @@ bun run test:transcription         # Transcription test (WSL/Linux)
 bun run test:transcription:win     # Transcription test (Windows DirectML - needs native Windows path)
 bun run test:vad                   # VAD tests
 
+```
+
+> **Agents: never run test suites or `bun run check` in the foreground.** They
+> can take 10+ minutes and block the session (`bun run check` + `test:run` hit a
+> 10-minute timeout on 2026-11-21). Always run them in the background, and tell
+> the user BEFORE starting one, so they know the session is waiting on it.
+
+```bash
 # Code Quality
 bun run check                      # Svelte type checking
 bun run lint && bun run lint:fix   # ESLint
@@ -47,7 +55,7 @@ cd src-tauri && cargo add <crate>  # Add Rust crate
 - **Audio**: `crates/echo-audio` (shared audio core: cpal capture, resampling, WAV I/O, AudioSource) + Voice Activity Detection (self-implemented Silero VAD V5). Live capture is fully in-memory on all platforms - no temp WAVs.
 - **GPU**: DirectML (Windows), CoreML (macOS); Linux/WSL is CPU-only. There is no CUDA. ORT is loaded dynamically via ort `load-dynamic`
 - **No server, no account**: since the v1.0.0 open-source move, the app is fully free and local. There is no login, tier, trial, payment, heartbeat, MOTD or server cloud sync. The only network calls are model downloads, the CrabNebula updater, the GitHub release archive and (official builds only) Aptabase telemetry.
-- **Icons**: import `<Icon>` from `$lib/icons` only — never directly from `@lucide/svelte` or `simple-icons`. Add new icons to `src/lib/icons/registry.ts` (Lucide v1 for functional, Simple Icons for brand logos).
+- **Icons**: import `<Icon>` from `$lib/icons` only - never directly from `@lucide/svelte` or `simple-icons`. Add new icons to `src/lib/icons/registry.ts` (Lucide v1 for functional, Simple Icons for brand logos).
 - **Styling**: Tailwind CSS 4.x
 
 ### Frontend-Backend Communication
@@ -232,7 +240,7 @@ via the C API. This avoids MSVC STL ABI coupling from static linking (pykeio/ort
   prerequisite of `bun run tauri:dev` (and `bun run setup:ort` standalone). It
   detects the platform, downloads the ORT CPU/CoreML build from NuGet to
   a gitignored repo-local `.ort/<platform>/`, and writes an absolute `ORT_DYLIB_PATH`
-  into the correct section of `env.yaml`. Idempotent — fast no-op when already installed.
+  into the correct section of `env.yaml`. Idempotent - fast no-op when already installed.
   Skip it (e.g. in CI) by calling `bun x tauri dev` directly.
   - **macOS extra step (automatic):** on `darwin-arm64`, `ensure-ort.mjs` also copies the
     dylib to `src-tauri/macos-frameworks/libonnxruntime.dylib`. `tauri.conf.json5` declares
