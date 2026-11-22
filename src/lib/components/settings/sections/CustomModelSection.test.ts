@@ -17,8 +17,8 @@ import { writable } from 'svelte/store';
  *
  * NOTE: the component is imported dynamically inside each test, after the
  * vi.mock() calls below run, rather than via a static top-level import.
- * Under `bunx --bun vitest` (the project's `bun test` runner), vi.mock
- * hoisting of static imports does not reliably apply - the dynamic
+ * Under `bunx --bun vitest`, vi.mock hoisting of static imports did not
+ * reliably apply (we now run vitest on Node, see vitest.config.js) - the dynamic
  * `await import(...)` pattern sidesteps that by registering the mocks
  * before the module graph is first loaded.
  */
@@ -46,6 +46,12 @@ vi.mock('$lib/ipc/invoke', () => ({
 
 vi.mock('$lib/utils/launchUrl', () => ({
   launchUrl: vi.fn(),
+}));
+
+// The real icon registry imports the full @lucide/svelte barrel (~1,600
+// components), which took ~50s to compile cold and blew the test timeout.
+vi.mock('$lib/icons', async () => ({
+  Icon: (await import('./CustomModelSectionIconStub.svelte')).default,
 }));
 
 vi.mock('$lib/utils/docsUrl', () => ({

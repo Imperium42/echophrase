@@ -18,7 +18,8 @@ bun run tauri:build                # Production build (outputs to src-tauri/targ
 
 # Testing
 bun test                           # Frontend tests (Vitest, watch mode)
-bun run test:run                   # Frontend tests (single run)
+bun run test:run                   # Frontend tests (single run; vitest on Node, not --bun - see vitest.config.js)
+bun run test:chunked               # Same, in 5-file chunks with a 2min hard timeout each (names a hung chunk)
 bun run test:rust                  # All Rust backend tests
 bun run test:transcription         # Transcription test (WSL/Linux)
 bun run test:transcription:win     # Transcription test (Windows DirectML - needs native Windows path)
@@ -30,6 +31,9 @@ bun run test:vad                   # VAD tests
 > can take 10+ minutes and block the session (`bun run check` + `test:run` hit a
 > 10-minute timeout on 2026-11-21). Always run them in the background, and tell
 > the user BEFORE starting one, so they know the session is waiting on it.
+> Prefer `bun run test:chunked` for the frontend suite: a hang is capped at 2
+> minutes per chunk and the hung files are named. Never pipe a suite through
+> `tail` (it buffers everything, so a hang looks like silence).
 
 ```bash
 # Code Quality
@@ -254,8 +258,9 @@ via the C API. This avoids MSVC STL ABI coupling from static linking (pykeio/ort
   the auto-script will overwrite that line on next run. If you need a custom path,
   don't run `ensure-ort.mjs` (call `bun x tauri dev` directly).
 - **Windows DirectML** (bundled default - covers all GPUs):
-  `Microsoft.ML.OnnxRuntime.DirectML` 1.24.2 from NuGet. `DirectML.dll` itself
-  comes from Windows System32 (1.15+, shipped on Win11 22H2+).
+  `Microsoft.ML.OnnxRuntime.DirectML` 1.24.2 from NuGet. `DirectML.dll` is bundled too
+  (from the `Microsoft.AI.DirectML` NuGet, staged by `release.yml`) rather than taken from
+  System32, to avoid version drift on older Windows. It is proprietary (redistributable), see `ATTRIBUTION.md`.
   Download: `curl -L -o ort-dml.nupkg https://www.nuget.org/api/v2/package/Microsoft.ML.OnnxRuntime.DirectML/1.24.2`
   Production path: `<install>/resources/ort/directml/onnxruntime.dll` (CI stages DLLs before `tauri build`).
 - **Linux**: CPU build (`Microsoft.ML.OnnxRuntime` NuGet, staged by `ensure-ort.mjs`)
