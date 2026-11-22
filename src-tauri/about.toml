@@ -5,6 +5,10 @@
 # npm license manifest, and writes the committed attribution data to
 # echophrase-www. See the /deploy skill for the release-time regeneration step.
 #
+# Also read by `vite.config.js` for the frontend copyleft guard. That file parses
+# the `accepted = [ ... ]` array below with a plain regex (no TOML parser), so keep
+# it as quoted SPDX ids, one per line, with no `]` inside the brackets.
+#
 # `accepted` is the COPYLEFT GUARD: cargo-about fails generation if any crate in
 # the shipped dependency graph carries a license not listed here. There is
 # deliberately NO GPL/AGPL/LGPL entry, so a copyleft crate sneaking in breaks the

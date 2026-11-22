@@ -6,25 +6,38 @@ import { defineConfig } from "vite";
 import { sveltekit } from "@sveltejs/kit/vite";
 import tailwindcss from "@tailwindcss/vite";
 import { createViteLicensePlugin } from "rollup-license-plugin";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
-// Frontend COPYLEFT GUARD: the webview-side twin of the `accepted` list in
-// src-tauri/about.toml. Keep both lists in sync. Permissive / notice-only
-// licenses only. Never add GPL/AGPL/LGPL/SSPL - a copyleft package must break
-// the build, not ship silently.
-const ACCEPTED_LICENSES = new Set([
-  "0BSD",
-  "Apache-2.0",
-  "BSD-2-Clause",
-  "BSD-3-Clause",
-  "BSL-1.0",
-  "CC0-1.0",
-  "ISC",
-  "MIT",
-  "MIT-0",
-  "MPL-2.0",
-  "Unicode-3.0",
-  "Zlib",
-]);
+/**
+ * Reads the `accepted = [ ... ]` array from src-tauri/about.toml.
+ * Plain regex on purpose (no TOML parser dependency): comments are stripped,
+ * then each double-quoted string inside the array is an SPDX id. Throws when the
+ * array is missing or empty so the guard can never silently allow everything.
+ * @param {URL} aboutTomlUrl
+ * @returns {Set<string>}
+ */
+function loadAcceptedLicenses(aboutTomlUrl) {
+  const path = fileURLToPath(aboutTomlUrl);
+  const uncommented = readFileSync(path, "utf8").replace(/#.*$/gm, "");
+  const match = uncommented.match(/^\s*accepted\s*=\s*\[([^\]]*)\]/m);
+  if (!match) {
+    throw new Error(`License guard: no "accepted = [...]" array found in ${path}`);
+  }
+  const ids = [...match[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+  if (ids.length === 0) {
+    throw new Error(`License guard: "accepted" array in ${path} is empty`);
+  }
+  return new Set(ids);
+}
+
+// Frontend COPYLEFT GUARD. The list comes from src-tauri/about.toml, which is the
+// single source of truth (cargo-about reads the same file for the Rust side).
+// Never add GPL/AGPL/LGPL/SSPL there - a copyleft package must break the build,
+// not ship silently.
+const ACCEPTED_LICENSES = loadAcceptedLicenses(
+  new URL("./src-tauri/about.toml", import.meta.url),
+);
 
 /**
  * True when an SPDX expression can be satisfied using ACCEPTED_LICENSES.
