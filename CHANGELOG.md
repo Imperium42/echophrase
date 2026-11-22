@@ -22,6 +22,7 @@ All notable changes to Echophrase will be documented in this file.
 - Settings > Model shows your model's name and size instead of its internal id.
 
 ### Fixed
+- The release history in Settings > About shows past releases again.
 - Open mic now follows your output setting, so "Paste at cursor" pastes when the countdown ends instead of only copying.
 - On Windows, pasting no longer lands in Echophrase itself when it has focus - the text goes to the app you were using.
 - A brief audio glitch no longer cancels your recording with a "Not recording" error.

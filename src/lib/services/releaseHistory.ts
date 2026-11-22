@@ -6,7 +6,7 @@
  * Release History Service
  *
  * Fetches prior releases via a Rust Tauri command (which calls the GitHub API
- * internally). The repo identifier never appears in the JS bundle. Results are
+ * internally). Results are
  * cached in memory for the session as a second layer on top of the Rust TTL cache.
  * Failures are silenced - the archive section simply stays hidden.
  */

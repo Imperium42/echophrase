@@ -7,7 +7,7 @@ use std::sync::{LazyLock, Mutex};
 use std::time::{Duration, Instant};
 
 /// Public GitHub repo whose Releases feed the in-app release archive.
-const REPO: &str = "Imperium42/echophrase";
+const REPO: &str = "imperium42/echophrase-releases";
 
 /// Cache TTL: 10 minutes.
 const CACHE_TTL: Duration = Duration::from_secs(600);
