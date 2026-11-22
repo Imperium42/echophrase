@@ -47,6 +47,7 @@ export interface Settings {
   show_transcription_speed?: boolean; // Show transcription speed toast (default false)
   append_space_incomplete?: boolean; // Append trailing space when output lacks sentence-ending punctuation (default true)
   hotkey_mode?: 'hybrid' | 'toggle' | 'hold'; // Push to Talk hotkey behavior (default hybrid: tap toggles, hold+release stops)
+  restore_clipboard_after_paste?: boolean; // Put the previous clipboard text back after paste at cursor (default false)
   execution_provider?: string; // Preferred execution provider: directml, coreml, cpu
   // Transform model settings
   transform_enabled?: boolean; // Enable post-processing with LLM
@@ -105,6 +106,7 @@ export const defaultSettings: Settings = {
   show_transcription_speed: false, // Don't show speed by default
   append_space_incomplete: true, // Append trailing space for incomplete sentences by default
   hotkey_mode: 'hybrid', // Tap toggles, hold+release stops
+  restore_clipboard_after_paste: false, // Keep the transcript on the clipboard
   // Transform model defaults
   transform_enabled: false, // Disabled by default
   transform_model: 't5-mini-grammar', // Recommended DLC tier (matches Rust DEFAULT_TRANSFORM_MODEL_ID)

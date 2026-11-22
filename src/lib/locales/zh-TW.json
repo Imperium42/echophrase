@@ -474,6 +474,8 @@
     "validJson": "有效 JSON",
     "invalidJson": "無效 JSON",
     "requiredByPaste": "貼上至游標所需",
+    "restoreClipboard": "貼上後還原剪貼簿",
+    "restoreClipboardHint": "貼上後放回你先前複製的內容，而不是把轉錄文字留在剪貼簿。在 macOS 上可能需要額外的剪貼簿權限。",
     "enableOtherToDisable": "啟用其他輸出以停用此項",
     "clearSaveDir": "清除（還原為儲存對話框）",
     "setSaveDir": "設定自動儲存目錄",

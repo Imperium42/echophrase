@@ -474,6 +474,8 @@
     "validJson": "Valid JSON",
     "invalidJson": "Invalid JSON",
     "requiredByPaste": "Required by Paste at Cursor",
+    "restoreClipboard": "Restore Clipboard After Pasting",
+    "restoreClipboardHint": "Puts back whatever you had copied before, instead of leaving the transcript on your clipboard. On macOS this may need extra clipboard permissions.",
     "enableOtherToDisable": "Enable another output to disable this",
     "clearSaveDir": "Clear (revert to save dialog)",
     "setSaveDir": "Set auto-save directory",

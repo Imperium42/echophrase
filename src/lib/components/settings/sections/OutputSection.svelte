@@ -300,6 +300,17 @@ SPDX-License-Identifier: MPL-2.0
       <div class="dir-feedback error">{dirError}</div>
     {/if}
   {/each}
+
+  <!-- Paste goes through the clipboard. Off (default): the transcript stays on
+       it. On: the previous clipboard text is put back after pasting. -->
+  {#if pasteRequiresClipboard}
+    <SettingToggle
+      label={t('outputSettings.restoreClipboard')}
+      hint={t('outputSettings.restoreClipboardHint')}
+      checked={$settings?.restore_clipboard_after_paste === true}
+      onchange={v => updateSetting('restore_clipboard_after_paste', v)}
+    />
+  {/if}
 </SettingsSection>
 
 <style>

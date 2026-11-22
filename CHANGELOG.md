@@ -10,6 +10,7 @@ All notable changes to Echophrase will be documented in this file.
 - A "Support Me" button at the bottom of Settings, if you'd like to buy me a coffee via GitHub Sponsors.
 - A "Source code" link in Settings > About.
 - Push to Talk hotkey can now be tapped or held: tap to start and tap to stop, or hold it while you talk and let go to stop. Pick "Tap", "Hold" or both under Push to Talk in Settings.
+- "Restore Clipboard After Pasting" in Settings > Output: after Paste at cursor, put back whatever you had copied before. Off by default; on macOS it may need extra clipboard permissions.
 
 ### Changed
 - No more accounts or sign-in server. Account settings and server cloud sync are gone, and the app never forces you to update. If you used cloud sync, your settings stay on this computer as they are. The only thing Echophrase still sends is optional anonymous usage stats, which you can turn off in Settings > Data.

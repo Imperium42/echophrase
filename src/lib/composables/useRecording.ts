@@ -58,9 +58,9 @@ async function deliverOutput(
 
   const succeededActions: LastRunAction[] = [];
   const outputHandler = useOutputHandler();
-  // Paste goes through the clipboard; only leave the transcript there when the
-  // user also asked for "Copy to clipboard".
-  const keepOnClipboard = outputModes.includes('copy_to_clipboard');
+  // Paste goes through the clipboard. By default the transcript stays there;
+  // the opt-in setting restores the previous clipboard text after pasting.
+  const keepOnClipboard = settings?.restore_clipboard_after_paste !== true;
   for (const mode of outputModes) {
     const result = await outputHandler.handleOutput(
       formattedOutput,

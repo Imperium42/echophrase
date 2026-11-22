@@ -280,6 +280,8 @@ pub struct SettingsPatch {
     pub append_space_incomplete: Option<bool>,
     #[serde(default)]
     pub hotkey_mode: Option<String>,
+    #[serde(default)]
+    pub restore_clipboard_after_paste: Option<bool>,
     #[serde(default, deserialize_with = "double_option")]
     pub json_metadata_template: Option<Option<String>>,
     #[serde(default)]
@@ -375,6 +377,7 @@ impl SettingsPatch {
             use_numeric_digits,
             append_space_incomplete,
             hotkey_mode,
+            restore_clipboard_after_paste,
             telemetry_enabled,
             auto_detected_model,
             transform_enabled,
@@ -484,6 +487,10 @@ pub struct AppSettings {
     /// "toggle", or "hold". Unknown values behave as hybrid on the frontend.
     #[serde(default = "default_hotkey_mode")]
     pub hotkey_mode: String,
+    /// Put the previous clipboard text back after paste at cursor (opt-in;
+    /// reading the clipboard may need extra permission on macOS).
+    #[serde(default)]
+    pub restore_clipboard_after_paste: bool,
     pub json_metadata_template: Option<String>, // Custom JSON template for metadata output
     pub telemetry_enabled: bool,                // Anonymous usage stats and crash reports (opt-out)
     /// Whether the current model was auto-detected on first launch.
@@ -621,6 +628,7 @@ impl Default for AppSettings {
             use_numeric_digits: false,       // Don't convert numbers to digits by default
             append_space_incomplete: true, // Append trailing space for incomplete sentences by default
             hotkey_mode: default_hotkey_mode(), // Tap toggles, hold+release stops
+            restore_clipboard_after_paste: false, // Keep the transcript on the clipboard
             json_metadata_template: None,  // Use default JSON template
             telemetry_enabled: true,       // Anonymous telemetry enabled by default
             auto_detected_model: false,    // Not auto-detected until first launch detection runs

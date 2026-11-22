@@ -90,10 +90,10 @@ export function useOutputHandler() {
    * via the `copy_to_windows_clipboard` command instead, and powershell.exe
    * SendKeys for the keystroke (handled in Rust simulate_paste).
    *
-   * Pasting has to go through the clipboard. Unless `keepOnClipboard` (the
-   * user ALSO chose "Copy to clipboard"), the previous clipboard text is put
-   * back after the paste, so "Paste at cursor" alone never leaves the
-   * transcript on the clipboard. Not on WSL (clip.exe can't be read back), and
+   * Pasting has to go through the clipboard. When `keepOnClipboard` is false
+   * (opt-in setting `restore_clipboard_after_paste`), the previous clipboard
+   * text is put back after the paste. Reading the clipboard may trigger a
+   * privacy prompt on macOS, hence opt-in. Not on WSL (clip.exe can't be read back), and
    * a non-text clipboard (eg an image) can't be restored - it is left cleared.
    * On a paste failure the transcript is deliberately left on the clipboard
    * so the user can paste it by hand.
