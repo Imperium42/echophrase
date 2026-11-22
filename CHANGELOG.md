@@ -5,10 +5,11 @@ All notable changes to Echophrase will be documented in this file.
 ## [Unreleased]
 
 ### Added
-- Echophrase is now open source under the MPL-2.0 license.
-- Everything is free now. There's no account, no sign-in, and no Pro. Features that used to be Pro work for everyone: custom ONNX models, Transform (grammar cleanup), the MCP server and CLI `transcribe`, JSON output with timestamps, compute-type selection, and the Customize and Recording settings.
-- A "Support Us <3" button at the bottom of Settings, if you'd like to chip in via GitHub Sponsors.
+- **Echophrase is now free and open source** under the [Mozilla Public License 2.0](LICENSE) (MPL-2.0).
+- **Everything is free and unlimited, Pro features included.** No account, no sign-in, no Pro tier and no usage limits. Everything that used to be Pro now works for everyone: custom ONNX models, Transform (grammar cleanup), the MCP server and CLI `transcribe`, JSON output with timestamps, compute-type selection, and the Customize and Recording settings.
+- A "Support Me" button at the bottom of Settings, if you'd like to buy me a coffee via GitHub Sponsors.
 - A "Source code" link in Settings > About.
+- Push to Talk hotkey can now be tapped or held: tap to start and tap to stop, or hold it while you talk and let go to stop. Pick "Tap", "Hold" or both under Push to Talk in Settings.
 
 ### Changed
 - No more accounts or sign-in server. Account settings and server cloud sync are gone, and the app never forces you to update. If you used cloud sync, your settings stay on this computer as they are. The only thing Echophrase still sends is optional anonymous usage stats, which you can turn off in Settings > Data.

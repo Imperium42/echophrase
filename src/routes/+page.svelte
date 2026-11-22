@@ -27,7 +27,8 @@ SPDX-License-Identifier: MPL-2.0
   import { t } from '$lib/locales';
 
   // Composables
-  import { useRecording, outputToasts } from '$lib/composables/useRecording';
+  import { useRecording } from '$lib/composables/useRecording';
+  import { outputToasts } from '$lib/stores/outputToasts';
   import { useAppInit } from '$lib/composables/useAppInit';
   import { useModelDownloadEvents } from '$lib/composables/useModelDownloadEvents';
   import { useRealtimePreview } from '$lib/composables/useRealtimePreview';
@@ -236,6 +237,13 @@ SPDX-License-Identifier: MPL-2.0
       },
       onHotkeyToggle: handleRecordClick,
       isHotkeyDisabled: () => $isProcessingStore || $serverStatusStore === 'connecting',
+      hotkeyMode: {
+        mode: () =>
+          ($tauriSettings?.recording_mode ?? 'push_to_talk') === 'push_to_talk'
+            ? ($tauriSettings?.hotkey_mode ?? 'hybrid')
+            : 'toggle',
+        isRecording: () => get(isRecordingStore),
+      },
       onDownloadComplete: triggerModelSelectorGlow,
       loadTauriSettings,
     });

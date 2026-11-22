@@ -43,6 +43,7 @@ export interface TauriSettings {
   remove_filler_words: boolean; // Remove um, uh, etc. from transcription output
   use_numeric_digits: boolean; // Display numbers as digits (1, 2) instead of text (one, two)
   append_space_incomplete?: boolean; // Append trailing space when output lacks sentence-ending punctuation (default true)
+  hotkey_mode?: 'hybrid' | 'toggle' | 'hold'; // Push to Talk hotkey behavior (default hybrid: tap toggles, hold+release stops)
   json_metadata_template?: string | null; // Custom JSON template for metadata output
   telemetry_enabled: boolean; // Anonymous usage stats and crash reports (opt-out)
   // Audio input settings (available to all users)
@@ -277,6 +278,7 @@ async function resetToDefaults(): Promise<void> {
     remove_filler_words: true,
     use_numeric_digits: false, // Convert "one, two" to "1, 2"
     append_space_incomplete: true, // Append trailing space for incomplete sentences by default
+    hotkey_mode: 'hybrid', // Tap toggles, hold+release stops
     json_metadata_template: null,
     telemetry_enabled: true, // Default ON - anonymous usage stats
     input_device: 'default', // System default audio input

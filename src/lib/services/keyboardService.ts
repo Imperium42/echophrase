@@ -53,6 +53,7 @@ export const lastError = writable<string | null>(null);
 let currentShortcut: string | null = null;
 let currentCallback: (() => void) | null = null;
 let currentShouldDisable: (() => boolean) | null = null;
+let currentOnRelease: (() => void) | null = null;
 
 /**
  * Convert hotkeys-js format to Tauri accelerator format.
@@ -149,11 +150,14 @@ export async function init(): Promise<boolean> {
  * @param hotkey - Hotkey in hotkeys-js format (e.g., "ctrl+shift+a")
  * @param callback - Function to call when shortcut is pressed
  * @param shouldDisable - Optional guard that returns true to skip the callback
+ * @param onRelease - Optional key-release handler (hold-to-talk). Not gated by
+ *   shouldDisable, so a stop can never be swallowed.
  */
 export async function registerShortcut(
   hotkey: string,
   callback: () => void,
-  shouldDisable?: () => boolean
+  shouldDisable?: () => boolean,
+  onRelease?: () => void
 ): Promise<boolean> {
   if (!register || !unregister) {
     console.warn('[Keyboard] Service not initialized');
@@ -181,6 +185,7 @@ export async function registerShortcut(
   if (currentShortcut === accelerator) {
     currentCallback = callback;
     currentShouldDisable = shouldDisable ?? null;
+    currentOnRelease = onRelease ?? null;
     return true;
   }
 
@@ -193,6 +198,10 @@ export async function registerShortcut(
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
       await register(accelerator, (event: ShortcutEvent) => {
+        if (event.state === 'Released') {
+          currentOnRelease?.();
+          return;
+        }
         if (event.state !== 'Pressed') return;
         if (currentShouldDisable?.()) {
           console.log('[Keyboard] Callback disabled');
@@ -205,6 +214,7 @@ export async function registerShortcut(
       currentShortcut = accelerator;
       currentCallback = callback;
       currentShouldDisable = shouldDisable ?? null;
+      currentOnRelease = onRelease ?? null;
       lastError.set(null);
 
       if (attempt > 1) {
@@ -265,6 +275,7 @@ export async function unregisterCurrent(): Promise<void> {
     currentShortcut = null;
     currentCallback = null;
     currentShouldDisable = null;
+    currentOnRelease = null;
   } catch (error) {
     console.error('[Keyboard] Failed to unregister:', error);
   }
@@ -281,6 +292,7 @@ export async function cleanup(): Promise<void> {
     currentShortcut = null;
     currentCallback = null;
     currentShouldDisable = null;
+    currentOnRelease = null;
     console.log('[Keyboard] Cleaned up all global shortcuts');
   } catch (error) {
     console.error('[Keyboard] Failed to cleanup:', error);

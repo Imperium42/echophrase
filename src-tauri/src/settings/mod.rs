@@ -31,6 +31,10 @@ fn default_true() -> bool {
     true
 }
 
+fn default_hotkey_mode() -> String {
+    "hybrid".to_string()
+}
+
 fn default_transform_rules() -> String {
     DEFAULT_TRANSFORM_RULES.to_string()
 }
@@ -274,6 +278,8 @@ pub struct SettingsPatch {
     pub use_numeric_digits: Option<bool>,
     #[serde(default)]
     pub append_space_incomplete: Option<bool>,
+    #[serde(default)]
+    pub hotkey_mode: Option<String>,
     #[serde(default, deserialize_with = "double_option")]
     pub json_metadata_template: Option<Option<String>>,
     #[serde(default)]
@@ -368,6 +374,7 @@ impl SettingsPatch {
             remove_filler_words,
             use_numeric_digits,
             append_space_incomplete,
+            hotkey_mode,
             telemetry_enabled,
             auto_detected_model,
             transform_enabled,
@@ -473,6 +480,10 @@ pub struct AppSettings {
     pub use_numeric_digits: bool, // Display numbers as digits (1, 2) instead of text (one, two)
     #[serde(default = "default_true")]
     pub append_space_incomplete: bool, // Append trailing space when output lacks sentence-ending punctuation
+    /// Push to Talk hotkey behavior: "hybrid" (tap toggles, hold+release stops),
+    /// "toggle", or "hold". Unknown values behave as hybrid on the frontend.
+    #[serde(default = "default_hotkey_mode")]
+    pub hotkey_mode: String,
     pub json_metadata_template: Option<String>, // Custom JSON template for metadata output
     pub telemetry_enabled: bool,                // Anonymous usage stats and crash reports (opt-out)
     /// Whether the current model was auto-detected on first launch.
@@ -609,6 +620,7 @@ impl Default for AppSettings {
             remove_filler_words: true,       // Remove filler words by default
             use_numeric_digits: false,       // Don't convert numbers to digits by default
             append_space_incomplete: true, // Append trailing space for incomplete sentences by default
+            hotkey_mode: default_hotkey_mode(), // Tap toggles, hold+release stops
             json_metadata_template: None,  // Use default JSON template
             telemetry_enabled: true,       // Anonymous telemetry enabled by default
             auto_detected_model: false,    // Not auto-detected until first launch detection runs

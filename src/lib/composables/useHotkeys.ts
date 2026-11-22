@@ -42,6 +42,95 @@ async function setDictationRemap(enabled: boolean): Promise<void> {
   }
 }
 
+/**
+ * How the record hotkey behaves in Push to Talk mode (setting `hotkey_mode`):
+ * - hybrid (default): tap to start, tap again to stop; OR hold and release to stop
+ * - toggle: every press starts/stops; release does nothing
+ * - hold: press starts, release always stops
+ */
+export type HotkeyMode = 'hybrid' | 'toggle' | 'hold';
+
+/** Wiring for press/release handling. Both reuse the one toggle callback. */
+export interface HotkeyModeOptions {
+  /** Effective mode. Return 'toggle' outside Push to Talk (eg open mic). */
+  mode: () => HotkeyMode;
+  /** Current recording state (the isRecording store in useRecording.ts). */
+  isRecording: () => boolean;
+}
+
+/** Hybrid: a press held at least this long counts as hold-to-talk (Wispr Flow / VoiceInk use 0.5s). */
+export const HYBRID_HOLD_MS = 500;
+
+// A release that lands before recorder startup flips isRecording true would
+// otherwise miss the stop. Poll briefly after release so it still stops.
+const RELEASE_POLL_MS = 100;
+const RELEASE_POLL_MAX_MS = 3000;
+
+/**
+ * Wrap a toggle callback into press/release handlers for the hotkey modes.
+ * OS key-repeat re-fires Pressed while held; those repeats are ignored.
+ */
+export function createHoldHandlers(
+  callback: () => void,
+  opts?: HotkeyModeOptions,
+  now: () => number = Date.now
+): { onPress: () => void; onRelease: () => void } {
+  let held = false; // this press started a recording and the key is still down
+  let pressedAt = 0;
+  let pollTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const clearPoll = () => {
+    if (pollTimer) clearTimeout(pollTimer);
+    pollTimer = null;
+  };
+
+  const onPress = () => {
+    const mode = opts?.mode() ?? 'toggle';
+    if (mode === 'toggle') {
+      callback();
+      return;
+    }
+    if (held) return; // key repeat
+    if (opts!.isRecording()) {
+      // hybrid: a tap while a tap-started recording runs stops it.
+      // hold: recording without our press (eg started by click) - stop it too.
+      callback();
+      return;
+    }
+    held = true;
+    pressedAt = now();
+    clearPoll();
+    callback();
+  };
+
+  const stopWhenRecording = () => {
+    if (opts!.isRecording()) {
+      callback();
+      return;
+    }
+    const deadline = now() + RELEASE_POLL_MAX_MS;
+    const poll = () => {
+      pollTimer = null;
+      if (held) return; // pressed again - the new press owns the stop
+      if (opts!.isRecording()) callback();
+      else if (now() < deadline) pollTimer = setTimeout(poll, RELEASE_POLL_MS);
+    };
+    pollTimer = setTimeout(poll, RELEASE_POLL_MS);
+  };
+
+  const onRelease = () => {
+    if (!opts || !held) return;
+    held = false;
+    const mode = opts.mode();
+    if (mode === 'hold' || (mode === 'hybrid' && now() - pressedAt >= HYBRID_HOLD_MS)) {
+      stopWhenRecording();
+    }
+    // hybrid short tap: keep recording until the next tap
+  };
+
+  return { onPress, onRelease };
+}
+
 /** Modifier tokens that can't stand alone as a hotkey. */
 const MODIFIER_TOKENS = new Set([
   'ctrl',
@@ -102,8 +191,11 @@ export function useHotkeys() {
   async function setupHotkey(
     hotkey: string,
     callback: () => void,
-    shouldDisableCallback?: () => boolean
+    shouldDisableCallback?: () => boolean,
+    hold?: HotkeyModeOptions
   ) {
+    const { onPress, onRelease } = createHoldHandlers(callback, hold);
+
     // macOS: keep the dictation-key HID remap in sync with the binding. If the
     // mic key (F13) is what's bound, disable native dictation by remapping;
     // otherwise revert so the system Dictation key works normally again.
@@ -117,16 +209,20 @@ export function useHotkeys() {
     // registration failed to register (see the WSLg note at the top of
     // keyboardService.ts), in which case it's the sole fallback.
     hotkeys.unbind(); // Clear all previous hotkeys
-    hotkeys(hotkey, event => {
+    hotkeys(hotkey, { keyup: true }, event => {
       event.preventDefault();
       if (globalShortcutService.hasActiveGlobalShortcut()) {
         // Global shortcut owns this keypress - stay silent to avoid double dispatch.
         return;
       }
+      if (event.type === 'keyup') {
+        onRelease();
+        return;
+      }
       const $isRecordingHotkey = get(isRecordingHotkey) || false;
       const shouldDisable = shouldDisableCallback?.() || false;
       if (!$isRecordingHotkey && !shouldDisable) {
-        callback();
+        onPress();
       }
     });
 
@@ -138,13 +234,22 @@ export function useHotkeys() {
       return $isRecordingHotkey || shouldDisable;
     };
 
-    await globalShortcutService.registerShortcut(hotkey, callback, shouldDisableGlobal);
+    await globalShortcutService.registerShortcut(
+      hotkey,
+      onPress,
+      shouldDisableGlobal,
+      onRelease
+    );
   }
 
   /**
    * Initialize hotkey system
    */
-  async function initializeHotkeys(callback: () => void, shouldDisableCallback?: () => boolean) {
+  async function initializeHotkeys(
+    callback: () => void,
+    shouldDisableCallback?: () => boolean,
+    hold?: HotkeyModeOptions
+  ) {
     // Initialize hotkey store (loads from Tauri settings). Aliases load in the
     // same step so the very first label render already uses the user's names.
     await Promise.all([hotkeyStore.init(), hotkeyAliases.init()]);
@@ -160,7 +265,7 @@ export function useHotkeys() {
     // Set up initial hotkey and reactively update when it changes
     const unsubscribe = hotkeyStore.subscribe(state => {
       if (!state.isRecording) {
-        setupHotkey(state.currentHotkey, callback, shouldDisableCallback);
+        setupHotkey(state.currentHotkey, callback, shouldDisableCallback, hold);
       }
     });
 

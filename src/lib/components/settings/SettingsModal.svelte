@@ -292,14 +292,14 @@ SPDX-License-Identifier: MPL-2.0
 				choke on `import { onMount }`. See svelte.config.js for prior context.
 			-->
         <!--
-				Task-flow order: capture (mic -> recording -> hotkeys) -> transcribe
+				Task-flow order: capture (mic -> hotkeys -> recording) -> transcribe
 				(model -> custom model -> transform -> gpu) -> output -> preferences ->
 				housekeeping.
 			-->
         <div hidden={!sectionVisibility.language}><LanguageSection /></div>
         <div hidden={!sectionVisibility.audio}><AudioInputSection /></div>
-        <div hidden={!sectionVisibility.recording}><RecordingSection /></div>
         <div hidden={!sectionVisibility.hotkeys}><HotkeysSection /></div>
+        <div hidden={!sectionVisibility.recording}><RecordingSection /></div>
         <div hidden={!sectionVisibility.model}>
           <ModelSection onChangeModel={openModelDownloader} />
         </div>

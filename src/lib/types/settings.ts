@@ -46,6 +46,7 @@ export interface Settings {
   show_model_switcher?: boolean; // Show model switcher in main UI (default true)
   show_transcription_speed?: boolean; // Show transcription speed toast (default false)
   append_space_incomplete?: boolean; // Append trailing space when output lacks sentence-ending punctuation (default true)
+  hotkey_mode?: 'hybrid' | 'toggle' | 'hold'; // Push to Talk hotkey behavior (default hybrid: tap toggles, hold+release stops)
   execution_provider?: string; // Preferred execution provider: directml, coreml, cpu
   // Transform model settings
   transform_enabled?: boolean; // Enable post-processing with LLM
@@ -103,6 +104,7 @@ export const defaultSettings: Settings = {
   show_model_switcher: true, // Show model switcher by default
   show_transcription_speed: false, // Don't show speed by default
   append_space_incomplete: true, // Append trailing space for incomplete sentences by default
+  hotkey_mode: 'hybrid', // Tap toggles, hold+release stops
   // Transform model defaults
   transform_enabled: false, // Disabled by default
   transform_model: 't5-mini-grammar', // Recommended DLC tier (matches Rust DEFAULT_TRANSFORM_MODEL_ID)

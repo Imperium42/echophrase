@@ -469,9 +469,11 @@ SPDX-License-Identifier: MPL-2.0
             <h3 class="step-title">
               {needsHotkeyWarning ? t('onboarding.almostReady') : t('onboarding.readyToGo')}
             </h3>
-            <p class="step-text">
-              {t('onboarding.readyToGoDescription').replace('{hotkey}', hotkey)}
-            </p>
+            <ul class="step-text step-list">
+              <li>{t('onboarding.readyStepClick').replace('{hotkey}', hotkey)}</li>
+              <li>{t('onboarding.readyStepHold').replace('{hotkey}', hotkey)}</li>
+            </ul>
+            <p class="step-text-sub">{t('onboarding.readyStepOutput')}</p>
           {:else if step === hotkeyWarningIndex}
             <div class="step-icon">
               <Icon name="mic" class="w-8 h-8 text-violet-400" strokeWidth={1.5} />
@@ -672,6 +674,12 @@ SPDX-License-Identifier: MPL-2.0
     color: #e4e4e7;
     margin: 0 0 0.5rem;
     letter-spacing: -0.01em;
+  }
+
+  .step-list {
+    padding-left: 1.25rem;
+    list-style: disc;
+    text-align: left;
   }
 
   .step-text {

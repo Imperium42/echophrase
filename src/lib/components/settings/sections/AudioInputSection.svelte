@@ -71,6 +71,10 @@ SPDX-License-Identifier: MPL-2.0
     updateSetting('recording_mode', mode);
   }
 
+  type HotkeyMode = 'hybrid' | 'toggle' | 'hold';
+  const HOTKEY_MODES: HotkeyMode[] = ['hybrid', 'toggle', 'hold'];
+  let hotkeyMode = $derived<HotkeyMode>($settings?.hotkey_mode ?? 'hybrid');
+
   function setSilenceTimeout(value: number) {
     silenceTimeout = Math.max(2, Math.min(10, value));
     updateSetting('silence_timeout', silenceTimeout);
@@ -333,6 +337,28 @@ SPDX-License-Identifier: MPL-2.0
       </button>
     </div>
   </div>
+
+  <!-- Push to Talk hotkey behavior. Open mic always toggles, so hidden there. -->
+  {#if recordingMode === 'push_to_talk'}
+    <div class="setting-row">
+      <span class="setting-label">
+        {t('audioInput.hotkeyMode')}
+        <HintTooltip hint={translate(`audioInput.hotkeyModeHint_${hotkeyMode}`)} />
+      </span>
+      <div class="mode-toggle">
+        {#each HOTKEY_MODES as mode (mode)}
+          <button
+            class="mode-btn"
+            class:active={hotkeyMode === mode}
+            onclick={() => updateSetting('hotkey_mode', mode)}
+            type="button"
+          >
+            {t(`audioInput.hotkeyMode_${mode}`)}
+          </button>
+        {/each}
+      </div>
+    </div>
+  {/if}
 
   <!-- Open mic tuning. Both of these feed `start_recording_with_vad` only -
        push-to-talk's `start_recording` runs no VAD - so they are hidden

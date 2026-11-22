@@ -16,6 +16,7 @@ import { maybeAutoDetectModel } from '$lib/utils/modelAutoDetect';
 import { getModelById } from '$lib/types/models';
 import { devError } from '$lib/utils/devLog';
 import { executionProviderStore } from '$lib/stores/executionProvider';
+import type { HotkeyModeOptions } from './useHotkeys';
 
 let tauriWarningsPatched = false;
 function patchTauriDevWarnings(): void {
@@ -75,6 +76,8 @@ export interface InitCallbacks {
   onHotkeyToggle: () => void;
   /** Called to get processing state for hotkey disable */
   isHotkeyDisabled: () => boolean;
+  /** Hotkey press/release mode (hybrid/toggle/hold); omitted = toggle only */
+  hotkeyMode?: HotkeyModeOptions;
   /** Called when model download completes (for glow effect) */
   onDownloadComplete: () => void;
   /** Load Tauri settings */
@@ -228,7 +231,8 @@ export function useAppInit(): AppInit {
             const hotkeys = useHotkeys();
             const unsub = await hotkeys.initializeHotkeys(
               callbacks.onHotkeyToggle,
-              callbacks.isHotkeyDisabled
+              callbacks.isHotkeyDisabled,
+              callbacks.hotkeyMode
             );
             return { unsub, cleanup: hotkeys.cleanup };
           }),
