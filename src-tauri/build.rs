@@ -43,7 +43,21 @@ fn main() {
     // On Windows, replace Tauri's default app manifest with ours so we can
     // declare longPathAware (HF cache paths > 260 chars under OneDrive KFM)
     // and UTF-8 active code page (non-ASCII Windows profile names).
-    let attrs = if target_os == "windows" {
+    //
+    // tauri-build embeds its manifest only into bin targets, so the lib test
+    // exe got none, loaded comctl32 v5 and died with STATUS_ENTRYPOINT_NOT_FOUND
+    // (TaskDialogIndirect is v6-only). Embedding via linker args instead covers
+    // every linked target: the app, test exes and examples.
+    let target_env = std::env::var("CARGO_CFG_TARGET_ENV").unwrap_or_default();
+    let attrs = if target_os == "windows" && target_env == "msvc" {
+        let manifest = std::path::Path::new(&std::env::var("CARGO_MANIFEST_DIR").unwrap())
+            .join("windows/main.manifest");
+        println!("cargo:rerun-if-changed=windows/main.manifest");
+        println!("cargo:rustc-link-arg=/MANIFEST:EMBED");
+        println!("cargo:rustc-link-arg=/MANIFESTINPUT:{}", manifest.display());
+        tauri_build::Attributes::new()
+            .windows_attributes(tauri_build::WindowsAttributes::new_without_app_manifest())
+    } else if target_os == "windows" {
         println!("cargo:rerun-if-changed=windows/main.manifest");
         tauri_build::Attributes::new().windows_attributes(
             tauri_build::WindowsAttributes::new()

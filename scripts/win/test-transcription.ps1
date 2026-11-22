@@ -84,13 +84,27 @@ Write-Host "Running transcription test..." -ForegroundColor Cyan
 Write-Host "Expected output: 'test 1 2' or similar" -ForegroundColor Yellow
 Write-Host ""
 
-# Run the test
-cargo test test_transcribe_audio_file --lib -- --nocapture
+# Run the test. It is #[ignore]d (needs ORT + a model), so --ignored is
+# required - without it 0 tests ran and this script still printed PASSED.
+# Collect lines while streaming them so the result line can be checked.
+$testLog = [System.Collections.Generic.List[string]]::new()
+cargo test test_transcribe_audio_file --lib -- --ignored --nocapture 2>&1 | ForEach-Object {
+    $line = "$_"
+    $testLog.Add($line)
+    Write-Host $line
+}
+$code = $LASTEXITCODE
+$ran = ($testLog -join "`n") -match 'test result: ok\. 1 passed'
 
-if ($LASTEXITCODE -eq 0) {
+if ($code -eq 0 -and $ran) {
     Write-Host ""
     Write-Host "TEST PASSED!" -ForegroundColor Green
+} elseif ($code -eq 0) {
+    Write-Host ""
+    Write-Host "TEST FAILED: the transcription test did not run (0 passed)" -ForegroundColor Red
+    exit 1
 } else {
     Write-Host ""
-    Write-Host "TEST FAILED (exit code: $LASTEXITCODE)" -ForegroundColor Red
+    Write-Host "TEST FAILED (exit code: $code)" -ForegroundColor Red
+    exit $code
 }
