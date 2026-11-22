@@ -34,8 +34,8 @@ const PAD_TOKEN_ID: i64 = 0;
 const EOS_TOKEN_ID: i64 = 1;
 const DECODER_START_TOKEN_ID: i64 = 0; // T5 uses pad as decoder start
 
-/// Default model id when settings have no `transform_model` value.
-const DEFAULT_TRANSFORM_MODEL_ID: &str = "t5-mini-grammar";
+// Default model id when settings have no `transform_model` value.
+use crate::settings::DEFAULT_TRANSFORM_MODEL_ID;
 
 // ============================================================================
 // Cached Model State

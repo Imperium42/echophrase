@@ -126,10 +126,12 @@ where
     Ok(model_id)
 }
 
-/// Custom deserializer for `transform_model` that migrates legacy or
-/// removed model ids to the current bundled default. Removed ids include
-/// the short-lived NC-licensed `t5-base-grammar` / `coedit-large-grammar`
-/// entries that briefly existed during initial DLC scaffolding.
+/// Custom deserializer for `transform_model` that maps any id that is not a
+/// Transformation model in the registry to the bundled default. Covers
+/// removed tiers (eg the short-lived NC-licensed `t5-base-grammar` /
+/// `coedit-large-grammar`) and mis-migrated values that hold a TRANSCRIPTION
+/// id (seen in the wild: `parakeet-tdt-0.6b-v3`), which made every grammar
+/// correction fail with "missing required encoder/decoder/tokenizer files".
 fn deserialize_transform_model<'de, D>(
     deserializer: D,
 ) -> std::result::Result<Option<String>, D::Error>
@@ -137,14 +139,18 @@ where
     D: Deserializer<'de>,
 {
     let value = Option::<String>::deserialize(deserializer)?;
-    Ok(value.map(|id| match id.as_str() {
-        // Removed tiers (no longer in registry) -> upgrade to current default.
-        "t5-efficient-tiny-grammar"
-        | "t5-tiny-grammar"
-        | "t5-base-grammar"
-        | "coedit-large-grammar" => DEFAULT_TRANSFORM_MODEL_ID.to_string(),
-        _ => id,
-    }))
+    Ok(value.map(sanitize_transform_model_id))
+}
+
+/// Keep `id` only if it names a Transformation model; otherwise the default.
+fn sanitize_transform_model_id(id: String) -> String {
+    let is_transform = crate::models::get_model_info(&id)
+        .is_some_and(|m| m.category == crate::models::ModelCategory::Transformation);
+    if is_transform {
+        id
+    } else {
+        DEFAULT_TRANSFORM_MODEL_ID.to_string()
+    }
 }
 
 /// Custom deserializer for output_to that handles migration from old string format to new array format
@@ -615,17 +621,17 @@ impl Default for AppSettings {
             custom_model_url: None,
             custom_model_path: None,
             custom_model_format: None,
-            max_recording_time: Some(30),    // Default 30 seconds
-            show_hotkey_changer: true,       // Show hotkey customization UI by default
-            show_realtime_preview: true,     // Show realtime transcription preview by default
-            show_output_confirmations: true, // Show output confirmation toasts by default
-            show_copy_last_button: true,     // Show copy last output button by default
-            show_input_changer: true,        // Show input changer by default
-            show_model_switcher: true,       // Show model switcher by default
-            show_transcription_speed: false, // Don't show speed toast by default
-            show_last_on_hover: true,        // Show last transcription on hover by default
-            remove_filler_words: true,       // Remove filler words by default
-            use_numeric_digits: false,       // Don't convert numbers to digits by default
+            max_recording_time: Some(30),         // Default 30 seconds
+            show_hotkey_changer: true,            // Show hotkey customization UI by default
+            show_realtime_preview: true,          // Show realtime transcription preview by default
+            show_output_confirmations: true,      // Show output confirmation toasts by default
+            show_copy_last_button: true,          // Show copy last output button by default
+            show_input_changer: true,             // Show input changer by default
+            show_model_switcher: true,            // Show model switcher by default
+            show_transcription_speed: false,      // Don't show speed toast by default
+            show_last_on_hover: true,             // Show last transcription on hover by default
+            remove_filler_words: true,            // Remove filler words by default
+            use_numeric_digits: false,            // Don't convert numbers to digits by default
             append_space_incomplete: true, // Append trailing space for incomplete sentences by default
             hotkey_mode: default_hotkey_mode(), // Tap toggles, hold+release stops
             restore_clipboard_after_paste: false, // Keep the transcript on the clipboard
@@ -992,6 +998,20 @@ pub async fn save_language_setting(language: String) -> crate::error::CmdResult<
 mod tests {
     use super::*;
 
+    #[test]
+    fn transform_model_rejects_non_transform_ids() {
+        for bad in ["parakeet-tdt-0.6b-v3", "t5-base-grammar", "nope"] {
+            assert_eq!(
+                sanitize_transform_model_id(bad.to_string()),
+                DEFAULT_TRANSFORM_MODEL_ID
+            );
+        }
+        assert_eq!(
+            sanitize_transform_model_id(DEFAULT_TRANSFORM_MODEL_ID.to_string()),
+            DEFAULT_TRANSFORM_MODEL_ID
+        );
+    }
+
     /// The regression test for the whole bug class.
     ///
     /// A patch that changes the UI locale must not disturb `model`. The old
@@ -1161,28 +1181,6 @@ mod tests {
         assert_eq!(0.1_f64.clamp(UI_SCALE_MIN, UI_SCALE_MAX), 0.5);
         assert_eq!(1.5_f64.clamp(UI_SCALE_MIN, UI_SCALE_MAX), 1.5);
     }
-}
-
-#[tauri::command]
-pub async fn get_available_models() -> Vec<serde_json::Value> {
-    use crate::models::WhisperModelSize;
-
-    WhisperModelSize::all_models()
-        .into_iter()
-        .map(|model| {
-            let info = model.get_info();
-            serde_json::json!({
-                "value": model.to_string(),
-                "label": info.display_name,
-                "description": info.description,
-                "size_mb": info.expected_size_mb,
-                "quality": info.quality,
-                "speed": info.relative_speed,
-                "min_vram": info.min_gpu_vram_gb,
-                "recommended_gpu": info.recommended_gpu,
-            })
-        })
-        .collect()
 }
 
 #[cfg(test)]

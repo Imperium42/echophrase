@@ -546,7 +546,7 @@ export function useRecording(getModelExists?: () => boolean, showDownloadDialog?
         try {
           const settings = get(tauriSettings);
           if (settings?.transform_enabled && !isSilenceResult(rawText)) {
-            const modelName = settings.transform_model || 't5-efficient-tiny-grammar';
+            const modelName = settings.transform_model || 't5-mini-grammar';
             console.log(`🔄 Applying transform [${modelName}]...`);
             const transformStart = performance.now();
             const transformed = await safeInvoke<string>('transform_text', {
@@ -1304,7 +1304,7 @@ export function useRecording(getModelExists?: () => boolean, showDownloadDialog?
       try {
         const settings = get(tauriSettings);
         if (settings?.transform_enabled) {
-          const modelName = settings.transform_model || 't5-efficient-tiny-grammar';
+          const modelName = settings.transform_model || 't5-mini-grammar';
           console.log(`🔄 Applying transform [${modelName}]...`);
 
           const transformStart = performance.now();

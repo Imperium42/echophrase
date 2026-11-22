@@ -280,10 +280,21 @@ mod tests {
         // Ensure clean slate.
         stop();
 
+        // A running Echophrase (dev or installed, MCP toggle on) already owns
+        // the fixed IPC port; that's an environment conflict, not a bug here.
+        if std::net::TcpListener::bind(("127.0.0.1", server::IPC_PORT)).is_err() {
+            eprintln!(
+                "skipping: 127.0.0.1:{} is in use (is Echophrase running?)",
+                server::IPC_PORT
+            );
+            return;
+        }
+
         let rt = tokio::runtime::Runtime::new().unwrap();
         let _guard = rt.enter();
 
-        assert!(start().is_ok(), "first start should succeed");
+        let first = start();
+        assert!(first.is_ok(), "first start should succeed: {first:?}");
         assert!(start().is_ok(), "second start should be a no-op success");
 
         // /v1/health should respond while running.
