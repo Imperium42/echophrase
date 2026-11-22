@@ -513,8 +513,19 @@ jobs:
             --version $env:WINGET_VERSION `
             --display-version $env:VERSION `
             --urls $installerUrl `
-            --submit `
+            --out winget-out `
             --token $env:WINGET_PAT
+          if ($LASTEXITCODE -ne 0) { Write-Host "::warning::wingetcreate update FAILED - winget users will not get this version. Read the output above, fix the cause, then run the 'winget submit' workflow for $env:VERSION."; exit 1 }
+          # wingetcreate update carries the previous manifest's License forward
+          # (it said Proprietary before v1.0.0), so rewrite it before submitting.
+          $locale = Get-ChildItem winget-out -Recurse -Filter 'Imperium42.Echophrase.locale.en-US.yaml' | Select-Object -First 1
+          if (-not $locale) { throw "wingetcreate produced no locale manifest" }
+          $yaml = Get-Content $locale.FullName -Raw
+          $yaml = $yaml -replace '(?m)^License: .*$', 'License: MPL-2.0'
+          $yaml = $yaml -replace '(?m)^LicenseUrl: .*$', 'LicenseUrl: https://github.com/Imperium42/echophrase/blob/main/LICENSE'
+          $yaml = $yaml -replace '(?m)^Copyright: .*$', 'Copyright: Copyright (c) 2025-2026 Imperium42 LLC'
+          Set-Content -Path $locale.FullName -Value $yaml -NoNewline
+          .\wingetcreate.exe submit --token $env:WINGET_PAT $locale.DirectoryName
           if ($LASTEXITCODE -ne 0) {
             Write-Host "::warning::wingetcreate submission FAILED - winget users will not get this version. Read the output above, fix the cause, then run the 'winget submit' workflow for $env:VERSION."
             exit 1
