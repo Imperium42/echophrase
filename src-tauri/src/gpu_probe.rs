@@ -11,7 +11,7 @@
 /// the parent's `Command` API. NVML's `Nvml::init()` exhibits the same failure
 /// mode as a NULL handle inside our process, no popup.
 ///
-/// Stub on macOS (NVIDIA does not ship NVML there) — all functions return
+/// Stub on macOS (NVIDIA does not ship NVML there) - all functions return
 /// `None` / `false`.
 #[cfg(any(target_os = "windows", target_os = "linux"))]
 use std::sync::OnceLock;

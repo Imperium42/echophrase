@@ -759,7 +759,7 @@ vite-error-overlay * {
 }
 
 /* ----------------------------------------------------------------------------
- * Banner pill button — shared between UpgradeBanner and BetaBanner.
+ * Banner pill button - shared between UpgradeBanner and BetaBanner.
  * Owns the glow-pulse pseudo-element, hover scale, and the shimmer sweep.
  * Override --banner-glow on the host to customize the glow color.
  * ---------------------------------------------------------------------------- */
@@ -810,7 +810,7 @@ vite-error-overlay * {
 }
 
 /* ----------------------------------------------------------------------------
- * Settings row layout — shared across the SettingRow primitive and every
+ * Settings row layout - shared across the SettingRow primitive and every
  * hand-rolled row in the sections. One source of truth so visual tweaks
  * happen here, not in 5 places.
  *

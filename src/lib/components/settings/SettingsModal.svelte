@@ -200,7 +200,7 @@ SPDX-License-Identifier: MPL-2.0
 
   function handleClose() {
     // Validate: if no post-record actions are enabled, enable copy_to_clipboard.
-    // Defer the IPC to a microtask so the close path returns immediately —
+    // Defer the IPC to a microtask so the close path returns immediately -
     // otherwise the bridge round-trip lands in the same frame as isOpen=false
     // and the unmount of all sections, making the dismiss feel laggy.
     const currentSettings = $settings;

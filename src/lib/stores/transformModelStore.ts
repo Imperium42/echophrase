@@ -167,7 +167,7 @@ function createTransformModelStore() {
   }
 
   /**
-   * Type-parity twin of modelStore.reloadModel — clears the in-memory
+   * Type-parity twin of modelStore.reloadModel - clears the in-memory
    * transform model then re-preloads it. Kept here so consumers that take
    * either store via a typeof modelStore prop don't fail svelte-check.
    */

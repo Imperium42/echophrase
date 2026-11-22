@@ -24,7 +24,7 @@ import { publishRun, lastRun } from '$lib/stores/lastRun';
 
 /** User-tunable timings (seconds) and content, set in the Demo options modal. */
 export interface DemoOptions {
-  /** Visible countdown after the reload (lets Dylan get out of frame). */
+  /** Visible countdown after the reload (lets the user get out of frame). */
   startDelaySec: number;
   /** Extra pause after the countdown before the fake cursor starts moving. */
   moveDelaySec: number;

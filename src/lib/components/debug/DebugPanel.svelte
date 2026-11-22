@@ -159,7 +159,7 @@ SPDX-License-Identifier: MPL-2.0
             }
           }}
           class="bg-indigo-800/80 backdrop-blur-sm px-2 py-1 rounded text-xs text-indigo-300 hover:text-indigo-200 border border-indigo-700/50 cursor-pointer whitespace-nowrap"
-          title="Unload then preload the model — watch console for timing (cold-start profile)"
+          title="Unload then preload the model - watch console for timing (cold-start profile)"
         >
           <span class="inline-flex items-center gap-1"
             ><Icon name="refresh" size={12} />Reload model</span

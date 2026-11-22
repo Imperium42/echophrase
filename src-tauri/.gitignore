@@ -5,5 +5,4 @@
 
 # Runtime libraries (downloaded by CI for bundling, not committed)
 *.dll
-resources/onnxruntime/
 macos-frameworks/

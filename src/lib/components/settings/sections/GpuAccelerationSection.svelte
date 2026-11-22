@@ -125,16 +125,16 @@ SPDX-License-Identifier: MPL-2.0
     const { invoke } = await import('@tauri-apps/api/core');
 
     // Use the EP store as the single source of truth. It's already initialized
-    // during app init — no duplicate invoke needed. Subscribe reactively.
+    // during app init - no duplicate invoke needed. Subscribe reactively.
     // `unsub` is pre-declared so the callback can reference it even when the
     // store is already resolved and fires synchronously during subscribe()
-    // (before the assignment completes) — avoids a TDZ ReferenceError.
+    // (before the assignment completes) - avoids a TDZ ReferenceError.
     let unsub: (() => void) | undefined;
     let firedSync = false;
     unsub = executionProviderStore.subscribe(storeState => {
       if (storeState.isLoading) return;
       // Rebuild epStatus from store state + a separate get_execution_provider
-      // call for the full providers list (fast — no ORT calls).
+      // call for the full providers list (fast - no ORT calls).
       invoke<ExecutionProviderSelection>('get_execution_provider')
         .then(ep => {
           epStatus = ep;
@@ -174,7 +174,7 @@ SPDX-License-Identifier: MPL-2.0
           isLoading = false;
         });
       // If subscribe() hasn't returned yet (synchronous first emission),
-      // `unsub` is still undefined — defer the teardown until after assignment.
+      // `unsub` is still undefined - defer the teardown until after assignment.
       if (unsub) unsub();
       else firedSync = true;
     });

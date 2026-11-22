@@ -12,7 +12,7 @@ SPDX-License-Identifier: MPL-2.0
    *  - Active output confirmation toasts (auto-dismiss, hover-pause).
    *  - Last-toast half-fade on area hover.
    *  - Amber "last run" action-chip stack driven by $lastRun.
-   *    Chips summarize the most recent recording's actions/stats — not transcript text.
+   *    Chips summarize the most recent recording's actions/stats - not transcript text.
    *    Hovering a chip projects its content onto the right-side preview surface.
    */
   import { onMount, onDestroy } from 'svelte';
@@ -282,7 +282,7 @@ SPDX-License-Identifier: MPL-2.0
   });
 </script>
 
-<!-- Hover area on the left side of the button — mirrors TranscriptionPreviewArea width/offset. -->
+<!-- Hover area on the left side of the button - mirrors TranscriptionPreviewArea width/offset. -->
 <div
   class="absolute right-full mr-2 top-0 w-[calc(50vw-8rem)] h-64 z-40"
   onmouseenter={handleAreaEnter}
@@ -368,7 +368,7 @@ SPDX-License-Identifier: MPL-2.0
     animation: fade-in 0.2s ease-out;
   }
 
-  /* CSS-driven hover transition — GPU-accelerated opacity + translate,
+  /* CSS-driven hover transition - GPU-accelerated opacity + translate,
      no JS transition jank, no mount/unmount cost.
      `visibility: hidden` after fade-out so the (expensive) backdrop-blur
      stops painting when the stack isn't visible.

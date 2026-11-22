@@ -389,15 +389,15 @@ SPDX-License-Identifier: MPL-2.0
     contain: style;
   }
 
-  /* Record button rim — single box-shadow stack instead of border+ring+shadow.
+  /* Record button rim - single box-shadow stack instead of border+ring+shadow.
    * Layered shadows antialias smoothly on rounded-full, unlike border which
    * fights backdrop-filter at the compositor level and produces jaggies.
    *
    * Stack per state:
-   *   1. inset stroke — the visible rim color
-   *   2. outer halo   — soft color bleed (0-spread, small blur)
-   *   3. ambient glow — larger color-tinted drop shadow for depth
-   *   4. base shadow  — black shadow for separation from background
+   *   1. inset stroke - the visible rim color
+   *   2. outer halo   - soft color bleed (0-spread, small blur)
+   *   3. ambient glow - larger color-tinted drop shadow for depth
+   *   4. base shadow  - black shadow for separation from background
    */
   .record-btn {
     /* Force own compositor layer so the rounded clip + backdrop-filter + shadows

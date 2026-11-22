@@ -38,7 +38,7 @@ export const lastRun = {
 };
 
 /**
- * Begin a new run — called at recording start. Clears the store so the old
+ * Begin a new run - called at recording start. Clears the store so the old
  * run's chips disappear while the new run is in progress.
  *
  * TODO(future): maintain a `lastRuns: LastRun[]` history array (cap N) for a

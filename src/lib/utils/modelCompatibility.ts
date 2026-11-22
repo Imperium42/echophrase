@@ -9,7 +9,7 @@
  * unit-testable without spinning up the dialog component, and so other UIs
  * (e.g. settings auto-detect, recommendations) can reuse the same checks.
  *
- * Zero Svelte / store / IPC dependencies — pass current state in by argument.
+ * Zero Svelte / store / IPC dependencies - pass current state in by argument.
  */
 
 import type { ModelDefinition, ModelCategory } from '$lib/types/models';

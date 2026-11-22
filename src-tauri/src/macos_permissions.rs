@@ -5,7 +5,7 @@
 //! macOS TCC (Transparency, Consent, Control) microphone permission helpers.
 //!
 //! On modern macOS, simply enumerating CoreAudio input devices does NOT reliably
-//! trigger the permission prompt — only `AVCaptureDevice.requestAccess(for: .audio)`
+//! trigger the permission prompt - only `AVCaptureDevice.requestAccess(for: .audio)`
 //! (or actually opening an `AudioUnit` input stream) does. Without an explicit
 //! request, users on a fresh install see "Microphone not detected" forever with
 //! no system dialog ever appearing.

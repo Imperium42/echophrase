@@ -124,7 +124,7 @@ static LOADING_PARAKEET_TDT: LazyLock<parking_lot::Mutex<()>> =
 
 /// How long a transcribe call will wait for the load-serialization lock before
 /// giving up. A held lock means another caller's `from_pretrained` is still
-/// running — on a cold release install, that's the DirectML EP JIT-compiling
+/// running - on a cold release install, that's the DirectML EP JIT-compiling
 /// shaders for this GPU arch for the first time, which can run well past the
 /// warm ~7s baseline. Match the 300s preload deadline (see `preload_onnx_model`
 /// and commit 9ce98cc) so a transcribe that races a cold preload waits for it

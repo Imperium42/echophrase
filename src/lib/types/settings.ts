@@ -84,7 +84,7 @@ export const DEFAULT_TRANSFORM_RULES =
 
 /** Default application settings - must match Rust AppSettings::default() */
 export const defaultSettings: Settings = {
-  model: 'medium', // Default model (matches Rust)
+  model: 'parakeet-tdt-0.6b-v3', // Default model (matches Rust DEFAULT_MODEL_ID)
   language: 'auto',
   theme: 'dark',
   output_format: 'text',

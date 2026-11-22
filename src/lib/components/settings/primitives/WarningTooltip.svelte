@@ -9,7 +9,7 @@ SPDX-License-Identifier: MPL-2.0
    * Warning Tooltip
    *
    * Amber triangle icon that reveals a tooltip on hover. Visually distinct from
-   * HintTooltip's neutral "?" — use this to flag a gotcha the user should know
+   * HintTooltip's neutral "?" - use this to flag a gotcha the user should know
    * about before flipping a setting on.
    */
 

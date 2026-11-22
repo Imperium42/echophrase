@@ -335,7 +335,7 @@ export function useRecording(getModelExists?: () => boolean, showDownloadDialog?
       if (isTimeout) {
         console.error(
           `⏱️ initializeTauriAPIs() timed out after ${INIT_TIMEOUT_MS}ms. ` +
-            `The Rust backend is not responding — most likely still loading the model. ` +
+            `The Rust backend is not responding - most likely still loading the model. ` +
             `Check for "[ONNX] Preloading..." in the terminal log.`
         );
         errorMessage.set(translate('errors.connectionLost'));
@@ -1280,7 +1280,7 @@ export function useRecording(getModelExists?: () => boolean, showDownloadDialog?
         result = await invokeTranscribe();
       } catch (firstError) {
         // Backend bails with MODEL_STILL_LOADING if it can't acquire the load
-        // lock within its budget — typically a cold-JIT DirectML preload that
+        // lock within its budget - typically a cold-JIT DirectML preload that
         // ran past the timeout. Show the localized status, wait for preload
         // `done`, and retry once before giving up.
         if (!String(firstError).includes('MODEL_STILL_LOADING')) throw firstError;

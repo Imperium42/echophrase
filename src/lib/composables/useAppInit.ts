@@ -290,7 +290,7 @@ export function useAppInit(): AppInit {
 
     // EP detection fires first (non-blocking) so it grabs the ORT lock before
     // the model preload does. The preload chains after EP via epReady below.
-    // NOT awaited here — that would freeze the entire UI.
+    // NOT awaited here - that would freeze the entire UI.
     const epReady = executionProviderStore
       .initialize()
       .then(() => mark('EP store'))

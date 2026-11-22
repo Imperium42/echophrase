@@ -41,3 +41,5 @@ static/oss-licenses.json
 
 # Rust build output (any target dir: target/, target-win/, ...)
 target*/
+thoughts/
+tools/

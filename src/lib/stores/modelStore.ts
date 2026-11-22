@@ -404,7 +404,7 @@ function createModelStore() {
   // Preload model into GPU memory for instant transcriptions.
   // Wrapped in a timeout so a wedged backend can't freeze the UI forever.
   // Deduped: HMR reloads can trigger this multiple times while the Rust
-  // side is still processing the first invoke — return the existing Promise.
+  // side is still processing the first invoke - return the existing Promise.
   function preloadModel(): Promise<void> {
     if (inFlightPreload) {
       console.log('[ModelStore] Preload already in flight, returning existing promise');
@@ -489,7 +489,7 @@ function createModelStore() {
       await mustInvoke('unload_model');
     } catch (err) {
       console.error('[ModelStore] unload_model failed:', err);
-      // Don't return — still try to preload so the UI doesn't get stuck.
+      // Don't return - still try to preload so the UI doesn't get stuck.
     }
     // Clear frontend-side dedupe so preloadModel() runs a fresh doPreload().
     inFlightPreload = null;

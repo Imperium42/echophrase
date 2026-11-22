@@ -49,7 +49,7 @@ describe('locale parity', () => {
 
     it(`${code} contains no em/en dashes`, () => {
       const offenders = flatten(data)
-        .filter(l => /[–—]/.test(l.value))
+        .filter(l => /[\u2013\u2014]/.test(l.value))
         .map(l => l.key);
       expect(offenders).toEqual([]);
     });

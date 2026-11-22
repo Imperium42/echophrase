@@ -7,7 +7,7 @@ SPDX-License-Identifier: MPL-2.0
 <script lang="ts">
   /**
    * The single icon component for the entire app. Pass a semantic `name`
-   * registered in `registry.ts` — never import from `@lucide/svelte` or
+   * registered in `registry.ts` - never import from `@lucide/svelte` or
    * `simple-icons` directly.
    *
    * @example
@@ -31,7 +31,7 @@ SPDX-License-Identifier: MPL-2.0
   export let color: string | undefined = undefined;
   /**
    * Accessible label. Required for icon-only interactive controls. Decorative
-   * icons (next to text labels) can omit this — the host element should carry
+   * icons (next to text labels) can omit this - the host element should carry
    * the label and the icon is implicitly hidden.
    */
   export let ariaLabel: string | undefined = undefined;

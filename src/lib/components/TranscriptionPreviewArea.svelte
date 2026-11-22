@@ -10,7 +10,7 @@ SPDX-License-Identifier: MPL-2.0
    *
    * Shows transcription text on the right side of the record button.
    * - Realtime preview bubble during/after recording (zinc themed).
-   * - Amber "projection bubble" driven by $rightProjection — appears when the
+   * - Amber "projection bubble" driven by $rightProjection - appears when the
    *   user hovers a left-side chip to surface its content on this side.
    */
   import { onDestroy } from 'svelte';
@@ -99,7 +99,7 @@ SPDX-License-Identifier: MPL-2.0
   });
 </script>
 
-<!-- Right-side display surface. No hover handlers here — pure projection target. -->
+<!-- Right-side display surface. No hover handlers here - pure projection target. -->
 <div
   class="absolute top-full left-1/2 -translate-x-1/2 mt-2"
   style="width: clamp(16rem, calc(100vw / var(--ui-zoom, 1) - 9rem), 32rem);"
@@ -194,7 +194,7 @@ SPDX-License-Identifier: MPL-2.0
 
     <!-- Left-chip projection bubble (amber). Wrapper stays mounted whenever
          the realtime preview isn't showing, so chip-to-chip hovers just swap
-         content inside with a cheap CSS transition — no keyframe restart. -->
+         content inside with a cheap CSS transition - no keyframe restart. -->
     {#if !$realtimeVisible}
       <div
         class="projection-wrap absolute left-2 top-0 min-w-0 max-w-[calc(100%-1rem)] w-[calc(100%-1rem)]"

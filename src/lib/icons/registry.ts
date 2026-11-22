@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: MPL-2.0
 
 /**
- * Icon Registry — single source of truth for all UI icons.
+ * Icon Registry - single source of truth for all UI icons.
  *
  * Consumer components MUST import `<Icon>` from `$lib/icons` and pass a
  * semantic `name`. They MUST NOT import directly from `@lucide/svelte` or
@@ -11,7 +11,7 @@
  *
  * Two-library policy:
  *  - Lucide v1 (`@lucide/svelte`) for all functional/UI icons.
- *  - Simple Icons (`simple-icons`) for brand logos only — Lucide v1 removed
+ *  - Simple Icons (`simple-icons`) for brand logos only - Lucide v1 removed
  *    brand icons for trademark reasons.
  */
 import {
@@ -44,8 +44,6 @@ import {
   Lightbulb,
   Loader2,
   Lock,
-  LogIn,
-  LogOut,
   Mail,
   Megaphone,
   Menu,
@@ -110,12 +108,12 @@ export interface BrandIconDef {
   title: string;
   /** SVG path data. */
   path: string;
-  /** Brand hex color (without `#`) — used as default if no color override. */
+  /** Brand hex color (without `#`) - used as default if no color override. */
   hex: string;
   /**
    * If true, the brand should default to `currentColor` rather than the
    * brand's official hex. Used for marks where the brand color is too dark
-   * for our dark UI (e.g. Apple, X — both look better as white-on-dark).
+   * for our dark UI (e.g. Apple, X - both look better as white-on-dark).
    */
   monochrome?: boolean;
 }
@@ -136,7 +134,7 @@ const brand = (
 const lucide = (component: LucideIcon): LucideIconDef => ({ kind: 'lucide', component });
 
 /**
- * The icon registry. Keys are stable semantic names — call sites never see
+ * The icon registry. Keys are stable semantic names - call sites never see
  * the underlying Lucide / Simple Icons identifiers. Add a new entry when
  * adding a new icon to the codebase. Renaming a key requires updating call
  * sites; renaming the *value* (e.g. swapping `Mic` → `MicVocal`) does not.
@@ -203,8 +201,6 @@ export const ICONS = {
   // Account / settings
   // -------------------------------------------------------------------------
   user: lucide(User),
-  login: lucide(LogIn),
-  logout: lucide(LogOut),
   settings: lucide(Settings),
   sliders: lucide(SlidersHorizontal),
   lock: lucide(Lock),
