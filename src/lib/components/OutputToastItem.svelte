@@ -13,7 +13,7 @@ SPDX-License-Identifier: MPL-2.0
    * distinguish live confirmations from resting history.
    */
   import { createEventDispatcher } from 'svelte';
-  import type { OutputToast } from '$lib/composables/useRecording';
+  import type { OutputToast } from '$lib/stores/outputToasts';
   import { Icon, type IconName } from '$lib/icons';
 
   export let toast: OutputToast;

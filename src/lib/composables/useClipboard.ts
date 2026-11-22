@@ -51,6 +51,19 @@ export function useClipboard() {
   }
 
   /**
+   * Current clipboard text, or null when it holds no text (eg an image) or
+   * can't be read. Used to restore the user's clipboard after paste-at-cursor.
+   */
+  async function readClipboard(): Promise<string | null> {
+    try {
+      const { readText } = await import('@tauri-apps/plugin-clipboard-manager');
+      return await readText();
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Copy text with success/error feedback
    */
   async function copyWithFeedback(
@@ -68,7 +81,7 @@ export function useClipboard() {
   }
 
   return {
-    copyToClipboard,
+    copyToClipboard, readClipboard,
     copyWithFeedback,
   };
 }

@@ -46,6 +46,9 @@ async function initializeTauri(): Promise<boolean> {
  * Composable for handling transcription output to various destinations
  * Supports: paste at cursor, copy to clipboard, save to file
  */
+/** Wait after the paste keystroke before restoring the user's previous clipboard. */
+const CLIPBOARD_RESTORE_DELAY_MS = 400;
+
 export function useOutputHandler() {
   const clipboard = useClipboard();
 
@@ -58,13 +61,14 @@ export function useOutputHandler() {
   async function handleOutput(
     text: string,
     mode: OutputMode,
-    filename?: string
+    filename?: string,
+    keepOnClipboard = true
   ): Promise<{ success: boolean; error?: string }> {
     console.log(`📤 Handling output with mode: ${mode}`);
 
     switch (mode) {
       case 'paste_at_cursor':
-        return await pasteAtCursor(text);
+        return await pasteAtCursor(text, keepOnClipboard);
 
       case 'copy_to_clipboard':
         return await copyToClipboard(text);
@@ -85,8 +89,19 @@ export function useOutputHandler() {
    * Linux/Wayland clipboard which doesn't bridge to Windows. We use clip.exe
    * via the `copy_to_windows_clipboard` command instead, and powershell.exe
    * SendKeys for the keystroke (handled in Rust simulate_paste).
+   *
+   * Pasting has to go through the clipboard. Unless `keepOnClipboard` (the
+   * user ALSO chose "Copy to clipboard"), the previous clipboard text is put
+   * back after the paste, so "Paste at cursor" alone never leaves the
+   * transcript on the clipboard. Not on WSL (clip.exe can't be read back), and
+   * a non-text clipboard (eg an image) can't be restored - it is left cleared.
+   * On a paste failure the transcript is deliberately left on the clipboard
+   * so the user can paste it by hand.
    */
-  async function pasteAtCursor(text: string): Promise<{ success: boolean; error?: string }> {
+  async function pasteAtCursor(
+    text: string,
+    keepOnClipboard = true
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       const initialized = await initializeTauri();
       if (!initialized) {
@@ -102,7 +117,9 @@ export function useOutputHandler() {
       if (wsl) {
         await invoke('copy_to_windows_clipboard', { text });
         console.log('📋 Text copied to Windows clipboard via clip.exe');
-      } else {
+      }
+      const previous = !wsl && !keepOnClipboard ? await clipboard.readClipboard() : null;
+      if (!wsl) {
         await clipboard.copyToClipboard(text);
         console.log('📋 Text copied to clipboard');
       }
@@ -110,6 +127,13 @@ export function useOutputHandler() {
       // Simulate paste keystroke (WSL-aware on Rust side)
       await invoke('simulate_paste');
       console.log('⌨️ Paste keystroke simulated');
+
+      if (!wsl && !keepOnClipboard) {
+        // The target app reads the clipboard asynchronously after Ctrl+V;
+        // restoring too early would paste the OLD content.
+        await new Promise(resolve => setTimeout(resolve, CLIPBOARD_RESTORE_DELAY_MS));
+        await clipboard.copyToClipboard(previous ?? '');
+      }
 
       return { success: true };
     } catch (error) {

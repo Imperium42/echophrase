@@ -18,10 +18,10 @@ import { translate } from '$lib/locales';
 import { promiseWithTimeout, TimeoutError } from '$lib/utils/promiseWithTimeout';
 import { isSilenceResult } from '$lib/utils/silenceResult';
 import { devLog } from '$lib/utils/devLog';
+import { addOutputToast } from '$lib/stores/outputToasts';
 import type { UnlistenFn } from '@tauri-apps/api/event';
 
-// Toast durations (ms) - must match CSS animation in app.css
-const OUTPUT_TOAST_DURATION_MS = 3000;
+// Speed toast duration (ms) - must match CSS animation in app.css
 const SPEED_TOAST_DURATION_MS = 4000;
 
 // Transcription timeout (ms) - if backend doesn't respond within this time,
@@ -35,108 +35,6 @@ const TRANSCRIPTION_TIMEOUT_MS = 300_000; // 5 minutes - CPU transcription on ol
 // stuck chunk request wedging the whole open mic loop (isProcessing never
 // clears, chunks pile up in the Rust pending_queue forever).
 const OPEN_MIC_CHUNK_TIMEOUT_MS = 120_000; // 2 minutes
-
-// Output confirmation toast store
-export interface OutputToast {
-  id: string;
-  mode: string;
-  label: string;
-  /** The text that was copied/pasted (for clipboard/paste modes) */
-  text?: string;
-  /** The file path where audio/text was saved (for save_as_file mode) */
-  filePath?: string;
-  /** Original text before transform (for transform toast) */
-  originalText?: string;
-  /** Whether this toast is currently hovered (prevents auto-dismiss) */
-  hovered?: boolean;
-  /** Timestamp when toast was created */
-  createdAt: number;
-}
-const outputToastsStore = writable<OutputToast[]>([]);
-
-/** Last dismissed toasts (for re-showing on hover) */
-const lastToastsStore = writable<OutputToast[]>([]);
-
-/** Store for output confirmation toasts - subscribe in UI */
-export const outputToasts = {
-  subscribe: outputToastsStore.subscribe,
-  /** Mark a toast as hovered (prevents auto-dismiss) */
-  setHovered: (id: string, hovered: boolean) => {
-    outputToastsStore.update(toasts => toasts.map(t => (t.id === id ? { ...t, hovered } : t)));
-  },
-  /** Dismiss a specific toast */
-  dismiss: (id: string) => {
-    outputToastsStore.update(toasts => {
-      const toast = toasts.find(t => t.id === id);
-      if (toast) {
-        // Save to last toasts for re-showing
-        lastToastsStore.update(last => {
-          const newLast = [toast, ...last.filter(t => t.id !== id)].slice(0, 1);
-          return newLast;
-        });
-      }
-      return toasts.filter(t => t.id !== id);
-    });
-  },
-};
-
-/** Store for last dismissed toasts (for re-showing on area hover) */
-export const lastOutputToasts = {
-  subscribe: lastToastsStore.subscribe,
-  /** Clear last toasts */
-  clear: () => lastToastsStore.set([]),
-};
-
-// Toast auto-dismiss timers
-const toastTimers = new Map<string, NodeJS.Timeout>();
-
-/** Add a toast notification for an output action */
-function addOutputToast(
-  mode: string,
-  metadata?: { text?: string; filePath?: string; originalText?: string }
-) {
-  const labels: Record<string, string> = {
-    paste_at_cursor: translate('toast.pasted'),
-    copy_to_clipboard: translate('toast.copied'),
-    save_as_file: translate('toast.saved'),
-    transformed: translate('toast.transformed'),
-  };
-  const toast: OutputToast = {
-    id: `${mode}-${Date.now()}`,
-    mode,
-    label: labels[mode] || mode,
-    text: metadata?.text,
-    filePath: metadata?.filePath,
-    originalText: metadata?.originalText,
-    hovered: false,
-    createdAt: Date.now(),
-  };
-  outputToastsStore.update(toasts => [...toasts, toast]);
-
-  // Start auto-dismiss timer
-  const timerId = setTimeout(() => {
-    outputToastsStore.update(toasts => {
-      const current = toasts.find(t => t.id === toast.id);
-      // Don't dismiss if hovered
-      if (current?.hovered) {
-        // Re-schedule dismiss for later
-        scheduleToastDismiss(toast.id);
-        return toasts;
-      }
-      // Save to last toasts before dismissing
-      if (current) {
-        lastToastsStore.update(last => {
-          const newLast = [current, ...last.filter(t => t.id !== current.id)].slice(0, 1);
-          return newLast;
-        });
-      }
-      return toasts.filter(t => t.id !== toast.id);
-    });
-    toastTimers.delete(toast.id);
-  }, OUTPUT_TOAST_DURATION_MS);
-
-  toastTimers.set(toast.id, timerId);
-}
 
 /** The user's output modes (Settings > Output). Shared by push-to-talk and open mic. */
 function resolveOutputModes(settings: TauriSettings | null): string[] {
@@ -160,8 +58,16 @@ async function deliverOutput(
 
   const succeededActions: LastRunAction[] = [];
   const outputHandler = useOutputHandler();
+  // Paste goes through the clipboard; only leave the transcript there when the
+  // user also asked for "Copy to clipboard".
+  const keepOnClipboard = outputModes.includes('copy_to_clipboard');
   for (const mode of outputModes) {
-    const result = await outputHandler.handleOutput(formattedOutput, mode as OutputMode);
+    const result = await outputHandler.handleOutput(
+      formattedOutput,
+      mode as OutputMode,
+      undefined,
+      keepOnClipboard
+    );
     if (!result.success) {
       console.warn(`⚠️ Output handling failed for ${mode}: ${result.error}`);
       continue;
@@ -178,37 +84,6 @@ async function deliverOutput(
   }
   return succeededActions;
 }
-
-/** Re-schedule toast dismiss (called when hover ends) */
-function scheduleToastDismiss(id: string) {
-  // Clear existing timer
-  const existing = toastTimers.get(id);
-  if (existing) clearTimeout(existing);
-
-  // Schedule new dismiss after shorter delay
-  const timerId = setTimeout(() => {
-    outputToastsStore.update(toasts => {
-      const current = toasts.find(t => t.id === id);
-      if (current?.hovered) {
-        scheduleToastDismiss(id);
-        return toasts;
-      }
-      if (current) {
-        lastToastsStore.update(last => {
-          const newLast = [current, ...last.filter(t => t.id !== current.id)].slice(0, 1);
-          return newLast;
-        });
-      }
-      return toasts.filter(t => t.id !== id);
-    });
-    toastTimers.delete(id);
-  }, 1500); // Shorter delay after hover ends
-
-  toastTimers.set(id, timerId);
-}
-
-/** Export for use when hover ends */
-export { scheduleToastDismiss };
 
 // Speed toast store (separate from output toasts)
 export interface SpeedToast {

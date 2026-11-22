@@ -10,8 +10,8 @@
  * when captured audio is (near-)silent, or when the ASR model hallucinated
  * one of a small set of known fixed strings on near-silent input (observed:
  * "Current.", "當前。", "None"). The sentinel is deliberately the same
- * literal ('No speech detected') that useRecording.ts /
- * useTranscriptionDispatch.ts already special-case to skip usage tracking
+ * literal ('No speech detected') that useRecording.ts
+ * already special-cases to skip usage tracking
  * and output routing - this module is the single place that decides whether
  * a result IS that sentinel, so callers don't duplicate the string literal.
  */

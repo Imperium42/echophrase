@@ -21,7 +21,7 @@ SPDX-License-Identifier: MPL-2.0
     outputToasts,
     scheduleToastDismiss,
     type OutputToast,
-  } from '$lib/composables/useRecording';
+  } from '$lib/stores/outputToasts';
   import { lastRun } from '$lib/stores/lastRun';
   import { demoChipsPinned } from '$lib/stores/demo';
   import { rightProjection } from '$lib/stores/rightProjection';
