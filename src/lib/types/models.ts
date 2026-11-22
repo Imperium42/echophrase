@@ -455,36 +455,3 @@ export function getModelsByProvider(provider: ModelProvider): ModelDefinition[] 
 
 /** Default model ID (respects ONNX_ONLY_MODE) */
 export const DEFAULT_MODEL_ID = 'parakeet-tdt-0.6b-v3';
-
-// ============================================================================
-// Legacy Compatibility (for existing code)
-// ============================================================================
-
-/** @deprecated Use MODEL_REGISTRY instead */
-export enum WhisperModelSize {
-  Tiny = 'tiny',
-  Base = 'base',
-  Medium = 'whisper-medium',
-  Large = 'large',
-  LargeV2 = 'large-v2',
-  LargeV3 = 'distil-large-v3',
-}
-
-/** @deprecated Use getModelById instead */
-export function getModelDisplayInfo(modelId: string): {
-  name: string;
-  size: string;
-  quality: string;
-  gpu: string;
-} {
-  const model = getModelById(modelId);
-  if (!model) {
-    return { name: modelId, size: 'Unknown', quality: 'Unknown', gpu: 'Unknown' };
-  }
-  return {
-    name: model.name,
-    size: formatSize(model.sizeBytes),
-    quality: model.description,
-    gpu: model.gpuRecommendation,
-  };
-}

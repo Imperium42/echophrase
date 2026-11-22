@@ -7,17 +7,6 @@ import { updateSettings } from '$lib/ipc/settings';
 import { mustInvoke } from '$lib/ipc/invoke';
 import { defaultSettings, type Settings } from '$lib/types/settings';
 
-interface ModelMetadata {
-  value: string;
-  label: string;
-  description: string;
-  size_mb: number;
-  quality: string;
-  speed: string;
-  min_vram: number;
-  recommended_gpu: string;
-}
-
 export interface TauriSettings {
   model: string;
   /** Spoken-language hint ("auto" or ISO code). Consumed by backends that support it (Qwen3-ASR). */
@@ -82,7 +71,6 @@ const DEFAULT_MAX_RECORDING_TIME = defaultSettings.max_recording_time ?? 30;
 // Singleton stores - shared across all components
 // ============================================================================
 const settingsStore = writable<TauriSettings | null>(null);
-const availableModelsStore = writable<ModelMetadata[]>([]);
 const isLoadingStore = writable(true);
 const errorStore = writable<string | null>(null);
 
@@ -126,13 +114,9 @@ async function loadSettings(): Promise<void> {
     isLoadingStore.set(true);
     errorStore.set(null);
 
-    const [settingsData, modelsData] = await Promise.all([
-      invoke('get_settings'),
-      invoke('get_available_models'),
-    ]);
+    const settingsData = await invoke('get_settings');
 
     settingsStore.set(settingsData);
-    availableModelsStore.set(modelsData);
     isInitialized = true;
   } catch (err) {
     console.error('Failed to load settings:', err);
@@ -280,7 +264,7 @@ async function resetToDefaults(): Promise<void> {
     use_numeric_digits: false, // Convert "one, two" to "1, 2"
     append_space_incomplete: true, // Append trailing space for incomplete sentences by default
     hotkey_mode: 'hybrid', // Tap toggles, hold+release stops
-  restore_clipboard_after_paste: false, // Keep the transcript on the clipboard
+    restore_clipboard_after_paste: false, // Keep the transcript on the clipboard
     json_metadata_template: null,
     telemetry_enabled: true, // Default ON - anonymous usage stats
     input_device: 'default', // System default audio input
@@ -294,10 +278,6 @@ async function resetToDefaults(): Promise<void> {
 // ============================================================================
 export const tauriSettings = {
   subscribe: settingsStore.subscribe,
-};
-
-export const tauriAvailableModels = {
-  subscribe: availableModelsStore.subscribe,
 };
 
 export const tauriSettingsLoading = {
@@ -322,7 +302,6 @@ export function useTauriSettings() {
   return {
     // State (singleton stores)
     settings: tauriSettings,
-    availableModels: tauriAvailableModels,
     isLoading: tauriSettingsLoading,
     error: tauriSettingsError,
 

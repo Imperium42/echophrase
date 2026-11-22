@@ -61,7 +61,7 @@ SPDX-License-Identifier: MPL-2.0
 
   // Initialize Tauri settings
   const tauriSettings = useTauriSettings();
-  const { settings, availableModels, isLoading, updateSetting: tauriUpdateSetting } = tauriSettings;
+  const { settings, isLoading, updateSetting: tauriUpdateSetting } = tauriSettings;
 
   // Picker dialog is mounted once at the page level (+page.svelte) and
   // driven by the `modelDownloadEvents` singleton so it survives modal
@@ -170,7 +170,6 @@ SPDX-License-Identifier: MPL-2.0
   const contextValue: SettingsContext = {
     settings,
     updateSetting: tauriUpdateSetting,
-    availableModels,
     isLoading,
   };
   setSettingsContext(contextValue);

@@ -21,16 +21,6 @@ export interface SettingsContext {
   settings: Readable<TauriSettings | null>;
   /** Update a single setting (key-typed value) */
   updateSetting: <K extends keyof TauriSettings>(key: K, value: TauriSettings[K]) => Promise<void>;
-  /** Available models list */
-  availableModels: Readable<
-    Array<{
-      value: string;
-      label: string;
-      size_mb: number;
-      quality: string;
-      speed: string;
-    }>
-  >;
   /** Loading state */
   isLoading: Readable<boolean>;
 }

@@ -62,7 +62,6 @@ function makeContext() {
   return {
     settings: writable(null),
     updateSetting: vi.fn(async () => {}),
-    availableModels: writable([]),
     isLoading: writable(false),
   };
 }

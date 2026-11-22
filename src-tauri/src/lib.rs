@@ -481,7 +481,6 @@ pub fn run() {
       settings::save_settings,
       settings::update_settings_patch,
       settings::set_mcp_server_enabled,
-      settings::get_available_models,
       settings::get_language_setting,
       settings::save_language_setting,
       settings::get_system_locale,

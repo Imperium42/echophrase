@@ -20,7 +20,7 @@ SPDX-License-Identifier: MPL-2.0
   import { getSettingsContext } from '../context';
   import { modelStore } from '$lib/stores/modelStore';
   import { loadGpuInfo, type GpuInfo } from '$lib/utils/GpuUtil';
-  import { getModelById } from '$lib/types/models';
+  import { formatSize, getModelById } from '$lib/types/models';
   import type { ChineseScript } from '$lib/types/settings';
   import { availableLanguages } from '$lib/types/settings';
   import { t } from '$lib/locales';
@@ -39,11 +39,11 @@ SPDX-License-Identifier: MPL-2.0
 
   let { onChangeModel }: Props = $props();
 
-  const { availableModels, isLoading, settings, updateSetting } = getSettingsContext();
+  const { isLoading, settings, updateSetting } = getSettingsContext();
 
   // Get selected model from modelStore
   const selectedModelValue = $derived($modelStore.selectedModel);
-  const selectedModel = $derived($availableModels.find(m => m.value === selectedModelValue));
+  const selectedModel = $derived(getModelById(selectedModelValue));
 
   // Imported custom model's display name - the registry/options label is a
   // generic "Custom Model" placeholder, the user knows their model by ITS name.
@@ -173,7 +173,7 @@ SPDX-License-Identifier: MPL-2.0
           <span class="model-name">
             {selectedModelValue === 'custom'
               ? (customModelName ?? t('modelSelector.customModel'))
-              : selectedModel?.label || selectedModelValue}
+              : selectedModel?.name || selectedModelValue}
             {#if isCpuFallback}
               <button
                 class="cpu-badge"
@@ -183,7 +183,7 @@ SPDX-License-Identifier: MPL-2.0
             {/if}
           </span>
           {#if selectedModel}
-            <span class="model-meta">{selectedModel.size_mb}MB · {selectedModel.quality}</span>
+            <span class="model-meta">{formatSize(selectedModel.sizeBytes)}</span>
           {/if}
         {:else}
           <span class="model-name placeholder">{t('modelSettings.noneSelected')}</span>

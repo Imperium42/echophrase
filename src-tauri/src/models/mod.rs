@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: MPL-2.0
 
 use serde::{Deserialize, Serialize};
-use std::fmt;
 
 pub mod byo_validator;
 pub mod checker;
@@ -39,7 +38,6 @@ pub struct ModelRegistryEntry {
     pub id: &'static str,
     pub name: &'static str,
     pub backend: ModelBackend,
-    #[allow(dead_code)]
     pub category: ModelCategory,
     pub repo_id: &'static str,
     /// Subdirectory within the repo snapshot for model files (e.g., "realtime_eou_120m-v1-onnx")
@@ -283,7 +281,6 @@ pub fn get_legacy_model_info(model_id: &str) -> Option<WhisperModelInfo> {
         // For legacy compat, use first file as the "primary" filename
         let primary_filename = entry.model_files.first().unwrap_or(&"model.safetensors");
         return Some(WhisperModelInfo {
-            size: WhisperModelSize::Large, // Placeholder - not used in new system
             display_name: entry.name.to_string(),
             description: format!("Model: {}", entry.name),
             model_name: entry.repo_id.to_string(),
@@ -301,13 +298,7 @@ pub fn get_legacy_model_info(model_id: &str) -> Option<WhisperModelInfo> {
             },
         });
     }
-
-    // Fall back to legacy enum mapping
-    match model_id {
-        "medium" | "whisper-medium" => Some(WhisperModelSize::Medium.get_info()),
-        "large" | "distil-large-v3" => Some(WhisperModelSize::Large.get_info()),
-        _ => None,
-    }
+    None
 }
 
 /// Get all model files for a given model ID
@@ -316,35 +307,9 @@ pub fn get_model_files(model_id: &str) -> Option<Vec<String>> {
     get_model_info(model_id).map(|m| m.model_files.iter().map(|s| s.to_string()).collect())
 }
 
-// ============================================================================
-// Legacy Whisper Model Size (for backward compatibility)
-// ============================================================================
-
-/// Whisper model size variants
-///
-/// @deprecated Use MODEL_REGISTRY with string model IDs instead
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "lowercase")]
-pub enum WhisperModelSize {
-    #[serde(rename = "medium")]
-    Medium,
-    #[serde(rename = "large")]
-    Large,
-}
-
-impl fmt::Display for WhisperModelSize {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            WhisperModelSize::Medium => write!(f, "medium"),
-            WhisperModelSize::Large => write!(f, "large"),
-        }
-    }
-}
-
 /// Metadata for each Whisper model variant
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WhisperModelInfo {
-    pub size: WhisperModelSize,
     pub display_name: String,
     pub description: String,
     pub model_name: String,
@@ -357,56 +322,4 @@ pub struct WhisperModelInfo {
     pub min_gpu_vram_gb: f32,
     pub recommended_gpu: String,
     pub compute_type: String, // int8, float16, float32
-}
-
-impl WhisperModelSize {
-    pub fn get_info(&self) -> WhisperModelInfo {
-        match self {
-            WhisperModelSize::Medium => WhisperModelInfo {
-                size: *self,
-                display_name: "Medium GGUF Quantized (~444MB)".to_string(),
-                description: "Quantized medium model for fast inference.".to_string(),
-                model_name: "OllmOne/whisper-medium-GGUF".to_string(),
-                download_url: "https://huggingface.co/OllmOne/whisper-medium-GGUF".to_string(),
-                model_filename: "model-q4k.gguf".to_string(),
-                expected_size_mb: 444,
-                parameters: "769M Quantized".to_string(),
-                relative_speed: "~12-18x realtime".to_string(),
-                quality: "Good (quantized)".to_string(),
-                min_gpu_vram_gb: 1.5,
-                recommended_gpu: "RTX 3050+".to_string(),
-                compute_type: "gguf_quantized".to_string(),
-            },
-            WhisperModelSize::Large => WhisperModelInfo {
-                size: *self,
-                display_name: "Large-v3-Turbo GGUF Quantized (476MB)".to_string(),
-                description: "Quantized GGUF model for Candle. Best quality, fastest!".to_string(),
-                model_name: "Demonthos/candle-quantized-whisper-large-v3-turbo".to_string(),
-                download_url:
-                    "https://huggingface.co/Demonthos/candle-quantized-whisper-large-v3-turbo"
-                        .to_string(),
-                model_filename: "model.gguf".to_string(),
-                expected_size_mb: 476,
-                parameters: "1.5B Quantized".to_string(),
-                relative_speed: "~10-15x realtime".to_string(),
-                quality: "Excellent (quantized)".to_string(),
-                min_gpu_vram_gb: 2.0,
-                recommended_gpu: "RTX 3060+".to_string(),
-                compute_type: "gguf_quantized".to_string(),
-            },
-        }
-    }
-
-    #[allow(dead_code)]
-    pub fn from_string(s: &str) -> Option<Self> {
-        match s.to_lowercase().as_str() {
-            "medium" => Some(WhisperModelSize::Medium),
-            "large" => Some(WhisperModelSize::Large),
-            _ => None,
-        }
-    }
-
-    pub fn all_models() -> Vec<WhisperModelSize> {
-        vec![WhisperModelSize::Medium, WhisperModelSize::Large]
-    }
 }

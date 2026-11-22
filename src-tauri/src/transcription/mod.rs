@@ -156,7 +156,4 @@ async fn transcribe_via_candle(
 mod tests;
 
 #[cfg(test)]
-mod real_test;
-
-#[cfg(test)]
 mod minimal_test;
