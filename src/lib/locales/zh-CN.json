@@ -345,7 +345,7 @@
     "helpTooltip": "建议使用极速的小型模型进行简单修改（语法、标点），复杂转换如翻译则需 7B+ 参数模型",
     "enableToggle": "激活转换模型",
     "enableWarning": "转换模型对短句表现欠佳，建议用于较长段落。",
-    "grammarMeta": "~35MB - ONNX - 语法、标准化",
+    "grammarMeta": "~60MB - ONNX - 语法、标准化",
     "metaWarning": "不适用于翻译",
     "finetuneTooltip": "微调模型（无法使用自定义规则）：以最小速度代价修正语法和移除口吃",
     "resetToDefault": "重置为默认值",

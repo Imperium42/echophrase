@@ -536,8 +536,6 @@ pub fn run() {
       // Telemetry commands (callable from frontend)
       telemetry::telemetry_report_first_run,
       telemetry::is_official_build,
-      // Release archive (Group B) - fetches GitHub releases from Rust
-      commands::release_archive::fetch_release_archive,
     ])
     .build(tauri::generate_context!())
     .expect("error while building tauri application")

@@ -345,7 +345,7 @@
     "helpTooltip": "Recommended to use a very speedy tiny model for simple changes (grammar, punctuation) - and 7B+ param model for complex transformations like localization",
     "enableToggle": "Enable Transform Model",
     "enableWarning": "Transform models are not so smart for short sentences. Use this for lengthy paragraphs.",
-    "grammarMeta": "~35MB - ONNX - grammar, normalizations",
+    "grammarMeta": "~60MB - ONNX - grammar, normalizations",
     "metaWarning": "Not for locale",
     "finetuneTooltip": "Fine-tuned model (custom rules unavailable): Minimally corrects grammar and removes stutters at minimal speed cost",
     "resetToDefault": "Reset to default",

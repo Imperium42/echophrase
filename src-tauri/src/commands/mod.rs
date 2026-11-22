@@ -9,7 +9,6 @@ pub mod managed_install;
 pub mod model_detection;
 pub mod output;
 pub mod recording;
-pub mod release_archive;
 pub mod transcription;
 pub mod transform;
 pub mod vad;
