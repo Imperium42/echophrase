@@ -173,6 +173,21 @@ function renderMarkdown(blocks, counts) {
   lines.push("https://echophrase.com/attribution (runtime model downloads are");
   lines.push("not captured by dependency tooling).");
   lines.push("");
+  // Native runtimes shipped as prebuilt binaries (not crates or npm packages,
+  // so cargo-about / rollup-license-plugin can't see them). Keep in sync with
+  // what release.yml stages into the installer.
+  lines.push("## Bundled native runtimes");
+  lines.push("");
+  lines.push(
+    "- **ONNX Runtime** (`onnxruntime.dll` / `libonnxruntime.dylib`) - Microsoft, MIT License. https://github.com/microsoft/onnxruntime",
+  );
+  lines.push(
+    "- **DirectML** (`DirectML.dll`, Windows) - Microsoft, redistributed under the Microsoft DirectML license (proprietary, redistributable; not open source). https://www.nuget.org/packages/Microsoft.AI.DirectML",
+  );
+  lines.push(
+    "- **Silero VAD** (`silero_vad.onnx`, embedded) - Silero Team, MIT License. https://github.com/snakers4/silero-vad",
+  );
+  lines.push("");
   const bySpdx = new Map();
   for (const b of blocks) {
     if (!bySpdx.has(b.spdx)) bySpdx.set(b.spdx, []);
