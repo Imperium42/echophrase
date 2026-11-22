@@ -69,11 +69,23 @@ pub fn select_ort_runtime() {
         record_diag("[ort] could not resolve exe dir; leaving ORT_DYLIB_PATH unset".to_string());
         return;
     };
-    let bundled = exe_dir
-        .join("resources")
+    let rel = std::path::Path::new("resources")
         .join("ort")
         .join("directml")
         .join("onnxruntime.dll");
+    let next_to_exe = exe_dir.join(&rel);
+    // Dev builds: scripts/ensure-ort.mjs stages into src-tauri/resources/, but tauri-build
+    // only re-copies resources to target/ when a file it already tracked changes, so a
+    // freshly staged DLL can be missing next to the dev exe. Without this fallback ORT
+    // loads the bare name and picks up Windows' old inbox System32\onnxruntime.dll.
+    #[cfg(debug_assertions)]
+    let bundled = if next_to_exe.is_file() {
+        next_to_exe
+    } else {
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(&rel)
+    };
+    #[cfg(not(debug_assertions))]
+    let bundled = next_to_exe;
     if !bundled.is_file() {
         record_diag(format!(
             "[ort] bundled DirectML runtime missing: {} - leaving ORT_DYLIB_PATH unset",

@@ -6,7 +6,7 @@
 
 Intel Macs are **not supported**. We tested extensively on a 2017 MacBook Air (macOS 12.6, Intel x86_64) and explored every option:
 
-- **ONNX Runtime crashes** on macOS < 13.3 - the ORT 1.23.2 dylib uses `std::to_chars(double)` from C++20, which requires macOS 13.3+ libc++. The `dlopen` fails with `Symbol not found: __ZNSt3__18to_charsEPcS0_d`. We added dlopen probes, `catch_unwind` wrappers, and an `ONNX_RUNTIME_AVAILABLE` flag, but none of this makes ONNX *work* - it just prevents the app from hanging.
+- **ONNX Runtime crashes** on macOS < 13.3 - the ORT 1.24.x dylib uses `std::to_chars(double)` from C++20, which requires macOS 13.3+ libc++. The `dlopen` fails with `Symbol not found: __ZNSt3__18to_charsEPcS0_d`. We added dlopen probes, `catch_unwind` wrappers, and an `ONNX_RUNTIME_AVAILABLE` flag, but none of this makes ONNX *work* - it just prevents the app from hanging.
 - **Candle + Metal crashes** on macOS < 13 - `Device::new_metal(0)` triggers an Objective-C exception from `MTLDevice.architecture` (selector unavailable before macOS 13). We fall back to CPU-only.
 - **CPU-only transcription is unusable** - whisper-small takes >5 minutes to transcribe 3 seconds of audio ("test one two three") on the 2017 MacBook Air. No model is fast enough on Intel CPU alone.
 - **Building ORT from source** is not feasible for macOS 12 - Apple's SDK headers block `std::to_chars` at compile time for deployment targets < 13.3.

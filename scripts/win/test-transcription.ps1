@@ -30,50 +30,15 @@ Write-Host "Target directory: $env:CARGO_TARGET_DIR" -ForegroundColor DarkGray
 # Enable ONNX Runtime verbose logging to verify actual execution provider
 $env:ORT_LOG_LEVEL = "verbose"
 
-# Check for ONNX Runtime on Windows (ort 2.0.0-rc.12 requires 1.24.x; a 1.23
-# DLL crashes the test with STATUS_ENTRYPOINT_NOT_FOUND). An ORT_DYLIB_PATH
-# already in the environment wins.
-$ortPaths = @(
-    $env:ORT_DYLIB_PATH,
-    "$env:USERPROFILE\.local\lib\onnxruntime\ort-directml-1.24.2\runtimes\win-x64\native\onnxruntime.dll",
-    "$env:USERPROFILE\onnxruntime-directml-1.24.2\runtimes\win-x64\native\onnxruntime.dll",
-    "C:\Program Files\onnxruntime\lib\onnxruntime.dll",
-    "$env:LOCALAPPDATA\onnxruntime\onnxruntime.dll"
-)
-
-$foundOrt = $null
-foreach ($path in $ortPaths) {
-    if ($path -and (Test-Path $path)) {
-        $foundOrt = $path
-        break
-    }
+# ONNX Runtime (ort 2.0.0-rc.12 requires 1.24.x; a 1.23 DLL crashes the test with
+# STATUS_ENTRYPOINT_NOT_FOUND). An ORT_DYLIB_PATH already in the environment wins;
+# otherwise use the pinned runtime scripts/ensure-ort.mjs stages (run from repo root).
+if (-not ($env:ORT_DYLIB_PATH -and (Test-Path $env:ORT_DYLIB_PATH))) {
+    bun scripts/ensure-ort.mjs --ci
+    if ($LASTEXITCODE -ne 0) { throw "ensure-ort.mjs failed" }
+    $env:ORT_DYLIB_PATH = (Resolve-Path "src-tauri/resources/ort/directml/onnxruntime.dll").Path
 }
-
-if ($foundOrt) {
-    Write-Host "Found ONNX Runtime: $foundOrt" -ForegroundColor Green
-    $env:ORT_DYLIB_PATH = $foundOrt
-} else {
-    Write-Host "ONNX Runtime not found. Downloading Windows GPU version..." -ForegroundColor Yellow
-
-    $ortDir = "$env:USERPROFILE\.local\lib\onnxruntime"
-    New-Item -ItemType Directory -Force -Path $ortDir | Out-Null
-
-    # Windows DirectML build via NuGet (github.com/microsoft/onnxruntime went 404
-    # on 2026-11-20; NuGet is the same source the release workflow uses).
-    $ortUrl = "https://www.nuget.org/api/v2/package/Microsoft.ML.OnnxRuntime.DirectML/1.24.2"
-    $ortZip = "$ortDir\ort-directml-1.24.2.zip"
-
-    Write-Host "Downloading from $ortUrl..." -ForegroundColor Cyan
-    Invoke-WebRequest -Uri $ortUrl -OutFile $ortZip -UseBasicParsing
-
-    Write-Host "Extracting..." -ForegroundColor Cyan
-    $extract = "$ortDir\ort-directml-1.24.2"
-    Expand-Archive -Path $ortZip -DestinationPath $extract -Force
-    Remove-Item $ortZip -Force
-
-    $env:ORT_DYLIB_PATH = "$extract\runtimes\win-x64\native\onnxruntime.dll"
-    Write-Host "ONNX Runtime installed: $env:ORT_DYLIB_PATH" -ForegroundColor Green
-}
+Write-Host "ONNX Runtime: $env:ORT_DYLIB_PATH" -ForegroundColor Green
 
 # Add ONNX Runtime to PATH
 $ortLibDir = Split-Path $env:ORT_DYLIB_PATH

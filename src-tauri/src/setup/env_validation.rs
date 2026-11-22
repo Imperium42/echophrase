@@ -14,7 +14,7 @@
 /// - Platform-specific GPU provider hints
 ///
 /// Note: As of ort 2.0.0-rc.12, we use `load-dynamic` to load onnxruntime
-/// at runtime via the C API. ORT_DYLIB_PATH must point to the ORT 1.24.2
+/// at runtime via the C API. ORT_DYLIB_PATH must point to the ORT 1.24.x
 /// shared library. The only remaining guard is the macOS 13.3+ check
 /// (ORT 1.24.x requires C++20 std::to_chars in libc++).
 pub fn validate_environment() -> anyhow::Result<()> {

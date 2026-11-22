@@ -85,8 +85,10 @@ bun install
 bun run tauri:dev        # auto-detects your platform
 ```
 
-On Linux/WSL/macOS the first `tauri:dev` downloads a matching ONNX Runtime into a gitignored
-`.ort/` folder and writes `ORT_DYLIB_PATH` into your `env.yaml` (created from `env.yaml.template`).
+The first `tauri:dev` (or `tauri:build`) downloads the pinned, hash-verified ONNX Runtime the
+releases ship. On Windows it lands in `src-tauri/resources/ort/directml/` (no config needed); on
+Linux/WSL/macOS in a gitignored `.ort/` folder, with `ORT_DYLIB_PATH` written into your `env.yaml`
+(created from `env.yaml.template`).
 
 <details>
 <summary><b>Linux system packages</b></summary>

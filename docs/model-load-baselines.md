@@ -31,12 +31,12 @@ per machine. So:
 Implications:
 
 - The Rust-side preload timeout is **300s** specifically to survive cold JIT on
-  new GPU architectures (commit `9ce98cc`).
+  new GPU architectures.
 - A fast preload on a dev box (warm cache) does **not** validate the cold-JIT
-  deadlock fix (`590f1b4` moved model load outside the cache mutex; `b384fc0`
+  deadlock fix (model load was moved outside the cache mutex, and
   serialized concurrent `from_pretrained` calls). Reproducing that path needs a
   genuinely cold cache - ideally a different/unseen GPU architecture.
-- The ORT DirectML runtime is the same version (1.24.2) in dev and in the
+- The ORT DirectML runtime is the same version (pinned in `scripts/ensure-ort.mjs`) in dev and in the
   bundled exe, so this is a **cold-vs-warm** distinction, not a dev-vs-exe one.
 
 ## How to capture a new baseline

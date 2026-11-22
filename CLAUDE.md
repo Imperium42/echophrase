@@ -132,7 +132,7 @@ model_detection/        # Auto model selection
 
 Models auto-download to `~/.cache/huggingface/hub/` on first use with progress streaming.
 
-**Parakeet TDT Gotcha**: Always use `TimestampMode::Words` when calling `transcribe_samples()`. Without it, the TDT decoder's beam search can collapse tokens, causing entire sentences to be dropped (eg "He saves the world with his brother, Luigi" → "Luigi"). See `onnx_backend.rs:128`.
+**Parakeet TDT Gotcha**: Always use `TimestampMode::Words` when calling `transcribe_samples()`. Without it, the TDT decoder's beam search can collapse tokens, causing entire sentences to be dropped (eg "He saves the world with his brother, Luigi" → "Luigi"). See the comment above the `transcribe_samples()` call in `onnx_backend.rs`.
 
 **Memory guards (Parakeet TDT)**: encoder working memory grows much faster than clip length and ORT keeps the peak, so a single 300s call pushed a real Windows install to ~4.5 GB (2026-11-14). Two guards: `transcription/chunking.rs` splits audio over 40s into ~30s chunks cut at the quietest frame near each boundary (clips up to 40s are still one call, text untouched), and `transcription/idle.rs` can unload the model after N idle minutes (OPT-IN: Settings > Optimization, `idle_unload_enabled` default false, `idle_unload_minutes` default 10, clamped 1-120, local-only; never during Recording/Transcribing; the next recording start reloads it in the background, ~7s warm). Measured numbers and the repro method: `BENCHMARKS.md`. Qwen3-ASR and Candle are NOT chunked yet.
 
@@ -142,7 +142,7 @@ Models auto-download to `~/.cache/huggingface/hub/` on first use with progress s
 |-------|----------|-----|--------------|--------------|
 | parakeet-tdt-0.6b-v3 | DirectML | RTX 5080 | warm | ~7.1s |
 
-> **Warm vs cold matters more than the number.** DirectML JIT-compiles shaders on the *first* run for a given GPU architecture and caches them per machine. Warm-cache reloads (above) are fast. A cold first-run on a new GPU arch can take far longer - this is exactly why the Rust-side preload timeout is 300s (see `9ce98cc`) and why a fast dev reload does **not** prove the cold-JIT deadlock path (see `590f1b4`/`b384fc0`) is healthy. Treat ~7s as the warm regression baseline, not the worst case. See [docs/model-load-baselines.md](docs/model-load-baselines.md).
+> **Warm vs cold matters more than the number.** DirectML JIT-compiles shaders on the *first* run for a given GPU architecture and caches them per machine. Warm-cache reloads (above) are fast. A cold first-run on a new GPU arch can take far longer - this is exactly why the Rust-side preload timeout is 300s and why a fast dev reload does **not** prove the cold-JIT deadlock path is healthy. Treat ~7s as the warm regression baseline, not the worst case. See [docs/model-load-baselines.md](docs/model-load-baselines.md).
 
 ### Backend Architecture (Trait-Based)
 
@@ -240,31 +240,28 @@ Why there is no CUDA, and what was removed: [docs/gpu-and-cuda.md](docs/gpu-and-
 ort 2.0.0-rc.12 uses `load-dynamic` to load `onnxruntime.dll`/`.so`/`.dylib` at runtime
 via the C API. This avoids MSVC STL ABI coupling from static linking (pykeio/ort#361).
 
-- **Dev setup (Linux/WSL/macOS)**: **automatic.** `scripts/ensure-ort.mjs` runs as a
-  prerequisite of `bun run tauri:dev` (and `bun run setup:ort` standalone). It
-  detects the platform, downloads the ORT CPU/CoreML build from NuGet to
-  a gitignored repo-local `.ort/<platform>/`, and writes an absolute `ORT_DYLIB_PATH`
-  into the correct section of `env.yaml`. Idempotent - fast no-op when already installed.
-  Skip it (e.g. in CI) by calling `bun x tauri dev` directly.
-  - **macOS extra step (automatic):** on `darwin-arm64`, `ensure-ort.mjs` also copies the
-    dylib to `src-tauri/macos-frameworks/libonnxruntime.dylib`. `tauri.conf.json5` declares
-    that path under `bundle.macOS.frameworks`, and `tauri_build::try_build` validates it
-    EXISTS at compile time - so a bare `cargo build` / `bun run tauri:dev:mac` on a fresh
-    clone fails with `Library not found: ./macos-frameworks/libonnxruntime.dylib` unless the
-    dylib is staged there first. Both `.ort/` and `macos-frameworks/` are gitignored.
-- **Dev setup (Windows)**: use `scripts/win/dev.ps1`. `ensure-ort.mjs` deliberately
-  skips Windows since DirectML is bundled at build time.
-- **Manual override**: setting `ORT_DYLIB_PATH` manually in `env.yaml` still works;
-  the auto-script will overwrite that line on next run. If you need a custom path,
-  don't run `ensure-ort.mjs` (call `bun x tauri dev` directly).
-- **Windows DirectML** (bundled default - covers all GPUs):
-  `Microsoft.ML.OnnxRuntime.DirectML` 1.24.2 from NuGet. `DirectML.dll` is bundled too
-  (from the `Microsoft.AI.DirectML` NuGet, staged by `release.yml`) rather than taken from
-  System32, to avoid version drift on older Windows. It is proprietary (redistributable), see `ATTRIBUTION.md`.
-  Download: `curl -L -o ort-dml.nupkg https://www.nuget.org/api/v2/package/Microsoft.ML.OnnxRuntime.DirectML/1.24.2`
-  Production path: `<install>/resources/ort/directml/onnxruntime.dll` (CI stages DLLs before `tauri build`).
-- **Linux**: CPU build (`Microsoft.ML.OnnxRuntime` NuGet, staged by `ensure-ort.mjs`)
-- **macOS**: `onnxruntime-osx-arm64-1.24.2.tgz` (CoreML)
+- **One stager, all platforms**: `scripts/ensure-ort.mjs` is the ONLY place ORT versions and
+  NuGet SHA256s live (ORT 1.24.4, DirectML 1.15.4 = what the ORT DirectML nuspec depends on).
+  It runs before `bun run tauri:dev*` and `tauri:build*` (and `bun run setup:ort` standalone);
+  release CI runs `bun scripts/ensure-ort.mjs --ci` (stage only, no env.yaml edits). It verifies
+  each package hash before extracting (mismatch = loud failure, nothing staged) and is a fast
+  no-op when the staged files still match the stamp in `.ort/stamps/`.
+- **Windows (DirectML, x64 + arm64)**: stages `onnxruntime.dll`, `onnxruntime_providers_shared.dll`
+  and `DirectML.dll` into `src-tauri/resources/ort/directml/` - the bundled path
+  `select_ort_runtime()` probes in production, and Tauri copies it next to the dev exe, so dev
+  needs no `ORT_DYLIB_PATH`. A placeholder or non-existent `ORT_DYLIB_PATH` in env.yaml's
+  `windows:` section is removed; an existing path is kept as a manual override. `DirectML.dll`
+  is bundled rather than taken from System32 to avoid version drift on older Windows; it is
+  proprietary (redistributable), see `ATTRIBUTION.md`.
+- **Linux/WSL (CPU, x64 + arm64) and macOS (CoreML, arm64)**: `Microsoft.ML.OnnxRuntime` NuGet
+  into a gitignored `.ort/<platform>/lib/`, and an absolute `ORT_DYLIB_PATH` is written into the
+  matching env.yaml section (manual values there get overwritten; to use a custom build, call
+  `bun x tauri dev` directly).
+  - **macOS extra step (automatic):** also copies the dylib to
+    `src-tauri/macos-frameworks/libonnxruntime.dylib`. `tauri.conf.json5` declares that path
+    under `bundle.macOS.frameworks`, and `tauri_build::try_build` validates it EXISTS at compile
+    time - so a bare `cargo build` on a fresh clone fails with `Library not found` unless it is
+    staged first. Both `.ort/` and `macos-frameworks/` are gitignored.
 - **Required system libraries**: none beyond the OS itself (DirectML and CoreML ship with it).
 - **EP selection**: ort's `with_auto_device(MaxPerformance)` enumerates devices at session
   creation time and picks the best one (DirectML > CoreML > NPU > CPU). The user can
@@ -367,7 +364,7 @@ buttons). Add an entry whenever you work around a bug you do not own.
 ### Backend Architecture Principles
 - **Traits for swappable systems**: VAD, transcription, GPU providers use trait interfaces
 - **Platform-specific compilation**: Use `#[cfg(target_os = "...")]` for OS-specific code
-- **ort loads ORT dynamically**: `load-dynamic` loads `onnxruntime.dll` at runtime via C API; requires `ORT_DYLIB_PATH` pointing to ORT 1.24.x. Auto-installed on dev by `scripts/ensure-ort.mjs`.
+- **ort loads ORT dynamically**: `load-dynamic` loads `onnxruntime.dll` at runtime via C API; requires `ORT_DYLIB_PATH` pointing to ORT 1.24.x. Staged on every platform by `scripts/ensure-ort.mjs`.
 - **Model format flexibility**: Support ONNX, safetensors, potential future formats
 
 ## Releases (maintainers)

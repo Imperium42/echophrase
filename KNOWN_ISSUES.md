@@ -18,6 +18,7 @@ real cause, where the workaround lives, and what would let us drop it.
 | [ORT static linking ABI](#ort-msvc-stl-abi-coupling-when-statically-linked) | Transcription | Resolved by load-dynamic |
 | [Parakeet TDT drops sentences](#parakeet-tdt-collapses-tokens-without-timestampmodewords) | Transcription | Workaround required |
 | [cpal pulls a conflicting windows-core](#cpal-can-resolve-a-conflicting-windows-core) | Windows build | Held by Cargo.lock only |
+| [Tauri: new resource files not copied to dev exe](#tauri-new-resource-files-are-not-copied-next-to-the-dev-exe) | Windows dev | Workaround required |
 
 ---
 
@@ -102,8 +103,8 @@ tokens.
 
 **Workaround.** Always pass `TimestampMode::Words` to `transcribe_samples()`.
 
-**Enforced by:** `src-tauri/src/transcription/onnx_backend.rs:374` (comment) and
-`:380` (the call). Nothing fails if you drop it, so leave the comment in place.
+**Enforced by:** `src-tauri/src/transcription/onnx_backend.rs` (the comment and the
+`transcribe_samples()` call in the parakeet transcribe path). Nothing fails if you drop it, so leave the comment in place.
 
 ---
 
@@ -134,3 +135,17 @@ Windows release build suddenly fails on `windows-core`, check
 **Caveat.** The failure itself has not been reproduced here - this entry is
 written from a prior report plus the lockfile state that matches it. Treat the
 mechanism as plausible, not confirmed.
+
+## Tauri: new resource files are not copied next to the dev exe
+
+**Symptom.** Windows dev logs `[ort] bundled DirectML runtime missing: ...target/debug/resources/ort/directml/onnxruntime.dll`,
+then ORT loads Windows' old inbox `C:\Windows\System32\onnxruntime.dll` by bare name and the
+model preload hangs. Nothing errors.
+
+**Cause.** `tauri-build` copies `bundle.resources` into `target/<profile>/` only when its build
+script re-runs, and it only tracks files that existed last time. DLLs that `scripts/ensure-ort.mjs`
+stages into `src-tauri/resources/ort/directml/` after a first build never reach `target/debug/`.
+
+**Workaround.** In debug builds `select_ort_runtime()` (`src-tauri/src/setup/ort_runtime.rs`) falls
+back to `CARGO_MANIFEST_DIR/resources/ort/directml/onnxruntime.dll`. Release builds are unaffected
+(the bundler copies resources at package time). Don't remove the fallback.
