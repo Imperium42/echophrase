@@ -23,7 +23,7 @@ const SESSION_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(3600
 /// Max events per HTTP request (matches Aptabase Tauri SDK).
 const BATCH_SIZE: usize = 25;
 
-/// Flush interval: 60s in production, 2s in debug (matches Aptabase Tauri/Swift SDKs).
+/// How often the background loop checks whether to flush: 60s, 2s in debug (see IDLE_FLUSH_THRESHOLD).
 #[cfg(debug_assertions)]
 const FLUSH_INTERVAL: std::time::Duration = std::time::Duration::from_secs(2);
 #[cfg(not(debug_assertions))]

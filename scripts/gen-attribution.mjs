@@ -28,8 +28,9 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { readFileSync, writeFileSync, existsSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
@@ -210,11 +211,15 @@ function renderMarkdown(blocks, counts) {
 function main() {
   // 1. Rust crates via cargo-about.
   console.log("[attribution] running cargo about generate...");
-  const cargoRaw = execFileSync(
-    "cargo",
-    ["about", "generate", "about.hbs"],
-    { cwd: srcTauri, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
-  );
+  // Write to a file (-o): on Windows cargo-about refuses to emit to a pipe
+  // ("should not redirect its output in powershell").
+  const cargoOut = join(mkdtempSync(join(tmpdir(), "echo-attr-")), "cargo-about.txt");
+  execFileSync("cargo", ["about", "generate", "about.hbs", "-o", cargoOut], {
+    cwd: srcTauri,
+    stdio: ["ignore", "inherit", "inherit"],
+  });
+  const cargoRaw = readFileSync(cargoOut, "utf8");
+  rmSync(dirname(cargoOut), { recursive: true, force: true });
   const cargoBlocks = parseCargoAbout(cargoRaw);
   console.log(`[attribution] cargo-about: ${cargoBlocks.length} license blocks`);
 
@@ -266,10 +271,16 @@ function main() {
     blocks,
   };
 
-  writeFileSync(wwwDataFile, JSON.stringify(out, null, 2) + "\n");
-  console.log(`[attribution] wrote ${wwwDataFile}`);
   writeFileSync(attributionMd, renderMarkdown(blocks, counts));
   console.log(`[attribution] wrote ${attributionMd}`);
+  // The website repo is a maintainer-only sibling checkout; public clones
+  // don't have it, so only ATTRIBUTION.md is required.
+  if (existsSync(dirname(wwwDataFile))) {
+    writeFileSync(wwwDataFile, JSON.stringify(out, null, 2) + "\n");
+    console.log(`[attribution] wrote ${wwwDataFile}`);
+  } else {
+    console.log(`[attribution] skipped ${wwwDataFile} (website repo not checked out)`);
+  }
   console.log(
     `[attribution] done: ${counts.cargo} crates + ${counts.npm} npm across ${blocks.length} notices (${spdxIds.length} SPDX ids: ${spdxIds.join(", ")})`,
   );

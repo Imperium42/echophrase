@@ -31,7 +31,7 @@ Events are queued locally and sent in batches only while the app is idle (at lea
 | `transcription_completed` | `model`, `transform_used`, `paste_at_cursor`, `remove_filler_words`, `gpu_backend`, `processing_ms` | After transcription |
 | `transcription_failed` | `model`, `gpu_backend`, `error_category` | Transcription error |
 | `model_changed` | `model` (e.g. "parakeet-tdt-0.6b-v3") | User saves model selection |
-| `settings_saved` | `output_to`, `recording_mode`, `remove_filler_words`, `use_numeric_digits`, `transform_enabled`, `language` | User changes tracked settings |
+| `settings_saved` | `output_to`, `recording_mode`, `remove_filler_words`, `use_numeric_digits`, `append_space_incomplete`, `transform_enabled`, `language` | User changes tracked settings |
 | `app_panic` | `location` (repo-relative "file.rs:line"), `thread` (thread name) | The app crashes (release builds only) |
 | `telemetry_disabled` | _(none)_ | User opts out (final ping) |
 
@@ -64,7 +64,7 @@ Note: Disabling telemetry does not affect app functionality. One final `telemetr
 
 The following is stored locally on your device and **never sent to our servers**:
 
-- Audio recordings (deleted immediately after transcription)
+- Audio recordings (held in memory only while transcribing, never written to disk)
 - Transcription history (if enabled)
 - Settings and preferences
 - Model files (cached locally)
@@ -77,7 +77,7 @@ The following is stored locally on your device and **never sent to our servers**
 - **Host**: `https://telemetry.echophrase.com`
 - **Dashboard**: `https://telemetry.echophrase.com` (login required)
 - **Transport**: HTTPS only (TLS 1.3)
-- **Batching**: Events queued locally, flushed every 60s (2s in debug), on settings save, and on app exit
+- **Batching**: Events queued locally; the background flush (checked every 60s, 2s in debug) only sends after 10 minutes with no recording or transcription (5s in debug). Settings save and app exit flush immediately
 - **Retention**: Raw events deleted after 1 year
 - **Source**: `src-tauri/src/telemetry/` (client.rs + mod.rs)
 - **No cookies, no fingerprinting, no cross-app tracking**
