@@ -464,43 +464,15 @@ pub async fn transcribe_audio(app_handle: AppHandle, file_path: String) -> Resul
     log::info!("Current dir: {:?}", std::env::current_dir());
     log::info!("File exists: {}", std::path::Path::new(&file_path).exists());
 
-    crate::telemetry::track_gpu_backend(&app_handle);
-
     match create_transcription(&file_path, app_handle.clone()).await {
-        Ok(result) => {
-            if let Ok(settings) = crate::settings::AppSettings::load() {
-                let gpu_backend = settings.execution_provider.as_deref().unwrap_or("auto");
-                crate::telemetry::track_transcription(
-                    &app_handle,
-                    &settings.model,
-                    settings.transform_enabled,
-                    gpu_backend,
-                    result.processing_ms,
-                );
-            }
-            Ok(result.text)
-        }
-        Err(e) => {
-            if let Ok(settings) = crate::settings::AppSettings::load() {
-                let gpu_backend = settings.execution_provider.as_deref().unwrap_or("auto");
-                let error_category =
-                    crate::telemetry::categorize_transcription_error(&e.to_string());
-                crate::telemetry::track_transcription_failed(
-                    &app_handle,
-                    &settings.model,
-                    gpu_backend,
-                    error_category,
-                );
-            }
-            Err(format!("Transcription failed: {}", e))
-        }
+        Ok(result) => Ok(result.text),
+        Err(e) => Err(format!("Transcription failed: {}", e)),
     }
 }
 
-/// Result of a transcription operation, including the text and processing time.
+/// Result of a transcription operation.
 pub struct TranscriptionResult {
     pub text: String,
-    pub processing_ms: u64,
 }
 
 /// Pure transcription function without Tauri dependencies.
@@ -581,10 +553,7 @@ pub async fn transcribe_audio_file(
             } else {
                 log::info!("✅ Transcription successful ({}ms)", elapsed_ms);
             }
-            Ok(TranscriptionResult {
-                text: transcript,
-                processing_ms: elapsed_ms as u64,
-            })
+            Ok(TranscriptionResult { text: transcript })
         }
         Err(backend_err) => {
             log::error!("❌ Transcription failed: {}", backend_err);

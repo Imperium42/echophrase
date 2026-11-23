@@ -19,7 +19,6 @@ pub async fn start_audio_recording(
     let recorder = state.0.lock().await;
     let result = recorder.start_recording(app.clone()).await;
     if result.is_ok() {
-        crate::telemetry::mark_activity();
         tray_status::set(&app, TrayStatus::Recording);
         warm_model_if_idle_unloaded(&app);
     }
@@ -82,7 +81,6 @@ pub async fn start_audio_recording_with_vad(
         .start_recording_with_vad(app.clone(), threshold, silence_timeout_ms)
         .await;
     if result.is_ok() {
-        crate::telemetry::mark_activity();
         tray_status::set(&app, TrayStatus::Recording);
         warm_model_if_idle_unloaded(&app);
     }
@@ -142,9 +140,6 @@ pub async fn transcribe_open_mic_chunk(
             audio_duration_ms,
         });
     }
-
-    // Track GPU backend once per session on first transcription
-    crate::telemetry::track_gpu_backend(&app);
 
     // Flip tray to Transcribing for the model run, then back to Recording
     // (open mic recording continues across chunks). Drop on every exit path

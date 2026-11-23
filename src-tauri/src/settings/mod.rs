@@ -16,6 +16,10 @@ use std::sync::RwLock;
 /// invalidated by `save()`. Hot-path callers (transcription, recording, VAD
 /// loops) used to hit the disk on every IPC call - during open mic that
 /// fired per VAD chunk. Reads now go through this cache.
+/// Env var that, when set, relocates `settings.yaml` into the given directory.
+/// Used by tests so they never read or write the real user settings file.
+pub const CONFIG_DIR_ENV: &str = "ECHOPHRASE_CONFIG_DIR";
+
 static SETTINGS_CACHE: RwLock<Option<AppSettings>> = RwLock::new(None);
 
 /// Default model ID - matches frontend MODEL_REGISTRY default
@@ -33,6 +37,16 @@ fn default_true() -> bool {
 
 fn default_hotkey_mode() -> String {
     "hybrid".to_string()
+}
+
+/// Map any hotkey mode string onto the supported set (`toggle`, `hold`,
+/// `hybrid`); case-insensitive, unknown values fall back to `hybrid`.
+fn normalize_hotkey_mode(mode: &str) -> String {
+    match mode.trim().to_lowercase().as_str() {
+        "toggle" => "toggle".to_string(),
+        "hold" => "hold".to_string(),
+        _ => default_hotkey_mode(),
+    }
 }
 
 fn default_transform_rules() -> String {
@@ -291,8 +305,6 @@ pub struct SettingsPatch {
     #[serde(default, deserialize_with = "double_option")]
     pub json_metadata_template: Option<Option<String>>,
     #[serde(default)]
-    pub telemetry_enabled: Option<bool>,
-    #[serde(default)]
     pub auto_detected_model: Option<bool>,
     #[serde(default, deserialize_with = "double_option")]
     pub execution_provider: Option<Option<String>>,
@@ -382,9 +394,7 @@ impl SettingsPatch {
             remove_filler_words,
             use_numeric_digits,
             append_space_incomplete,
-            hotkey_mode,
             restore_clipboard_after_paste,
-            telemetry_enabled,
             auto_detected_model,
             transform_enabled,
             transform_rules,
@@ -407,7 +417,6 @@ impl SettingsPatch {
             max_recording_time,
             json_metadata_template,
             execution_provider,
-            transform_model,
             save_directory,
             recording_mode,
             silence_timeout,
@@ -417,6 +426,12 @@ impl SettingsPatch {
         // Normalizations mirroring save_settings so the two paths cannot drift.
         if let Some(hotkey) = self.hotkey {
             s.hotkey = hotkey.to_lowercase();
+        }
+        if let Some(mode) = self.hotkey_mode {
+            s.hotkey_mode = normalize_hotkey_mode(&mode);
+        }
+        if let Some(model) = self.transform_model {
+            s.transform_model = model.map(sanitize_transform_model_id);
         }
         if let Some(aliases) = self.hotkey_aliases {
             s.hotkey_aliases = normalize_hotkey_aliases(aliases);
@@ -498,7 +513,6 @@ pub struct AppSettings {
     #[serde(default)]
     pub restore_clipboard_after_paste: bool,
     pub json_metadata_template: Option<String>, // Custom JSON template for metadata output
-    pub telemetry_enabled: bool,                // Anonymous usage stats and crash reports (opt-out)
     /// Whether the current model was auto-detected on first launch.
     /// If true, subsequent launches won't re-detect unless user resets.
     /// If false (user manually selected), auto-detection is skipped.
@@ -636,7 +650,6 @@ impl Default for AppSettings {
             hotkey_mode: default_hotkey_mode(), // Tap toggles, hold+release stops
             restore_clipboard_after_paste: false, // Keep the transcript on the clipboard
             json_metadata_template: None,  // Use default JSON template
-            telemetry_enabled: true,       // Anonymous telemetry enabled by default
             auto_detected_model: false,    // Not auto-detected until first launch detection runs
             execution_provider: None,      // Auto-detect by default
             transform_enabled: false,      // Transform disabled by default
@@ -674,6 +687,7 @@ impl AppSettings {
         let settings = if config_path.exists() {
             let contents = fs::read_to_string(&config_path)?;
             let mut settings = serde_yml::from_str::<AppSettings>(&contents)?;
+            settings.hotkey_mode = normalize_hotkey_mode(&settings.hotkey_mode);
             // One-time migration: "en" was the hardcoded default before any UI
             // existed to change it, so it was never a deliberate user choice.
             // Force-English silently mangles non-English speech on multilingual
@@ -788,6 +802,12 @@ impl AppSettings {
     }
 
     fn config_path() -> Result<PathBuf> {
+        // Test/sandbox override so automated tests never touch the real user file.
+        if let Some(dir) = std::env::var_os(CONFIG_DIR_ENV)
+            && !dir.is_empty()
+        {
+            return Ok(PathBuf::from(dir).join("settings.yaml"));
+        }
         let config_dir =
             dirs::config_dir().ok_or_else(|| anyhow::anyhow!("Could not find config directory"))?;
         Ok(config_dir.join("echophrase").join("settings.yaml"))
@@ -800,39 +820,12 @@ pub async fn get_settings() -> crate::error::CmdResult<AppSettings> {
 }
 
 #[tauri::command]
-pub async fn save_settings(
-    app_handle: tauri::AppHandle,
-    settings: AppSettings,
-) -> crate::error::CmdResult<()> {
-    // Detect changes for telemetry
-    if let Ok(old_settings) = AppSettings::load() {
-        if old_settings.model != settings.model {
-            crate::telemetry::track_model_changed(&app_handle, &settings.model);
-        }
-        // Fire final telemetry event when user disables tracking
-        if old_settings.telemetry_enabled && !settings.telemetry_enabled {
-            crate::telemetry::track_telemetry_disabled(&app_handle);
-        }
-        // Only track settings_saved when a tracked field actually changed
-        let settings_changed = old_settings.output_to != settings.output_to
-            || old_settings.recording_mode != settings.recording_mode
-            || old_settings.remove_filler_words != settings.remove_filler_words
-            || old_settings.use_numeric_digits != settings.use_numeric_digits
-            || old_settings.append_space_incomplete != settings.append_space_incomplete
-            || old_settings.transform_enabled != settings.transform_enabled
-            || old_settings.language != settings.language;
-
-        if settings_changed {
-            crate::telemetry::track_settings_saved(&app_handle, &settings);
-        }
-    }
-
-    // Flush queued events immediately (covers model_changed, telemetry_disabled, settings_saved)
-    crate::telemetry::flush();
-
+pub async fn save_settings(settings: AppSettings) -> crate::error::CmdResult<()> {
     // Normalize hotkey to lowercase (handles old PascalCase values like "Ctrl+Shift+Space")
     let mut settings = settings;
     settings.hotkey = settings.hotkey.to_lowercase();
+    settings.hotkey_mode = normalize_hotkey_mode(&settings.hotkey_mode);
+    settings.transform_model = settings.transform_model.map(sanitize_transform_model_id);
     settings.hotkey_aliases = normalize_hotkey_aliases(settings.hotkey_aliases);
 
     // Clamp UI scale to the supported range and normalize the mode so a
@@ -859,16 +852,6 @@ pub async fn update_settings_patch(
 ) -> crate::error::CmdResult<AppSettings> {
     let before = AppSettings::get();
 
-    // Telemetry-relevant fields, captured before the mutation so we can report
-    // real transitions (same events save_settings fires - converting call sites
-    // to patches must not silently drop them).
-    let model_change = patch
-        .model
-        .as_ref()
-        .filter(|m| **m != before.model)
-        .cloned();
-    let telemetry_disabled = patch.telemetry_enabled == Some(false) && before.telemetry_enabled;
-    let tracked_change = tracked_fields_changed(&patch, &before);
     let mcp_toggled = patch
         .mcp_server_enabled
         .is_some_and(|v| v != before.mcp_server_enabled);
@@ -887,17 +870,6 @@ pub async fn update_settings_patch(
             crate::ipc::stop();
         }
     }
-
-    if let Some(model) = model_change {
-        crate::telemetry::track_model_changed(&app_handle, &model);
-    }
-    if telemetry_disabled {
-        crate::telemetry::track_telemetry_disabled(&app_handle);
-    }
-    if tracked_change {
-        crate::telemetry::track_settings_saved(&app_handle, &after);
-    }
-    crate::telemetry::flush();
 
     // Let the rest of the app (and the frontend store) resync.
     let _ = tauri::Emitter::emit(&app_handle, "settings-changed", ());
@@ -931,38 +903,6 @@ pub async fn set_mcp_server_enabled(
     let _ = tauri::Emitter::emit(&app_handle, "settings-changed", ());
 
     Ok(())
-}
-
-/// Whether the patch changes any field that `track_settings_saved` reports on.
-fn tracked_fields_changed(patch: &SettingsPatch, before: &AppSettings) -> bool {
-    let changed_vec = patch
-        .output_to
-        .as_ref()
-        .is_some_and(|v| *v != before.output_to);
-    let changed_mode = patch
-        .recording_mode
-        .as_ref()
-        .is_some_and(|v| *v != before.recording_mode);
-    let changed_language = patch
-        .language
-        .as_ref()
-        .is_some_and(|v| *v != before.language);
-
-    changed_vec
-        || changed_mode
-        || changed_language
-        || patch
-            .remove_filler_words
-            .is_some_and(|v| v != before.remove_filler_words)
-        || patch
-            .use_numeric_digits
-            .is_some_and(|v| v != before.use_numeric_digits)
-        || patch
-            .append_space_incomplete
-            .is_some_and(|v| v != before.append_space_incomplete)
-        || patch
-            .transform_enabled
-            .is_some_and(|v| v != before.transform_enabled)
 }
 
 /// Get the current UI locale setting
@@ -1073,6 +1013,47 @@ mod tests {
         assert_eq!(settings.hotkey, "ctrl+shift+space", "hotkey lowercased");
         assert_eq!(settings.ui_scale_manual, UI_SCALE_MAX, "scale clamped");
         assert_eq!(settings.ui_scale_mode, "auto", "unknown mode falls back");
+    }
+
+    #[test]
+    fn legacy_telemetry_enabled_key_is_ignored_on_load() {
+        // Pre-removal settings.yaml files still carry `telemetry_enabled`.
+        let settings: AppSettings =
+            serde_yml::from_str("model: parakeet-tdt-0.6b-v3\ntelemetry_enabled: true\n").unwrap();
+        assert_eq!(settings.model, "parakeet-tdt-0.6b-v3");
+        let yaml = serde_yml::to_string(&settings).unwrap();
+        assert!(!yaml.contains("telemetry"), "key is dropped on next save");
+    }
+
+    #[test]
+    fn hotkey_mode_is_normalized() {
+        assert_eq!(normalize_hotkey_mode("Toggle"), "toggle");
+        assert_eq!(normalize_hotkey_mode("hold"), "hold");
+        assert_eq!(normalize_hotkey_mode("hybrid"), "hybrid");
+        assert_eq!(normalize_hotkey_mode("bogus"), "hybrid");
+
+        let mut settings = AppSettings::default();
+        let patch: SettingsPatch = serde_json::from_str(r#"{"hotkey_mode":"HOLD"}"#).unwrap();
+        patch.apply_to(&mut settings);
+        assert_eq!(settings.hotkey_mode, "hold");
+        let patch: SettingsPatch = serde_json::from_str(r#"{"hotkey_mode":"nope"}"#).unwrap();
+        patch.apply_to(&mut settings);
+        assert_eq!(settings.hotkey_mode, "hybrid");
+    }
+
+    #[test]
+    fn patch_sanitizes_transform_model() {
+        let mut settings = AppSettings::default();
+        let patch: SettingsPatch =
+            serde_json::from_str(r#"{"transform_model":"parakeet-tdt-0.6b-v3"}"#).unwrap();
+        patch.apply_to(&mut settings);
+        assert_eq!(
+            settings.transform_model.as_deref(),
+            Some(DEFAULT_TRANSFORM_MODEL_ID)
+        );
+        let patch: SettingsPatch = serde_json::from_str(r#"{"transform_model":null}"#).unwrap();
+        patch.apply_to(&mut settings);
+        assert_eq!(settings.transform_model, None);
     }
 
     #[test]

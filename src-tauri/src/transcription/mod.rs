@@ -38,10 +38,6 @@ pub async fn transcribe_source(
     use crate::models::is_onnx_model;
     use silence::{SILENCE_PEAK_THRESHOLD, SILENCE_RESULT, is_known_silence_hallucination};
 
-    // Defer background telemetry flushes: no network request should be
-    // observable near a transcription (see telemetry::client IDLE_FLUSH_THRESHOLD).
-    crate::telemetry::mark_activity();
-
     // Keeps the model from being idle-unloaded mid-transcription, and restarts
     // the idle clock when this returns (on every path).
     let _activity = idle::begin();

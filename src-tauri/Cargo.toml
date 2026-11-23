@@ -135,8 +135,6 @@ parakeet-rs = { version = "0.3.4", default-features = false, features = ["direct
 default = []
 # Enable devtools in release builds (for staging). Production builds omit this.
 devtools = ["tauri/devtools"]
-# Official builds: Aptabase telemetry; CI enables it (needs APTABASE_APP_KEY at build time).
-official = []
 
 [dev-dependencies]
 tempfile = "3.27.0"

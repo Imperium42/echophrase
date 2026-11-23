@@ -28,7 +28,6 @@ mod platform;
 mod settings;
 mod setup;
 mod shutdown;
-mod telemetry;
 mod transcription;
 mod transform;
 mod tray_status;
@@ -307,44 +306,6 @@ pub fn run() {
         ipc::spawn(transcribe, env!("CARGO_PKG_VERSION"));
       }
 
-      // Initialize our thin Aptabase client (replaces abandoned tauri-plugin-aptabase)
-      // Events are queued and flushed only while idle (no recent transcription), on settings save, and on exit.
-      telemetry::init(&app.handle());
-
-      // Report daily active user (at most once per 24h; GPU backend deferred to first transcription).
-      // On a FRESH install nothing is sent here: onboarding has not yet asked for telemetry
-      // consent, so the trio is deferred to the `telemetry_report_first_run` command which the
-      // welcome step invokes after persisting the user's choice. Already-counted machines
-      // (upgrades) have their settings on disk, so there is no consent race to wait for.
-      if !telemetry::is_first_launch_pending() {
-        let app_handle = app.handle().clone();
-        telemetry::track_first_launch(&app_handle); // no-op: marker exists
-        telemetry::track_app_updated(&app_handle);
-        telemetry::track_daily_active(&app_handle);
-      }
-
-      // Release-only panic reporting: send a privacy-safe app_panic event
-      // (repo-relative location + thread name, never the panic message) and
-      // flush synchronously so it survives the crash. Chains to the previous
-      // hook so the default stderr backtrace still prints.
-      #[cfg(not(debug_assertions))]
-      {
-        let previous_hook = std::panic::take_hook();
-        std::panic::set_hook(Box::new(move |info| {
-          let location = info
-            .location()
-            .map(|l| telemetry::sanitize_panic_location(l.file(), l.line()))
-            .unwrap_or_else(|| "unknown".to_string());
-          let thread = std::thread::current()
-            .name()
-            .unwrap_or("unnamed")
-            .to_string();
-          telemetry::track_app_panic(&location, &thread);
-          telemetry::flush_blocking();
-          previous_hook(info);
-        }));
-      }
-
       // Create splash window (instant - inline data: URL HTML, no Vite/SvelteKit,
       // no filesystem dependency). Main window stays hidden until frontend
       // calls show_main_window.
@@ -435,8 +396,6 @@ pub fn run() {
     .plugin(tauri_plugin_dialog::init())
     .plugin(tauri_plugin_process::init())
     .plugin(tauri_plugin_updater::Builder::new().build())
-    // REMOVED: tauri_plugin_aptabase - abandoned, panics on startup (tokio runtime)
-    // Replaced with thin HTTP client in telemetry::client
     // REMOVED: tauri_plugin_opener::init() - uses cmd.exe internally on Windows
     .invoke_handler(tauri::generate_handler![
       macos_dictation::set_dictation_key_remap,
@@ -533,18 +492,10 @@ pub fn run() {
       commands::transform::preload_transform_model,
       commands::transform::is_transform_model_loaded,
       commands::transform::unload_transform_model,
-      // Telemetry commands (callable from frontend)
-      telemetry::telemetry_report_first_run,
-      telemetry::is_official_build,
     ])
     .build(tauri::generate_context!())
     .expect("error while building tauri application")
-    .run(|_app, event| {
-      if let tauri::RunEvent::Exit = event {
-        // Flush any remaining telemetry events before the process exits
-        telemetry::flush_blocking();
-      }
-    });
+    .run(|_app, _event| {});
 }
 
 /* Disabled ct2rs tests - migrating to Candle backend
