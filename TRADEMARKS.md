@@ -25,6 +25,5 @@ confusing your build, and its bugs and support channels, with ours. In practice:
 2. Replace the icons in `src-tauri/icons/` and `static/`.
 3. Point the updater (`plugins.updater` in `tauri.conf.json5`) at your own update feed, or
    disable it. Official builds update from the official channel only.
-4. Don't build with `--features official` (it enables our telemetry endpoint).
 
 Questions or permission requests: https://echophrase.com/contact

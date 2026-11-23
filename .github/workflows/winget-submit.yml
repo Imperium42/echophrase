@@ -88,6 +88,7 @@ jobs:
           $yaml = $yaml -replace '(?m)^License: .*$', 'License: MPL-2.0'
           $yaml = $yaml -replace '(?m)^LicenseUrl: .*$', 'LicenseUrl: https://github.com/Imperium42/echophrase/blob/main/LICENSE'
           $yaml = $yaml -replace '(?m)^Copyright: .*$', 'Copyright: Copyright (c) 2025-2026 Imperium42 LLC'
+          if ($yaml -notmatch '(?m)^License: MPL-2\.0$') { throw 'winget manifest License rewrite failed: expected License: MPL-2.0' }
           Set-Content -Path $locale.FullName -Value $yaml -NoNewline
           .\wingetcreate.exe submit --token $env:WINGET_PAT $locale.DirectoryName
           if ($LASTEXITCODE -ne 0) {

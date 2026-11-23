@@ -46,35 +46,26 @@ CUDA was removed entirely; see [gpu-and-cuda.md](gpu-and-cuda.md).
 - Payment and checkout integration
 - CUDA execution provider, its downloader and its build flags
 - Official Linux builds
-- **Anonymous usage telemetry (decided 2026-11-23, removal in progress, see below)**
+- **Anonymous usage telemetry (removed 2026-11-23, see below)**
 
-## Telemetry removal (in progress)
+## Telemetry removal (done)
 
 Earlier open-source builds still shipped optional anonymous usage stats (Aptabase) in official
-builds only, behind the `official` Cargo feature. On 2026-11-23 the maintainers decided to remove
-it completely so the network policy above is the whole story. Checklist:
+builds only, behind the `official` Cargo feature. On 2026-11-23 the maintainers removed it
+completely so the network policy above is the whole story:
 
-- **Rust:** delete `src-tauri/src/telemetry/`; remove its calls from `lib.rs` (init, first-run
-  events, the release panic hook, the two telemetry commands, the exit flush),
-  `commands/transcription.rs`, `commands/recording.rs`, `transcription/mod.rs` and
-  `settings/mod.rs` (change detection in `save_settings` and `update_settings_patch`); remove the
-  `telemetry_enabled` setting while keeping old settings files loadable; remove the
-  `APTABASE_APP_KEY` handling in `build.rs` and the `official` feature in `Cargo.toml`; drop
-  `telemetry.echophrase.com` from the CSP in `tauri.conf.json5`.
-- **Frontend:** remove the onboarding consent checkbox, the Settings > Data toggle,
-  `src/lib/ipc/telemetry.ts`, the `telemetry_enabled` field in `useTauriSettings.ts` and the
-  related strings in all three locales.
-- **CI and config:** drop `APTABASE_APP_KEY` and `--features official` from the release workflow
-  and `package.json`; remove the key from `env.yaml.template`; update `TRADEMARKS.md`.
-- **Docs:** rewrite [TELEMETRY.md](../TELEMETRY.md) as a short network and privacy page; update
-  the README privacy section, `CLAUDE.md` and the CHANGELOG; update the public privacy docs.
-- **Verify:** `cargo clippy --workspace --all-targets --no-default-features -- -D warnings`,
-  `cargo test --workspace --no-default-features`, `bun run check`, `bun run lint`,
-  `bun run test:chunked`; then a repo-wide search for `telemetry`, `aptabase` and `official`
-  should only find changelog history.
-
-Until this lands, official builds still contain the old telemetry code (off for every build from
-source). This page will be updated when the removal ships.
+- **Rust:** `src-tauri/src/telemetry/`, its call sites, the two telemetry commands, the
+  `APTABASE_APP_KEY` handling in `build.rs` and the `official` Cargo feature are gone. The
+  `telemetry_enabled` setting is dropped; old settings files still load.
+- **Frontend:** the onboarding consent checkbox, the Settings > Data toggle,
+  `src/lib/ipc/telemetry.ts` and the related strings in all locales are gone.
+- **CI and config:** `APTABASE_APP_KEY` and `--features official` are removed from the release
+  workflow and `package.json`; the key is gone from `env.yaml.template`; `TRADEMARKS.md` no longer
+  mentions the feature.
+- **Docs:** [TELEMETRY.md](../TELEMETRY.md) is now a short network and privacy page; the README
+  and `CLAUDE.md` are updated. The public privacy docs live in the docs site repo.
+- Old v0.9.x installs could still send anonymous stats if allowed; updating removes that.
+  (`telemetry.echophrase.com` was never in the CSP, so there was nothing to drop there.)
 
 ## Other open items before v1.0.0
 

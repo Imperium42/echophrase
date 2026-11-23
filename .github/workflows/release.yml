@@ -22,7 +22,6 @@
 #   - CN_API_KEY: CrabNebula Cloud API key
 #   - TAURI_SIGNING_PRIVATE_KEY: Tauri signing key (~/.tauri/echophrase.key contents)
 #   - TAURI_SIGNING_PRIVATE_KEY_PASSWORD: Signing key password
-#   - APTABASE_APP_KEY: Aptabase telemetry app key (self-hosted)
 #
 # Optional (Azure Trusted Signing for Windows code signing - eliminates SmartScreen):
 #   - AZURE_TENANT_ID: Imperium42 Entra tenant ID
@@ -272,8 +271,7 @@ jobs:
         run: |
           bunx --bun vite build --mode ${{ needs.draft.outputs.channel == 'beta' && 'staging' || 'production' }}
           if ($LASTEXITCODE -ne 0) { throw "vite build failed" }
-          # `official` enables Aptabase telemetry (needs APTABASE_APP_KEY); community builds omit it.
-          $extra = @('--features', 'official')
+          $extra = @()
           if ('${{ needs.draft.outputs.channel }}' -eq 'beta') { $extra += @('--features', 'devtools') }
           if ('${{ steps.tsign_check.outputs.available }}' -eq 'true') { $extra += @('--config', "$env:RUNNER_TEMP\sign-config.json") }
           bunx tauri build --ci @extra
@@ -285,8 +283,6 @@ jobs:
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          # Aptabase telemetry (self-hosted)
-          APTABASE_APP_KEY: ${{ secrets.APTABASE_APP_KEY }}
           # Allow unused code warnings in CI (codebase has feature flags and future code)
           # Use dynamic CRT to match ort_sys (ONNX Runtime) which uses MD_DynamicRelease
           RUSTFLAGS: '-A dead_code -A unused_imports -A unused_variables -A unreachable_code -A unused_assignments -A unused_mut -C target-feature=-crt-static'
@@ -488,6 +484,7 @@ jobs:
           $yaml = $yaml -replace '(?m)^License: .*$', 'License: MPL-2.0'
           $yaml = $yaml -replace '(?m)^LicenseUrl: .*$', 'LicenseUrl: https://github.com/Imperium42/echophrase/blob/main/LICENSE'
           $yaml = $yaml -replace '(?m)^Copyright: .*$', 'Copyright: Copyright (c) 2025-2026 Imperium42 LLC'
+          if ($yaml -notmatch '(?m)^License: MPL-2\.0$') { throw 'winget manifest License rewrite failed: expected License: MPL-2.0' }
           Set-Content -Path $locale.FullName -Value $yaml -NoNewline
           .\wingetcreate.exe submit --token $env:WINGET_PAT $locale.DirectoryName
           if ($LASTEXITCODE -ne 0) {
@@ -597,12 +594,10 @@ jobs:
       - name: Build Tauri app
         run: |
           bunx --bun vite build --mode ${{ needs.draft.outputs.channel == 'beta' && 'staging' || 'production' }}
-          bunx tauri build --ci --features ${{ needs.draft.outputs.channel == 'beta' && 'official,devtools' || 'official' }}
+          bunx tauri build --ci ${{ needs.draft.outputs.channel == 'beta' && '--features devtools' || '' }}
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          # Aptabase telemetry (self-hosted)
-          APTABASE_APP_KEY: ${{ secrets.APTABASE_APP_KEY }}
           # Allow unused code warnings in CI (codebase has feature flags and future code)
           RUSTFLAGS: '-A dead_code -A unused_imports -A unused_variables -A unreachable_code -A unused_assignments -A unused_mut'
 
@@ -715,11 +710,10 @@ jobs:
       - name: Build Tauri app
         run: |
           bunx --bun vite build --mode ${{ needs.draft.outputs.channel == 'beta' && 'staging' || 'production' }}
-          bunx tauri build --ci --target aarch64-apple-darwin --features ${{ needs.draft.outputs.channel == 'beta' && 'official,devtools' || 'official' }}
+          bunx tauri build --ci --target aarch64-apple-darwin ${{ needs.draft.outputs.channel == 'beta' && '--features devtools' || '' }}
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          APTABASE_APP_KEY: ${{ secrets.APTABASE_APP_KEY }}
           RUSTFLAGS: '-A dead_code -A unused_imports -A unused_variables -A unreachable_code -A unused_assignments -A unused_mut'
           # NOTE: APPLE_SIGNING_IDENTITY / APPLE_ID / APPLE_PASSWORD / APPLE_TEAM_ID
           # are NOT declared here on purpose. The "Check Apple signing secrets"

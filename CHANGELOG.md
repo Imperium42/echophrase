@@ -13,11 +13,14 @@ All notable changes to Echophrase will be documented in this file.
 - "Restore Clipboard After Pasting" in Settings > Output: after Paste at cursor, put back whatever you had copied before. Off by default; on macOS it may need extra clipboard permissions.
 
 ### Changed
-- No more accounts or sign-in server. Account settings and server cloud sync are gone, and the app never forces you to update. If you used cloud sync, your settings stay on this computer as they are. The only thing Echophrase still sends is optional anonymous usage stats, which you can turn off in Settings > Data.
+- No more accounts or sign-in server. Account settings and server cloud sync are gone, and the app never forces you to update. If you used cloud sync, your settings stay on this computer as they are. Echophrase only connects to download models and check for updates.
 - If you signed in before, a leftover Echophrase sign-in entry may still be in your system keychain. It does nothing, and you can delete it if you like. To have your old account data deleted, contact us via Settings > About > Support.
 - Linux is now community-supported: build it from source. There are no more official Linux downloads or auto-updates, so v0.9.9 is the last official Linux build.
 
 ### Improved
+- Windows 11 is the officially supported Windows version. Windows 10 should work but is unofficial.
+- Bundled ONNX Runtime 1.24.4 and DirectML 1.15.4, so GPU transcription no longer depends on the older DirectML that ships with Windows.
+- Open Mic is now marked Beta.
 - Small branding touch-up: a trademark mark next to the Echophrase name.
 - Settings > Model shows your model's name and size instead of its internal id.
 
@@ -27,8 +30,12 @@ All notable changes to Echophrase will be documented in this file.
 - A brief audio glitch no longer cancels your recording with a "Not recording" error.
 - Grammar correction works again on installs where a settings mix-up pointed it at the speech model.
 - The "Language (UI)" label in Settings is no longer cut off.
+- Restore Clipboard After Pasting is more reliable: it puts back what you had copied before.
+- The tap/hold Push to Talk hotkey is more reliable: fixed missed or stuck starts and stops.
+- Open mic no longer opens a save dialog for every phrase.
 
 ### Removed
+- Removed anonymous usage stats entirely. Echophrase now only connects to download models and check for updates.
 - The unused CUDA plugin and all CUDA code paths. Windows uses DirectML, macOS uses CoreML, Linux runs on CPU.
 
 ## [v0.9.9] - 2026-11-20

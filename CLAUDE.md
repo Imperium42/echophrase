@@ -58,7 +58,7 @@ cd src-tauri && cargo add <crate>  # Add Rust crate
 - **ML Frameworks**: Trait-based backends - Candle (safetensors), ONNX Runtime (parakeet-rs for NVIDIA TDT)
 - **Audio**: `crates/echo-audio` (shared audio core: cpal capture, resampling, WAV I/O, AudioSource) + Voice Activity Detection (self-implemented Silero VAD V5). Live capture is fully in-memory on all platforms - no temp WAVs.
 - **GPU**: DirectML (Windows), CoreML (macOS); Linux/WSL is CPU-only. There is no CUDA. ORT is loaded dynamically via ort `load-dynamic`
-- **No server, no account**: since the v1.0.0 open-source move, the app is fully free and local. There is no login, tier, trial, payment, heartbeat, MOTD or server cloud sync. The only network calls are model downloads, the CrabNebula updater, the GitHub release archive and (official builds only) Aptabase telemetry.
+- **No server, no account**: since the v1.0.0 open-source move, the app is fully free and local. There is no login, tier, trial, payment, heartbeat, MOTD or server cloud sync. The only network calls are model downloads (huggingface.co) and the CrabNebula updater (cdn.crabnebula.app). There is no telemetry or analytics (removed 2026-11-23); see [TELEMETRY.md](TELEMETRY.md).
 - **Icons**: import `<Icon>` from `$lib/icons` only - never directly from `@lucide/svelte` or `simple-icons`. Add new icons to `src/lib/icons/registry.ts` (Lucide v1 for functional, Simple Icons for brand logos).
 - **Styling**: Tailwind CSS 4.x
 
@@ -196,15 +196,11 @@ is not part of this repo.
 Old installs may still have a dead auth entry in the OS keychain (`keyring` was dropped, no
 cleanup code). That's harmless.
 
-### Telemetry
+### Network and privacy
 
-See [TELEMETRY.md](TELEMETRY.md) for what data is collected.
-
-- `src-tauri/src/telemetry/`: anonymous install/launch events, no user ID.
-- **Only in official builds**, behind the `official` Cargo feature (OFF by default). Release
-  CI builds with `--features official` and injects `APTABASE_APP_KEY`. Without the feature
-  every telemetry call is a no-op, and the build does not need the key, so contributor/fork
-  builds never report to our Aptabase instance.
+There is no telemetry. Do not add any analytics, crash reporting or phone-home call; the only
+allowed destinations are listed in [TELEMETRY.md](TELEMETRY.md). Changing that list means
+updating that file, the README privacy section and the public privacy docs in the same PR.
 
 ## GPU Requirements
 
@@ -218,7 +214,7 @@ See [TELEMETRY.md](TELEMETRY.md) for what data is collected.
 ### Linux/WSL (CPU only)
 - Transcription runs on CPU. `ort` uses `load-dynamic`, so ORT is loaded at runtime
   from `ORT_DYLIB_PATH`; nothing GPU-related is linked or downloaded at build time.
-- Dev builds run `--no-default-features`; the only cargo feature besides `devtools` is `official`.
+- Dev builds run `--no-default-features`; `devtools` is the only optional cargo feature.
 - GPU acceleration on Linux is a wanted future feature (see the TODO in
   `env.yaml.template`).
 
@@ -251,8 +247,9 @@ via the C API. This avoids MSVC STL ABI coupling from static linking (pykeio/ort
 - **Windows (DirectML, x64 + arm64)**: stages `onnxruntime.dll`, `onnxruntime_providers_shared.dll`
   and `DirectML.dll` into `src-tauri/resources/ort/directml/` - the bundled path
   `select_ort_runtime()` probes in production, and Tauri copies it next to the dev exe, so dev
-  needs no `ORT_DYLIB_PATH`. A placeholder or non-existent `ORT_DYLIB_PATH` in env.yaml's
-  `windows:` section is removed; an existing path is kept as a manual override. `DirectML.dll`
+  needs no `ORT_DYLIB_PATH`. A placeholder `ORT_DYLIB_PATH` in env.yaml's
+  `windows:` section is removed; any other value is kept as a manual override (a warning is
+  printed if its path does not exist). `DirectML.dll`
   is bundled rather than taken from System32 because even current Win11 ships a too-old inbox copy
   (24H2 = 1.13.1; 1.15.x is redistributable-only - see KNOWN_ISSUES.md). It is
   proprietary (redistributable), see `ATTRIBUTION.md`.
@@ -331,6 +328,7 @@ pbpaste   # the app pastes the transcript -> clipboard holds the proof
 ## Development Notes
 
 - **Ports**: `DEV_PORT` (default **8420**) is the Vite dev server, `DEV_PORT + 1` (8421) is HMR, and Tauri's `devUrl` follows it. `vite.config.js`, `src-tauri/src/lib.rs` (dev-server monitor) and `scripts/env/load.mjs` all read the one env var; for any non-default value the launcher generates a gitignored `.tauri-dev-port.json` and passes it to `tauri dev --config` (rewrites `devUrl` and the CSP `ws://` entries). **Do not edit ports in tracked files** - a machine that can't bind 8420 sets `DEV_PORT` in its gitignored `env.yaml` (`shared:` or its platform section). Windows Hyper-V silently reserves random port ranges and the reservations MOVE (1420/1421, then 4420/4421, then 8420 on 2026-09-21), so the symptom is a bind failure with nothing visible in `netstat`/`ss`; run `python scripts/check-ports.py` and test with the launcher's own check (Windows bun `net.listen` and a Python bind have disagreed).
+- **`ECHOPHRASE_CONFIG_DIR`** (test-only): relocates the settings directory (`settings.yaml`) so tests never read or write the real user settings. Tests that touch settings state set it to a temp sandbox (see `src-tauri/src/settings/mod.rs`, `CONFIG_DIR_ENV`).
 - **F5**: Reloads webview in dev mode (registered globally)
 - **Browser DevTools**: Right-click → "Inspect" in Tauri window
 - **Logging**: Dev logs to stdout + `../logs/Echophrase.log`
@@ -408,7 +406,6 @@ signing group is unset, that platform's signing steps are skipped with a
 | macOS signing + notarization | `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`, `KEYCHAIN_PASSWORD`, `APPLE_SIGNING_IDENTITY`, `APPLE_ID`, `APPLE_PASSWORD`, `APPLE_TEAM_ID` |
 | Tauri updater signing | `TAURI_SIGNING_PRIVATE_KEY`, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` |
 | Distribution | `CN_API_KEY` (CrabNebula), `RELEASES_REPO_TOKEN` (contents:write on echophrase-releases), `WINGET_PAT` |
-| Telemetry (official builds) | `APTABASE_APP_KEY` |
 
 **Verifying signatures** on a downloaded build:
 

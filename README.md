@@ -39,7 +39,7 @@ Press a hotkey, speak, and the text lands wherever your cursor is.
 | | |
 |---|---|
 | **It just works** | Install, press the hotkey, talk. No CUDA, no Python, no driver or toolkit installs, no model wrangling: the GPU runtime ships inside the app and models download themselves. No compatibility hell, unlike most local speech-to-text setups. |
-| **Private by design** | Audio is captured in memory and transcribed on your device. No account, no cloud, no upload. |
+| **Private by design** | Audio is captured in memory and transcribed on your device. No account, no cloud, no upload. No telemetry and no analytics: the only network traffic is model downloads (Hugging Face) and update checks (CrabNebula). |
 | **Fast** | GPU inference via ONNX Runtime (DirectML on Windows, CoreML on Apple Silicon). Transcripts in well under real time. |
 | **Light** | Tauri + Rust, not a bundled browser. A fraction of an Electron app's size and memory. See [BENCHMARKS.md](BENCHMARKS.md). |
 | **Free, for real** | Every feature, no tiers, no trials, no limits. [MPL-2.0](LICENSE) licensed. |
@@ -104,12 +104,9 @@ of this repository, and each keeps its own license:
 
 ## Privacy
 
-Your voice and your transcripts never leave your device. Official builds ask on first run whether
-to send **anonymous** usage stats (OS, app version, GPU class, crash locations; no user ID, no audio,
-no text), and you can change that anytime in Settings > Data. Builds from source send nothing at all.
-Every event is listed in [TELEMETRY.md](TELEMETRY.md).
-
-The only other network traffic is model downloads (Hugging Face) and update checks (CrabNebula CDN).
+Your voice and your transcripts never leave your device. No telemetry and no analytics. The only
+network traffic is model downloads (Hugging Face) and update checks (CrabNebula). Details in
+[TELEMETRY.md](TELEMETRY.md).
 
 ## Build from source
 
