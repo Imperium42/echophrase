@@ -100,6 +100,12 @@ SPDX-License-Identifier: MPL-2.0
     launchUrl(SPONSORS_URL);
   }
 
+  /** "Contracting me" link in the sponsor hint: open in the system browser, not the webview. */
+  function openContracting(e: MouseEvent) {
+    e.preventDefault();
+    launchUrl(WEBSITE_URLS.imperium);
+  }
+
   const ATTRIBUTION_URL = 'https://echophrase.com/attribution';
   function openLicenses() {
     launchUrl(ATTRIBUTION_URL);
@@ -339,7 +345,13 @@ SPDX-License-Identifier: MPL-2.0
 
   <!-- Support Us (GitHub Sponsors) -->
   <div class="about-row sponsor-row">
-    <span class="sponsor-hint">{t('about.supportUsHint')}</span>
+    <span class="sponsor-hint"
+      >{t('about.supportUsHintPrefix')}<a
+        class="contract-link"
+        href={WEBSITE_URLS.imperium}
+        onclick={openContracting}>{t('about.supportUsHintLink')}</a
+      >{t('about.supportUsHintSuffix')}</span
+    >
     <button use:floatTip class="link-btn sponsor-btn" onclick={openSponsors}>
       <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true">
         <path
@@ -548,6 +560,21 @@ SPDX-License-Identifier: MPL-2.0
     font-size: 0.8125rem;
     color: #a1a1aa;
     text-wrap: balance;
+  }
+
+  .contract-link {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: rgba(236, 72, 153, 0.7);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+    transition:
+      color 0.15s ease,
+      text-decoration-color 0.15s ease;
+  }
+  .contract-link:hover {
+    color: #fbcfe8;
+    text-decoration-color: #f9a8d4;
   }
 
   .sponsor-btn {
