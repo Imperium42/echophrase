@@ -102,7 +102,7 @@ of this repository, and each keeps its own license:
 | [T5-efficient-mini grammar correction](https://huggingface.co/visheratin/t5-efficient-mini-grammar-correction) | Grammar cleanup | 60 MB | English | MIT |
 | [Silero VAD v5](https://github.com/snakers4/silero-vad) | Voice activity detection (bundled) | 2 MB | any | MIT |
 
-**Bring your own model (Alpha):** you can also import your own ONNX speech-to-text model in
+**Bring your own model** ![Alpha](https://img.shields.io/badge/alpha-f59e0b?style=flat-square): you can also import your own ONNX speech-to-text model in
 Settings > Custom ONNX Models. See [Custom Models](https://docs.echophrase.com/features/custom-models).
 
 ## Privacy
