@@ -170,10 +170,10 @@ SPDX-License-Identifier: MPL-2.0
           {#if isCopyToClipboard}
             <span class="default-hint">{t('outputSettings.default')}</span>
           {/if}
-          {#if isPasteAtCursor}
-            <HintTooltip hint={getPasteAtCursorTip()} />
-          {/if}
         </span>
+        {#if isPasteAtCursor}
+          <HintTooltip hint={getPasteAtCursorTip()} />
+        {/if}
         {#if isCopyToClipboard && copyImpliedByPaste}
           <HintTooltip hint={t('outputSettings.copyImpliedByPaste')} />
         {/if}
@@ -390,10 +390,11 @@ SPDX-License-Identifier: MPL-2.0
 
   /* `.setting-label` comes from app.css */
 
+  /* Same label-to-icon gap as SettingRow, so every "?" sits the same distance from its label. */
   .setting-label-with-tooltip {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.375rem;
   }
 
   .tooltip-hint {

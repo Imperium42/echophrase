@@ -295,7 +295,7 @@
     "appendSpaceIncompleteHint": "让你可以在句子中途暂停并继续听写，而不必每次都手动加空格。当转录文字未以 . ! 或 ? 结尾时，会自动附加一个尾随空格。"
   },
   "data": {
-    "title": "数据",
+    "title": "法律信息",
     "termsOfService": "服务条款",
     "privacyPolicy": "隐私政策"
   },

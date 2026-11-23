@@ -295,7 +295,7 @@
     "appendSpaceIncompleteHint": "Lets you pause mid-sentence and keep dictating without adding a space each time. When a transcription doesn't end with . ! or ?, a trailing space is added automatically."
   },
   "data": {
-    "title": "Data",
+    "title": "Legal",
     "termsOfService": "Terms of Service",
     "privacyPolicy": "Privacy Policy"
   },
