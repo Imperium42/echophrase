@@ -74,6 +74,16 @@ async function deliverOutput(
     );
     if (!result.success) {
       console.warn(`⚠️ Output handling failed for ${mode}: ${result.error}`);
+      // Copy was folded into this paste; the paste failed, so run the copy for real.
+      if (mode === 'paste_at_cursor' && plan.copyImpliedByPaste) {
+        const copied = await outputHandler.handleOutput(formattedOutput, 'copy_to_clipboard');
+        if (copied.success) {
+          succeededActions.push('copy_to_clipboard');
+          if (settings?.show_output_confirmations !== false) {
+            addOutputToast('copy_to_clipboard', { text: formattedOutput });
+          }
+        }
+      }
       continue;
     }
     if (mode === 'copy_to_clipboard' || mode === 'paste_at_cursor' || mode === 'save_as_file') {
@@ -329,6 +339,8 @@ export function useRecording(getModelExists?: () => boolean, showDownloadDialog?
   // dispatched starts so a hotkey handler can tell "my start" from a later one.
   let startPending = false;
   let startSeq = 0;
+  /** Longest a dispatched start may hold the pending slot (mic open normally takes < 2s). */
+  const START_PENDING_MAX_MS = 10_000;
 
   // Initialize Tauri APIs on first use
   let apisInitialized = false;
@@ -1194,6 +1206,14 @@ export function useRecording(getModelExists?: () => boolean, showDownloadDialog?
     } finally {
       toggleInFlight = false;
       if (mayStart && !dispatched) startPending = false;
+    }
+    // Safety valve: if the mic open ever hangs, don't block every toggle until
+    // restart. Only releases the slot if no newer start has claimed it.
+    if (mayStart && dispatched) {
+      const mySeq = startSeq;
+      setTimeout(() => {
+        if (startPending && startSeq === mySeq) startPending = false;
+      }, START_PENDING_MAX_MS);
     }
   }
 
