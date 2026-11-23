@@ -46,7 +46,16 @@
     //     Contains: onnxruntime.dll, onnxruntime_providers_shared.dll, DirectML.dll.
     // Transform models are pure DLC now (downloaded from HF on demand);
     // the previously bundled T5-tiny was removed from the registry.
-    "resources": ["resources/ort/directml/*"],
+    // Map form (source -> bundle path). License texts ship in every installer: the MPL-2.0
+    // LICENSE, TRADEMARKS, and src-tauri/licenses/ (THIRD-PARTY-NOTICES.txt from
+    // `bun run licenses:generate`, plus ONNX Runtime + DirectML notices copied verbatim from
+    // the pinned nupkgs in scripts/ensure-ort.mjs - refresh them when bumping those versions).
+    "resources": {
+      "resources/ort/directml/*": "resources/ort/directml/",
+      "../LICENSE": "licenses/LICENSE.txt",
+      "../TRADEMARKS.md": "licenses/TRADEMARKS.md",
+      "licenses/*": "licenses/"
+    },
     "windows": {
       "nsis": {
         "installerIcon": "icons/icon.ico",
