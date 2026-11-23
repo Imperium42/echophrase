@@ -10,15 +10,15 @@ const clip = vi.hoisted(() => ({
 }));
 const tauri = vi.hoisted(() => ({ invoke: vi.fn() }));
 
-vi.mock('./useClipboard', () => ({ useClipboard: () => clip }));
+vi.mock('$lib/composables/useClipboard', () => ({ useClipboard: () => clip }));
 vi.mock('@tauri-apps/api/core', () => ({ invoke: tauri.invoke }));
 vi.mock('$lib/utils/platform', () => ({ isWSLAsync: async () => false }));
-vi.mock('./useAccessibilityPermission', () => ({
+vi.mock('$lib/composables/useAccessibilityPermission', () => ({
   isAccessibilityError: () => false,
   refreshAccessibilityPermission: vi.fn(),
   showAccessibilityModal: { set: vi.fn() },
 }));
-vi.mock('./useTauriSettings', async () => {
+vi.mock('$lib/composables/useTauriSettings', async () => {
   const { writable } = await import('svelte/store');
   return { tauriSettings: writable({}) };
 });
