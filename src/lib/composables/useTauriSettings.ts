@@ -35,7 +35,6 @@ export interface TauriSettings {
   hotkey_mode?: 'hybrid' | 'toggle' | 'hold'; // Push to Talk hotkey behavior (default hybrid: tap toggles, hold+release stops)
   restore_clipboard_after_paste?: boolean; // Put the previous clipboard text back after paste at cursor (default false)
   json_metadata_template?: string | null; // Custom JSON template for metadata output
-  telemetry_enabled: boolean; // Anonymous usage stats and crash reports (opt-out)
   // Audio input settings (available to all users)
   input_device?: string; // Audio input device ID (default = system default)
   voice_threshold?: number; // 0-100, VAD threshold for voice detection
@@ -266,7 +265,6 @@ async function resetToDefaults(): Promise<void> {
     hotkey_mode: 'hybrid', // Tap toggles, hold+release stops
     restore_clipboard_after_paste: false, // Keep the transcript on the clipboard
     json_metadata_template: null,
-    telemetry_enabled: true, // Default ON - anonymous usage stats
     input_device: 'default', // System default audio input
     voice_threshold: 50, // 50% VAD threshold
   };

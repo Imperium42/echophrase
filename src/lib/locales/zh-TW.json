@@ -291,11 +291,8 @@
   },
   "data": {
     "title": "資料",
-    "helpImprove": "傳送匿名應用程式統計",
-    "helpImproveHint": "例如您使用哪個模型和 GPU、您開啟了哪些功能，以及當機報告（僅含原始碼位置，絕不含訊息內容）。絕不包含您的音訊、轉錄內容，或任何可識別您身分的資料。每個事件都遵守此設定 - 隨時在「設定 > 資料」中關閉，就不會傳送任何資料。",
     "termsOfService": "服務條款",
-    "privacyPolicy": "隱私權政策",
-    "telemetryDocsTooltip": "查看我們傳送的每一個事件，以及我們的隱私政策。您可隨時在此選擇退出。"
+    "privacyPolicy": "隱私權政策"
   },
   "fileDropZone": {
     "invalidFile": "無效檔案",
@@ -475,7 +472,7 @@
     "invalidJson": "無效 JSON",
     "requiredByPaste": "貼上至游標所需",
     "restoreClipboard": "貼上後還原剪貼簿",
-    "restoreClipboardHint": "貼上後放回你先前複製的內容，而不是把轉錄文字留在剪貼簿。在 macOS 上可能需要額外的剪貼簿權限。",
+    "restoreClipboardHint": "貼上後放回你先前複製的內容，而不是把轉錄文字留在剪貼簿。此選項會取代單獨的「複製到剪貼簿」步驟。在 macOS 上可能需要額外的剪貼簿權限。",
     "enableOtherToDisable": "啟用其他輸出以停用此項",
     "clearSaveDir": "清除（還原為儲存對話框）",
     "setSaveDir": "設定自動儲存目錄",
@@ -692,10 +689,7 @@
     "skipYes": "跳過",
     "skipNo": "返回",
     "iUnderstand": "我了解了",
-    "letsGo": "開始使用",
-    "telemetryLabel": "傳送匿名應用程式統計",
-    "telemetryHint": "例如您使用哪個模型和 GPU，以發掘改善應用程式的方向。絕不包含音訊、轉錄內容或身分資料。",
-    "telemetryDocsTooltip": "查看我們傳送的每一個事件，以及我們的隱私政策。您可隨時在「設定 > 資料」中選擇退出。"
+    "letsGo": "開始使用"
   },
   "mcpServer": {
     "title": "MCP 伺服器",

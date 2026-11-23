@@ -6,8 +6,8 @@
  * Environment Configuration
  *
  * Single source of truth for environment detection and the public website
- * URLs the app links out to. The app talks to no server of its own; official builds only send optional
- * anonymous telemetry (Aptabase, `official` Cargo feature).
+ * URLs the app links out to. The app talks to no server of its own: it only
+ * downloads models (Hugging Face) and checks for updates (CrabNebula).
  *
  * Environments:
  * - development: local dev build (website links still point at the public site)

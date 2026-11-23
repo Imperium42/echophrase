@@ -31,7 +31,6 @@ SPDX-License-Identifier: MPL-2.0
   import { useTauriSettings } from '$lib/composables/useTauriSettings';
   import { launchUrl } from '$lib/utils/launchUrl';
   import { docsUrl } from '$lib/utils/docsUrl';
-  import { reportFirstRun, isOfficialBuild } from '$lib/ipc/telemetry';
   import {
     ensureMicPermission,
     refreshMicPermissionStatus,
@@ -154,45 +153,7 @@ SPDX-License-Identifier: MPL-2.0
     }
   });
 
-  /**
-   * Anonymous usage stats consent, asked on the welcome step. Pre-checked:
-   * the default stays opt-in, but the user sees and can change it before a
-   * single event is sent (Rust defers the whole first-run trio until we call
-   * `reportFirstRun`).
-   */
-  let telemetryConsent = $state(true);
-  /** Community builds can't send telemetry, so they don't ask for consent. */
-  let officialBuild = $state(false);
-  isOfficialBuild().then(v => (officialBuild = v));
-  let consentCommitted = false;
-
-  /**
-   * Persist the consent choice and release the deferred first-run events.
-   * Runs at most once (guarded) and only ever on the fresh-install path -
-   * on an upgrade, onboarding never mounts and Rust reports at startup.
-   */
-  async function commitTelemetryConsent() {
-    if (consentCommitted) return;
-    consentCommitted = true;
-    // Never let an analytics bookkeeping failure trap the user on the welcome
-    // step: if the settings write fails we log and move on. Rust's default is
-    // opt-in, so a failed write can only ever leave telemetry ON - which is why
-    // reportFirstRun is skipped in that case rather than reporting anyway.
-    try {
-      await updateSetting('telemetry_enabled', telemetryConsent);
-    } catch (e) {
-      console.error('[Onboarding] Failed to persist telemetry consent', e);
-      return;
-    }
-    await reportFirstRun();
-  }
-
   async function next() {
-    // Consent is answered on the welcome step; commit before anything is sent.
-    if (step === 0) {
-      await commitTelemetryConsent();
-    }
-
     // When leaving the hotkey warning step on Linux, set open mic as default
     if (step === hotkeyWarningIndex && needsHotkeyWarning) {
       updateSetting('recording_mode', 'open_mic');
@@ -212,9 +173,6 @@ SPDX-License-Identifier: MPL-2.0
   let showSkipConfirm = $state(false);
 
   async function skip() {
-    // Skipping is still an answer: persist whatever the checkbox currently says
-    // (default true) so the deferred first-run events are not stranded forever.
-    await commitTelemetryConsent();
     // Same reveal as finishing normally - skip also lands the user on the main
     // screen for the first time.
     startPageLoadAnimation();
@@ -235,8 +193,8 @@ SPDX-License-Identifier: MPL-2.0
     if (e.key === 'Escape' && step > 0) confirmSkip();
 
     // Space/Enter belongs to whatever control has focus, not to "advance". Without
-    // this, pressing Space on the telemetry consent checkbox toggled it AND stepped
-    // past it in one keypress - so a keyboard user could never actually opt out.
+    // this, pressing Space on a focused checkbox or button toggled it AND stepped
+    // past the step in one keypress.
     const target = e.target as HTMLElement | null;
     const tag = target?.tagName;
     if (tag === 'INPUT' || tag === 'BUTTON' || tag === 'A' || tag === 'TEXTAREA') return;
@@ -276,50 +234,6 @@ SPDX-License-Identifier: MPL-2.0
             <p class="step-text">
               {t('onboarding.welcomeDescription')}
             </p>
-
-            <!-- Telemetry consent. Pre-checked (we keep the opt-in default) but
-               disclosed here rather than buried in Settings > Data, so the
-               choice is actually informed. Kept to one short line: the book
-               button opens the full per-event disclosure + privacy policy. -->
-            {#if officialBuild}
-              <label class="telemetry-consent">
-                <!-- Real input kept for keyboard/AT, visually replaced by a box drawn with
-                   our own `check` icon: a native checkbox renders as an OS control and
-                   reads as foreign next to the lime check used everywhere else. -->
-                <input
-                  class="telemetry-checkbox-input"
-                  type="checkbox"
-                  bind:checked={telemetryConsent}
-                />
-                <span
-                  class="telemetry-checkbox"
-                  class:checked={telemetryConsent}
-                  aria-hidden="true"
-                >
-                  {#if telemetryConsent}
-                    <Icon name="check" size={11} strokeWidth={3} />
-                  {/if}
-                </span>
-                <span class="telemetry-text">
-                  <span class="telemetry-label">
-                    {t('onboarding.telemetryLabel')}
-                    <button
-                      class="telemetry-docs"
-                      type="button"
-                      title={t('onboarding.telemetryDocsTooltip')}
-                      aria-label={t('onboarding.telemetryDocsTooltip')}
-                      onclick={e => {
-                        e.preventDefault();
-                        launchUrl(docsUrl('/privacy/telemetry'));
-                      }}
-                    >
-                      <Icon name="book" size={12} />
-                    </button>
-                  </span>
-                  <span class="telemetry-hint">{t('onboarding.telemetryHint')}</span>
-                </span>
-              </label>
-            {/if}
           {:else if step === micPermStepIndex}
             <div class="step-icon">
               <Icon name="lock" class="w-8 h-8 text-cyan-400" strokeWidth={1.5} />
@@ -471,7 +385,10 @@ SPDX-License-Identifier: MPL-2.0
             </h3>
             <ul class="step-text step-list">
               <li>{t('onboarding.readyStepClick').replace('{hotkey}', hotkey)}</li>
-              <li>{t('onboarding.readyStepHold').replace('{hotkey}', hotkey)}</li>
+              {#if !needsHotkeyWarning}
+                <!-- Linux switches to open mic here, where hold-to-talk doesn't apply. -->
+                <li>{t('onboarding.readyStepHold').replace('{hotkey}', hotkey)}</li>
+              {/if}
             </ul>
             <p class="step-text-sub">{t('onboarding.readyStepOutput')}</p>
           {:else if step === hotkeyWarningIndex}
@@ -688,118 +605,6 @@ SPDX-License-Identifier: MPL-2.0
     line-height: 1.5;
     margin: 0;
     max-width: 20rem;
-  }
-
-  /* Telemetry consent row: deliberately quiet (small, muted) so it reads as
-     disclosure rather than a sales pitch, but always visible on step 0. */
-  .telemetry-consent {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.5rem;
-    margin-top: 1.25rem;
-    padding: 0.625rem 0.75rem;
-    max-width: 20rem;
-    text-align: left;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 0.5rem;
-    cursor: pointer;
-  }
-
-  /* Visually hidden but still focusable and reachable by screen readers - the
-     .telemetry-checkbox span below is the thing the user actually sees. */
-  .telemetry-checkbox-input {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    opacity: 0;
-    margin: 0;
-    pointer-events: none;
-  }
-
-  .telemetry-checkbox {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    width: 0.875rem;
-    height: 0.875rem;
-    margin-top: 0.1875rem;
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: 0.25rem;
-    color: #18181b;
-    background: rgba(255, 255, 255, 0.04);
-    transition:
-      background 0.15s ease,
-      border-color 0.15s ease;
-  }
-
-  .telemetry-consent:hover .telemetry-checkbox {
-    border-color: rgba(255, 255, 255, 0.3);
-  }
-
-  .telemetry-checkbox.checked {
-    background: #84cc16;
-    border-color: #84cc16;
-  }
-
-  /* Keyboard focus has to land somewhere visible now that the input is hidden. */
-  .telemetry-checkbox-input:focus-visible + .telemetry-checkbox {
-    outline: 2px solid #a78bfa;
-    outline-offset: 2px;
-  }
-
-  .telemetry-text {
-    display: flex;
-    flex-direction: column;
-    gap: 0.125rem;
-    min-width: 0;
-  }
-
-  .telemetry-label {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.375rem;
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: #d4d4d8;
-  }
-
-  .telemetry-docs {
-    display: inline-flex;
-    align-items: center;
-    padding: 0;
-    background: none;
-    border: none;
-    color: #52525b;
-    cursor: pointer;
-    transition: color 0.15s ease;
-  }
-
-  .telemetry-docs:hover {
-    color: #a78bfa;
-  }
-
-  .telemetry-hint {
-    /* 10px, one step below the label: the consent copy has to say what is sent,
-       what never is, and how to change it, and this keeps that to two lines
-       inside the 20rem card without abbreviating the guarantee.
-
-       BUDGET: `onboarding.telemetryHint` must stay under ~103 characters, or it
-       spills a one-word orphan onto a third line and the card grows. That number
-       is geometry, not taste: the card is max-width 24rem with 2rem padding on
-       each side, leaving a 20rem box; minus this row's 0.75rem padding, the
-       0.875rem checkbox and the 0.5rem gap, the text column is 270px, which
-       holds ~51 characters per line at 10px. At 11px the budget was only ~92.
-       Re-measure after any width/size change instead of eyeballing it - the
-       rendered line count is exact:
-         document.querySelector('.telemetry-hint') -> selectNodeContents ->
-         range.getClientRects().length   // must be 2
-       zh-TW is far under budget (CJK glyphs carry more meaning per character),
-       so English is the constraint. */
-    font-size: 0.625rem;
-    color: #71717a;
-    line-height: 1.45;
   }
 
   .model-indicator {

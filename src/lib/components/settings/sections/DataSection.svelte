@@ -8,42 +8,17 @@ SPDX-License-Identifier: MPL-2.0
   /**
    * Data Section
    *
-   * Privacy and telemetry settings plus legal links. Everything here is
-   * local: there is no account or server-side data to export or delete.
+   * Legal links. Echophrase collects nothing: there is no telemetry, no
+   * account and no server-side data to export or delete.
    */
 
-  import { SettingsSection, SettingToggle } from '../primitives';
-  import { getSettingsContext } from '../context';
+  import { SettingsSection } from '../primitives';
   import { WEBSITE_URLS } from '$lib/config/environment';
   import { launchUrl } from '$lib/utils/launchUrl';
-  import { docsUrl } from '$lib/utils/docsUrl';
   import { t } from '$lib/locales';
-  import { isOfficialBuild } from '$lib/ipc/telemetry';
-
-  const { settings, updateSetting } = getSettingsContext();
-
-  /** Public per-event telemetry disclosure (also links out to the privacy policy). */
-  const telemetryDocsUrl = $derived(docsUrl('/privacy/telemetry'));
-
-  /** Community builds have no telemetry compiled in, so there's nothing to toggle. */
-  let officialBuild = $state(false);
-  isOfficialBuild().then(v => (officialBuild = v));
 </script>
 
 <SettingsSection title={t('data.title')} icon="data" id="data-section">
-  <!-- No confirm-on-opt-out: arguing with a decision the user already made is a
-	     dark pattern. The 📖 button opens the public per-event disclosure page. -->
-  {#if officialBuild}
-    <SettingToggle
-      label={t('data.helpImprove')}
-      hint={t('data.helpImproveHint')}
-      docsUrl={telemetryDocsUrl}
-      docsTooltip={t('data.telemetryDocsTooltip')}
-      checked={$settings?.telemetry_enabled ?? true}
-      onchange={v => updateSetting('telemetry_enabled', v)}
-    />
-  {/if}
-
   <div class="legal-links">
     <button class="legal-link" onclick={() => launchUrl(WEBSITE_URLS.terms)}>
       {t('data.termsOfService')}

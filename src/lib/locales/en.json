@@ -291,11 +291,8 @@
   },
   "data": {
     "title": "Data",
-    "helpImprove": "Send anonymous app stats",
-    "helpImproveHint": "eg, which model and GPU you use, which features you turn on, and crash reports (source location only, never the message). Never your audio, your transcripts, or anything that identifies you. Every event honors this setting - opt out anytime here in Settings > Data and nothing is sent.",
     "termsOfService": "Terms of Service",
-    "privacyPolicy": "Privacy Policy",
-    "telemetryDocsTooltip": "See every event we send, plus our privacy policy. You can opt out anytime right here."
+    "privacyPolicy": "Privacy Policy"
   },
   "fileDropZone": {
     "invalidFile": "Invalid file",
@@ -475,7 +472,7 @@
     "invalidJson": "Invalid JSON",
     "requiredByPaste": "Required by Paste at Cursor",
     "restoreClipboard": "Restore Clipboard After Pasting",
-    "restoreClipboardHint": "Puts back whatever you had copied before, instead of leaving the transcript on your clipboard. On macOS this may need extra clipboard permissions.",
+    "restoreClipboardHint": "Puts back whatever you had copied before, instead of leaving the transcript on your clipboard. This takes the place of the separate Copy to Clipboard step. On macOS this may need extra clipboard permissions.",
     "enableOtherToDisable": "Enable another output to disable this",
     "clearSaveDir": "Clear (revert to save dialog)",
     "setSaveDir": "Set auto-save directory",
@@ -692,10 +689,7 @@
     "skipYes": "Skip",
     "skipNo": "Go back",
     "iUnderstand": "I understand",
-    "letsGo": "Let's go",
-    "telemetryLabel": "Send anonymous app stats",
-    "telemetryHint": "eg, which model and GPU, to discover ways to improve the app. Never audio, transcripts or identity.",
-    "telemetryDocsTooltip": "See every event we send, plus our privacy policy. You can opt out anytime in Settings > Data."
+    "letsGo": "Let's go"
   },
   "mcpServer": {
     "title": "MCP Server",
