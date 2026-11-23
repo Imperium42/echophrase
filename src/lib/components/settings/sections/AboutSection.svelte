@@ -144,6 +144,49 @@ SPDX-License-Identifier: MPL-2.0
     tooltipEl.style.opacity = '0';
     tooltipEl.style.visibility = 'hidden';
   }
+
+  /**
+   * Same escape for the link-button tooltips: on hover, the child `.link-tooltip` goes
+   * position:fixed (out of the modal's overflow clip), sits above the button (below if no
+   * room), and is clamped to the window. The arrow tracks the button's center.
+   */
+  function floatTip(node: HTMLElement) {
+    const tip = node.querySelector<HTMLElement>('.link-tooltip');
+    if (!tip) return;
+    const margin = 8;
+    const show = () => {
+      tip.style.position = 'fixed';
+      tip.style.bottom = 'auto';
+      tip.style.left = '0px';
+      tip.style.top = '0px';
+      const a = node.getBoundingClientRect();
+      const r = tip.getBoundingClientRect();
+      let left = a.left + a.width / 2 - r.width / 2;
+      left = Math.max(margin, Math.min(left, window.innerWidth - r.width - margin));
+      let top = a.top - r.height - 8;
+      const below = top < margin;
+      if (below) top = a.bottom + 8;
+      tip.style.left = `${left}px`;
+      tip.style.top = `${Math.min(top, window.innerHeight - r.height - margin)}px`;
+      const arrow = Math.max(8, Math.min(a.left + a.width / 2 - left - 4, r.width - 16));
+      tip.style.setProperty('--arrow-left', `${arrow}px`);
+      tip.classList.toggle('below', below);
+      tip.classList.add('shown');
+    };
+    const hide = () => tip.classList.remove('shown');
+    node.addEventListener('mouseenter', show);
+    node.addEventListener('mouseleave', hide);
+    node.addEventListener('focus', show);
+    node.addEventListener('blur', hide);
+    return {
+      destroy() {
+        node.removeEventListener('mouseenter', show);
+        node.removeEventListener('mouseleave', hide);
+        node.removeEventListener('focus', show);
+        node.removeEventListener('blur', hide);
+      },
+    };
+  }
 </script>
 
 <SettingsSection title={t('about.title')} icon="info">
@@ -157,7 +200,7 @@ SPDX-License-Identifier: MPL-2.0
       {/if}
       <button
         type="button"
-        class="release-notes-btn"
+        use:floatTip class="release-notes-btn"
         onclick={openReleaseNotes}
         aria-label={t('update.viewReleaseNotes')}
       >
@@ -247,7 +290,7 @@ SPDX-License-Identifier: MPL-2.0
 
   <!-- Quick Links -->
   <div class="about-row links-row">
-    <button class="link-btn" onclick={openWebsite}>
+    <button use:floatTip class="link-btn" onclick={openWebsite}>
       <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
         <path
           d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"
@@ -256,7 +299,7 @@ SPDX-License-Identifier: MPL-2.0
       {t('about.website')}
       <span class="link-tooltip">{displayUrl(WEBSITE_URLS.home)}</span>
     </button>
-    <button class="link-btn" onclick={openSupport}>
+    <button use:floatTip class="link-btn" onclick={openSupport}>
       <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
         <path
           d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"
@@ -265,7 +308,7 @@ SPDX-License-Identifier: MPL-2.0
       {t('about.support')}
       <span class="link-tooltip">{displayUrl(WEBSITE_URLS.support)}</span>
     </button>
-    <button class="link-btn" onclick={openDocs}>
+    <button use:floatTip class="link-btn" onclick={openDocs}>
       <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
         <path
           d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"
@@ -274,7 +317,7 @@ SPDX-License-Identifier: MPL-2.0
       {t('about.docs')}
       <span class="link-tooltip">{displayUrl(localizedDocsUrl)}</span>
     </button>
-    <button class="link-btn" onclick={openDiscord}>
+    <button use:floatTip class="link-btn" onclick={openDiscord}>
       <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
         <path
           d="M19.27 5.33C17.94 4.71 16.5 4.26 15 4a.09.09 0 0 0-.07.03c-.18.33-.39.76-.53 1.09a16.09 16.09 0 0 0-4.8 0c-.14-.34-.36-.76-.54-1.09c-.01-.02-.04-.03-.07-.03c-1.5.26-2.93.71-4.27 1.33c-.01 0-.02.01-.03.02c-2.72 4.07-3.47 8.03-3.1 11.95c0 .02.01.04.03.05c1.8 1.32 3.53 2.12 5.24 2.65c.03.01.06 0 .07-.02c.4-.55.76-1.13 1.07-1.74c.02-.04 0-.08-.04-.09c-.57-.22-1.11-.48-1.64-.78c-.04-.02-.04-.08-.01-.11c.11-.08.22-.17.33-.25c.02-.02.05-.02.07-.01c3.44 1.57 7.15 1.57 10.55 0c.02-.01.05-.01.07.01c.11.09.22.17.33.26c.04.03.04.09-.01.11c-.52.31-1.07.56-1.64.78c-.04.01-.05.06-.04.09c.32.61.68 1.19 1.07 1.74c.03.01.06.02.09.01c1.72-.53 3.45-1.33 5.25-2.65c.02-.01.03-.03.03-.05c.44-4.53-.73-8.46-3.1-11.95c-.01-.01-.02-.02-.04-.02zM8.52 14.91c-1.03 0-1.89-.95-1.89-2.12s.84-2.12 1.89-2.12c1.06 0 1.9.96 1.89 2.12c0 1.17-.84 2.12-1.89 2.12zm6.97 0c-1.03 0-1.89-.95-1.89-2.12s.84-2.12 1.89-2.12c1.06 0 1.9.96 1.89 2.12c0 1.17-.83 2.12-1.89 2.12z"
@@ -283,7 +326,7 @@ SPDX-License-Identifier: MPL-2.0
       {t('about.discord')}
       <span class="link-tooltip">{displayUrl(WEBSITE_URLS.discord)}</span>
     </button>
-    <button class="link-btn" onclick={openSourceCode}>
+    <button use:floatTip class="link-btn" onclick={openSourceCode}>
       <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true">
         <path
           d="M12 .5C5.65.5.5 5.65.5 12a11.5 11.5 0 0 0 7.86 10.92c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.68-1.28-1.68-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.68 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.41-2.69 5.39-5.25 5.67.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5z"
@@ -297,7 +340,7 @@ SPDX-License-Identifier: MPL-2.0
   <!-- Support Us (GitHub Sponsors) -->
   <div class="about-row sponsor-row">
     <span class="sponsor-hint">{t('about.supportUsHint')}</span>
-    <button class="link-btn sponsor-btn" onclick={openSponsors}>
+    <button use:floatTip class="link-btn sponsor-btn" onclick={openSponsors}>
       <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true">
         <path
           d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
@@ -504,6 +547,7 @@ SPDX-License-Identifier: MPL-2.0
   .sponsor-hint {
     font-size: 0.8125rem;
     color: #a1a1aa;
+    text-wrap: balance;
   }
 
   .sponsor-btn {
@@ -544,13 +588,21 @@ SPDX-License-Identifier: MPL-2.0
     content: '';
     position: absolute;
     top: 100%;
-    left: 1rem;
+    left: var(--arrow-left, 1rem);
     border: 4px solid transparent;
     border-top-color: #1e1e2e;
   }
 
-  .link-btn:hover .link-tooltip,
-  .release-notes-btn:hover .link-tooltip {
+  /* Tooltip below its button (no room above): arrow points up. */
+  :global(.link-tooltip.below)::after {
+    top: auto;
+    bottom: 100%;
+    border-top-color: transparent;
+    border-bottom-color: #1e1e2e;
+  }
+
+  /* floatTip() positions it (position:fixed, clamped to the window) and adds .shown. */
+  :global(.link-tooltip.shown) {
     opacity: 1;
     transform: translateY(0);
   }
