@@ -6,29 +6,48 @@ import { describe, it, expect } from 'vitest';
 import { planOutputModes } from './outputPlan';
 
 describe('planOutputModes', () => {
-  const both = ['copy_to_clipboard', 'paste_at_cursor'];
-  const bothReversed = ['paste_at_cursor', 'copy_to_clipboard'];
+  const on = { restore_clipboard_after_paste: true };
+  const off = { restore_clipboard_after_paste: false };
 
-  it.each([[both], [bothReversed]])('folds copy into paste when restore is on (%j)', modes => {
-    expect(planOutputModes(modes, { restore_clipboard_after_paste: true })).toEqual([
-      'paste_at_cursor',
-    ]);
+  it('paste only + restore on: paste runs and restores', () => {
+    expect(planOutputModes(['paste_at_cursor'], on)).toEqual({
+      run: ['paste_at_cursor'],
+      copyImpliedByPaste: false,
+      restoreClipboard: true,
+    });
   });
 
-  it('keeps both modes when restore is off', () => {
-    expect(planOutputModes(both, { restore_clipboard_after_paste: false })).toEqual(both);
+  it('paste only + restore off: transcript stays on the clipboard', () => {
+    expect(planOutputModes(['paste_at_cursor'], off)).toEqual({
+      run: ['paste_at_cursor'],
+      copyImpliedByPaste: false,
+      restoreClipboard: false,
+    });
   });
 
-  it('keeps copy when there is no paste, even with restore on', () => {
-    expect(planOutputModes(['copy_to_clipboard'], { restore_clipboard_after_paste: true })).toEqual(
-      ['copy_to_clipboard']
-    );
+  it.each([[['copy_to_clipboard', 'paste_at_cursor']], [['paste_at_cursor', 'copy_to_clipboard']]])(
+    'copy + paste (%j): restore ignored, copy folded into paste',
+    modes => {
+      expect(planOutputModes(modes, on)).toEqual({
+        run: ['paste_at_cursor'],
+        copyImpliedByPaste: true,
+        restoreClipboard: false,
+      });
+    }
+  );
+
+  it('copy only: plain copy, restore irrelevant', () => {
+    expect(planOutputModes(['copy_to_clipboard'], on)).toEqual({
+      run: ['copy_to_clipboard'],
+      copyImpliedByPaste: false,
+      restoreClipboard: false,
+    });
   });
 
   it('skips save_as_file for open mic without an auto-save directory', () => {
     const modes = ['copy_to_clipboard', 'save_as_file'];
-    expect(planOutputModes(modes, {}, true)).toEqual(['copy_to_clipboard']);
-    expect(planOutputModes(modes, { save_directory: '/tmp/x' }, true)).toEqual(modes);
-    expect(planOutputModes(modes, {}, false)).toEqual(modes);
+    expect(planOutputModes(modes, {}, true).run).toEqual(['copy_to_clipboard']);
+    expect(planOutputModes(modes, { save_directory: '/tmp/x' }, true).run).toEqual(modes);
+    expect(planOutputModes(modes, {}, false).run).toEqual(modes);
   });
 });

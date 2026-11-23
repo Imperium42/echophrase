@@ -55,14 +55,16 @@ async function deliverOutput(
   settings: TauriSettings | null,
   openMic = false
 ): Promise<LastRunAction[]> {
-  const outputModes = planOutputModes(resolveOutputModes(settings), settings, openMic);
+  const plan = planOutputModes(resolveOutputModes(settings), settings, openMic);
+  const outputModes = plan.run;
   console.log('📤 Output modes from settings:', JSON.stringify(outputModes));
 
   const succeededActions: LastRunAction[] = [];
   const outputHandler = useOutputHandler();
   // Paste goes through the clipboard. By default the transcript stays there;
-  // the opt-in setting restores the previous clipboard text after pasting.
-  const keepOnClipboard = settings?.restore_clipboard_after_paste !== true;
+  // the opt-in setting restores the previous clipboard text after pasting
+  // (only when Copy is off, see planOutputModes).
+  const keepOnClipboard = !plan.restoreClipboard;
   for (const mode of outputModes) {
     const result = await outputHandler.handleOutput(
       formattedOutput,
@@ -82,6 +84,13 @@ async function deliverOutput(
         text: formattedOutput,
         filePath: (result as { savedPath?: string }).savedPath,
       });
+    }
+    // Copy was folded into a successful paste: the text is on the clipboard.
+    if (mode === 'paste_at_cursor' && plan.copyImpliedByPaste) {
+      succeededActions.push('copy_to_clipboard');
+      if (settings?.show_output_confirmations !== false) {
+        addOutputToast('copy_to_clipboard', { text: formattedOutput });
+      }
     }
   }
   return succeededActions;
