@@ -14,7 +14,7 @@ SPDX-License-Identifier: MPL-2.0
 
   import { mustInvoke } from '$lib/ipc/invoke';
   import { cmdOpenDirectory } from '$lib/ipc/commands';
-  import { SettingsSection, SettingToggle } from '../primitives';
+  import { SettingsSection, SettingToggle, HintTooltip } from '../primitives';
   import { getSettingsContext } from '../context';
   import { getAvailableOutputFormats, getAvailableOutputModes } from '$lib/types/settings';
   import { t } from '$lib/locales';
@@ -171,27 +171,11 @@ SPDX-License-Identifier: MPL-2.0
             <span class="default-hint">{t('outputSettings.default')}</span>
           {/if}
           {#if isPasteAtCursor}
-            <span class="hint-trigger" title={getPasteAtCursorTip()}>
-              <svg class="hint-icon" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
-                <path
-                  d="M5.255 5.786a.237.237 0 0 0 .241.247h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.286zm1.557 5.763c0 .533.425.927 1.01.927.609 0 1.028-.394 1.028-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94z"
-                />
-              </svg>
-              <span class="hint-tooltip">{getPasteAtCursorTip()}</span>
-            </span>
+            <HintTooltip hint={getPasteAtCursorTip()} />
           {/if}
         </span>
         {#if copyImpliedByPaste}
-          <span class="hint-trigger" title={t('outputSettings.copyImpliedByPaste')}>
-            <svg class="hint-icon" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
-              <path
-                d="M5.255 5.786a.237.237 0 0 0 .241.247h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.286zm1.557 5.763c0 .533.425.927 1.01.927.609 0 1.028-.394 1.028-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94z"
-              />
-            </svg>
-            <span class="hint-tooltip">{t('outputSettings.copyImpliedByPaste')}</span>
-          </span>
+          <HintTooltip hint={t('outputSettings.copyImpliedByPaste')} />
         {/if}
       </div>
       <div class="setting-controls">
@@ -427,67 +411,6 @@ SPDX-License-Identifier: MPL-2.0
     padding: 0.125rem 0.375rem;
     border-radius: 0.25rem;
     margin-left: 0.25rem;
-  }
-
-  .hint-trigger {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    cursor: help;
-    margin-left: 0.25rem;
-  }
-
-  .hint-icon {
-    width: 0.75rem;
-    height: 0.75rem;
-    color: #a78bfa;
-    transition: color 0.15s ease;
-  }
-
-  .hint-trigger:hover .hint-icon {
-    color: #c4b5fd;
-  }
-
-  .hint-tooltip {
-    position: absolute;
-    left: 50%;
-    top: calc(100% + 6px);
-    transform: translateX(-50%);
-    padding: 0.5rem 0.75rem;
-    background: rgba(39, 39, 42, 0.95);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 0.375rem;
-    font-size: 0.6875rem;
-    font-weight: 400;
-    color: #a1a1aa;
-    white-space: normal;
-    max-width: 280px;
-    min-width: 180px;
-    text-align: center;
-    line-height: 1.5;
-    opacity: 0;
-    visibility: hidden;
-    transition:
-      opacity 0.15s ease,
-      visibility 0.15s ease;
-    pointer-events: none;
-    z-index: 100;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  }
-
-  .hint-tooltip::after {
-    content: '';
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    border: 5px solid transparent;
-    border-bottom-color: rgba(39, 39, 42, 0.95);
-  }
-
-  .hint-trigger:hover .hint-tooltip {
-    opacity: 1;
-    visibility: visible;
   }
 
   .select-wrapper {

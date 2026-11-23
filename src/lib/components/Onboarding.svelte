@@ -5,6 +5,7 @@ SPDX-License-Identifier: MPL-2.0
 -->
 
 <script lang="ts">
+  import HintTooltip from './settings/primitives/HintTooltip.svelte';
   /**
    * First-Run Onboarding Overlay
    *
@@ -375,7 +376,7 @@ SPDX-License-Identifier: MPL-2.0
                   <button class="model-change-btn" onclick={() => onOpenDownloadModal?.()}
                     >{t('onboarding.changeModel')}</button
                   >
-                  <span class="model-hint-icon" title={t('onboarding.modelHint')}>?</span>
+                  <HintTooltip hint={t('onboarding.modelHint')} />
                 </div>
               </div>
             {/if}
@@ -662,20 +663,6 @@ SPDX-License-Identifier: MPL-2.0
 
   .model-change-btn:hover {
     color: #c4b5fd;
-  }
-
-  .model-hint-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 1rem;
-    height: 1rem;
-    font-size: 0.625rem;
-    font-weight: 600;
-    color: #71717a;
-    border: 1px solid #3f3f46;
-    border-radius: 50%;
-    cursor: help;
   }
 
   .mic-perm-row {

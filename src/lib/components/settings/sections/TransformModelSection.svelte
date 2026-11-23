@@ -12,7 +12,7 @@ SPDX-License-Identifier: MPL-2.0
    * Allows users to trade speed for better text quality (grammar/spelling normalization).
    */
 
-  import { SettingsSection, SettingToggle } from '../primitives';
+  import { SettingsSection, SettingToggle, HintTooltip } from '../primitives';
   import { getSettingsContext } from '../context';
   import { DEFAULT_TRANSFORM_RULES } from '$lib/types/settings';
   import { getModelById, formatSize } from '$lib/types/models';
@@ -99,7 +99,7 @@ SPDX-License-Identifier: MPL-2.0
 
 <SettingsSection id="transform-model" title={t('transformModel.title')} icon="transform">
   {#snippet titleExtra()}
-    <span class="help-icon" title={t('transformModel.helpTooltip')}>?</span>
+    <HintTooltip hint={t('transformModel.helpTooltip')} />
   {/snippet}
   <div class="section-subtitle">
     {t('transformModel.subtitle')}
@@ -131,7 +131,7 @@ SPDX-License-Identifier: MPL-2.0
             >
           {/if}
           {#if isFineTuned}
-            <span class="help-icon" title={t('transformModel.finetuneTooltip')}>?</span>
+            <HintTooltip hint={t('transformModel.finetuneTooltip')} />
           {/if}
         </span>
         <span class="model-meta"
@@ -196,27 +196,6 @@ SPDX-License-Identifier: MPL-2.0
 </SettingsSection>
 
 <style>
-  .help-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 0.875rem;
-    height: 0.875rem;
-    font-size: 0.5rem;
-    font-weight: 600;
-    color: #52525b;
-    background: rgba(255, 255, 255, 0.06);
-    border-radius: 50%;
-    cursor: help;
-    transition:
-      color 0.15s ease,
-      background 0.15s ease;
-  }
-
-  .help-icon:hover {
-    color: #a1a1aa;
-    background: rgba(255, 255, 255, 0.1);
-  }
 
   .section-subtitle {
     font-size: 0.6875rem;

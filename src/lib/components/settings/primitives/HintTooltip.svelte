@@ -121,12 +121,12 @@ SPDX-License-Identifier: MPL-2.0
   .hint-icon {
     width: 0.75rem;
     height: 0.75rem;
-    color: #3f3f46;
+    color: var(--color-hint);
     transition: color 0.15s ease;
   }
 
   .hint-trigger:hover .hint-icon {
-    color: #71717a;
+    color: var(--color-hint-hover);
   }
 
   /* Fixed to the viewport (not the trigger) so it can never be clipped by

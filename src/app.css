@@ -21,6 +21,9 @@
   --color-primary: theme(colors.cyan.400);
   --color-background: theme(colors.zinc.950);
   --color-foreground: theme(colors.zinc.900);
+  /* "?" hint icons (HintTooltip). Change here to recolor every one. */
+  --color-hint: #a78bfa;
+  --color-hint-hover: #c4b5fd;
 
   /* shadcn variables - Light mode (unused, app is always dark) */
   --radius: 0.625rem;

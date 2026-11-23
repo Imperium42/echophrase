@@ -9,6 +9,7 @@ SPDX-License-Identifier: MPL-2.0
   import { mustInvoke } from '$lib/ipc/invoke';
   import { listen } from '@tauri-apps/api/event';
   import ModalCloseButton from './ModalCloseButton.svelte';
+  import HintTooltip from './settings/primitives/HintTooltip.svelte';
   import { modelStore } from '../stores/modelStore';
   import { get } from 'svelte/store';
   import {
@@ -859,17 +860,7 @@ SPDX-License-Identifier: MPL-2.0
             <p class="text-sm text-zinc-400 mb-3">
               {tempModel.description}
               {#if tempModel.hint}
-                <span class="hint-trigger" title={tempModel.hint}>
-                  <svg class="hint-icon" viewBox="0 0 16 16" fill="currentColor">
-                    <path
-                      d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"
-                    />
-                    <path
-                      d="M5.255 5.786a.237.237 0 0 0 .241.247h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.286zm1.557 5.763c0 .533.425.927 1.01.927.609 0 1.028-.394 1.028-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94z"
-                    />
-                  </svg>
-                  <span class="hint-tooltip">{tempModel.hint}</span>
-                </span>
+                <HintTooltip hint={tempModel.hint} />
               {/if}
             </p>
 
@@ -1071,17 +1062,7 @@ SPDX-License-Identifier: MPL-2.0
             <p class="text-sm text-zinc-400 mb-3">
               {tempModel.description}
               {#if tempModel.hint}
-                <span class="hint-trigger" title={tempModel.hint}>
-                  <svg class="hint-icon" viewBox="0 0 16 16" fill="currentColor">
-                    <path
-                      d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"
-                    />
-                    <path
-                      d="M5.255 5.786a.237.237 0 0 0 .241.247h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.286zm1.557 5.763c0 .533.425.927 1.01.927.609 0 1.028-.394 1.028-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94z"
-                    />
-                  </svg>
-                  <span class="hint-tooltip">{tempModel.hint}</span>
-                </span>
+                <HintTooltip hint={tempModel.hint} />
               {/if}
               {#if tempModel?.bundled}
                 <span class="block text-xs text-zinc-500 italic mt-1"
@@ -1441,58 +1422,6 @@ SPDX-License-Identifier: MPL-2.0
     cursor: help;
     margin-left: 0.25rem;
     vertical-align: middle;
-  }
-
-  .hint-icon {
-    width: 0.75rem;
-    height: 0.75rem;
-    color: #3f3f46;
-    transition: color 50ms ease;
-  }
-
-  .hint-trigger:hover .hint-icon {
-    color: #71717a;
-  }
-
-  .hint-tooltip {
-    position: absolute;
-    left: 50%;
-    bottom: calc(100% + 6px);
-    transform: translateX(-50%);
-    padding: 0.5rem 0.75rem;
-    background: rgba(39, 39, 42, 0.98);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 0.5rem;
-    font-size: 0.6875rem;
-    font-weight: 400;
-    color: #a1a1aa;
-    white-space: normal;
-    width: max-content;
-    max-width: 220px;
-    line-height: 1.4;
-    opacity: 0;
-    visibility: hidden;
-    transition:
-      opacity 75ms ease,
-      visibility 75ms ease;
-    pointer-events: none;
-    z-index: 100;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  }
-
-  .hint-tooltip::after {
-    content: '';
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    border: 5px solid transparent;
-    border-top-color: rgba(39, 39, 42, 0.98);
-  }
-
-  .hint-trigger:hover .hint-tooltip {
-    opacity: 1;
-    visibility: visible;
   }
 
   /* GPU hint - dashed underline with native tooltip */
