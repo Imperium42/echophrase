@@ -35,8 +35,20 @@ export interface LocaleInfo {
  */
 export const LOCALES: LocaleInfo[] = [
   { code: 'en', name: 'English', englishName: 'English', docsPath: '' },
-  { code: 'zh-TW', name: '繁體中文', englishName: 'Traditional Chinese', beta: true, docsPath: '/zh-Hant' },
-  { code: 'zh-CN', name: '简体中文', englishName: 'Simplified Chinese', beta: true, docsPath: '/zh-CN' },
+  {
+    code: 'zh-TW',
+    name: '繁體中文',
+    englishName: 'Traditional Chinese',
+    beta: true,
+    docsPath: '/zh-Hant',
+  },
+  {
+    code: 'zh-CN',
+    name: '简体中文',
+    englishName: 'Simplified Chinese',
+    beta: true,
+    docsPath: '/zh-CN',
+  },
 ];
 
 /**

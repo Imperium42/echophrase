@@ -17,6 +17,7 @@ import { platformCache } from '$lib/stores/platformCache';
 import { translate } from '$lib/locales';
 import { promiseWithTimeout, TimeoutError } from '$lib/utils/promiseWithTimeout';
 import { isSilenceResult } from '$lib/utils/silenceResult';
+import { planOutputModes } from '$lib/utils/outputPlan';
 import { devLog } from '$lib/utils/devLog';
 import { addOutputToast } from '$lib/stores/outputToasts';
 import type { UnlistenFn } from '@tauri-apps/api/event';
@@ -51,9 +52,10 @@ function resolveOutputModes(settings: TauriSettings | null): string[] {
 /** Run every configured output mode; returns the ones that succeeded. */
 async function deliverOutput(
   formattedOutput: string,
-  settings: TauriSettings | null
+  settings: TauriSettings | null,
+  openMic = false
 ): Promise<LastRunAction[]> {
-  const outputModes = resolveOutputModes(settings);
+  const outputModes = planOutputModes(resolveOutputModes(settings), settings, openMic);
   console.log('📤 Output modes from settings:', JSON.stringify(outputModes));
 
   const succeededActions: LastRunAction[] = [];
@@ -313,6 +315,12 @@ export function useRecording(getModelExists?: () => boolean, showDownloadDialog?
   // (not its async body) has completed.
   let toggleInFlight = false;
 
+  // A start (push-to-talk or open mic) has been dispatched but the recorder
+  // isn't up yet (isRecording flips only after the mic opens). `startSeq` counts
+  // dispatched starts so a hotkey handler can tell "my start" from a later one.
+  let startPending = false;
+  let startSeq = 0;
+
   // Initialize Tauri APIs on first use
   let apisInitialized = false;
   async function ensureAPIsInitialized() {
@@ -420,6 +428,7 @@ export function useRecording(getModelExists?: () => boolean, showDownloadDialog?
 
       // Start recording timer that updates every second
       // This timer also enforces the max recording duration
+      if (recordingInterval) clearInterval(recordingInterval);
       recordingInterval = setInterval(() => {
         recordingTime.update(time => {
           const newTime = time + 1;
@@ -874,7 +883,8 @@ export function useRecording(getModelExists?: () => boolean, showDownloadDialog?
       recordingTime.set(0);
       isRecording.set(true);
 
-      // Recording time counter
+      // Recording time counter (clear first so a duplicate start can't leak one)
+      if (recordingInterval) clearInterval(recordingInterval);
       recordingInterval = setInterval(() => {
         recordingTime.update(t => t + 1);
       }, RECORDING_TIME_UPDATE_INTERVAL_MS);
@@ -1061,7 +1071,7 @@ export function useRecording(getModelExists?: () => boolean, showDownloadDialog?
     }
   }
 
-  /** Handle output for open mic - forces copy-to-clipboard only */
+  /** Handle output for open mic - runs the user's output modes for each VAD chunk */
   async function handleOpenMicOutput(text: string, transcriptionSeconds: number = 0) {
     try {
       const settings = get(tauriSettings);
@@ -1098,9 +1108,10 @@ export function useRecording(getModelExists?: () => boolean, showDownloadDialog?
         { customTemplate: settings?.json_metadata_template || undefined }
       );
 
-      // Same output modes as push-to-talk. This used to force clipboard-only,
-      // which silently ignored a user's "Paste at cursor" setting.
-      const actions = await deliverOutput(formattedOutput, settings);
+      // Same output modes as push-to-talk (minus save-as-file without an
+      // auto-save directory, see planOutputModes). This used to force
+      // clipboard-only, which silently ignored a user's "Paste at cursor" setting.
+      const actions = await deliverOutput(formattedOutput, settings, true);
 
       // Publish aggregated last-run summary for the left chip stack (each chunk = a micro-run).
       const lastRunSpeed: LastRunSpeed | null =
@@ -1153,20 +1164,37 @@ export function useRecording(getModelExists?: () => boolean, showDownloadDialog?
       console.log('⚠️ toggleRecording re-entrant call ignored (already in flight)');
       return;
     }
+    // A start is still opening the mic: a second toggle must not start another
+    // session (and can't stop one that isn't running yet).
+    if (startPending) {
+      console.log('⚠️ toggleRecording ignored (a start is already pending)');
+      return;
+    }
     toggleInFlight = true;
+    // Claim the pending-start slot synchronously, before the first await, so a
+    // press arriving during that await sees it. Released below if no start
+    // was actually dispatched, or by the start itself when it settles.
+    const mayStart = !get(isRecording) && !get(isOpenMicActive) && !get(isProcessing);
+    if (mayStart) {
+      startPending = true;
+      startSeq++;
+    }
+    let dispatched = false;
     try {
-      await toggleRecordingImpl();
+      dispatched = await toggleRecordingImpl();
     } finally {
       toggleInFlight = false;
+      if (mayStart && !dispatched) startPending = false;
     }
   }
 
-  async function toggleRecordingImpl() {
+  /** Returns true when a start was dispatched (it then owns clearing `startPending`). */
+  async function toggleRecordingImpl(): Promise<boolean> {
     // Block recording on unsupported Macs (Intel x86_64)
     if (platformCache.isUnsupportedMac) {
       errorMessage.set(translate('errors.intelMacUnsupported'));
       setTimeout(() => errorMessage.set(''), 7000);
-      return;
+      return false;
     }
 
     // Ensure APIs are initialized first
@@ -1174,23 +1202,24 @@ export function useRecording(getModelExists?: () => boolean, showDownloadDialog?
     if (!apisReady) {
       errorMessage.set(translate('errors.webModeRecording'));
       setTimeout(() => errorMessage.set(''), 5000);
-      return;
+      return false;
     }
 
     // Prevent multiple simultaneous attempts
     if (get(isProcessing)) {
       console.log('⚠️ Recording action blocked - currently processing');
-      return;
+      return false;
     }
 
     // Check if open mic session is active - toggle stops it
     if (get(isOpenMicActive)) {
       stopOpenMicSession();
-      return;
+      return false;
     }
 
     if (get(isRecording)) {
       stopRecording();
+      return false;
     } else {
       // Check microphone availability first
       // Check if model exists BEFORE starting recording
@@ -1206,7 +1235,7 @@ export function useRecording(getModelExists?: () => boolean, showDownloadDialog?
           errorMessage.set(translate('errors.downloadModelFirst'));
           setTimeout(() => errorMessage.set(''), 5000);
         }
-        return; // Exit without starting recording
+        return false; // Exit without starting recording
       }
 
       // Model exists and microphone available
@@ -1221,10 +1250,19 @@ export function useRecording(getModelExists?: () => boolean, showDownloadDialog?
       // Catch fire-and-forget rejections so a throw inside startRecording/startOpenMicSession
       // doesn't silently dead-end (prior behaviour: no log past "can transcribe check").
       if (recordingMode === 'open_mic') {
-        startOpenMicSession().catch(e => console.error('❌ startOpenMicSession threw:', e));
+        startOpenMicSession()
+          .catch(e => console.error('❌ startOpenMicSession threw:', e))
+          .finally(() => {
+            startPending = false;
+          });
       } else {
-        startRecording().catch(e => console.error('❌ startRecording threw:', e));
+        startRecording()
+          .catch(e => console.error('❌ startRecording threw:', e))
+          .finally(() => {
+            startPending = false;
+          });
       }
+      return true;
     }
   }
 
@@ -1392,6 +1430,10 @@ export function useRecording(getModelExists?: () => boolean, showDownloadDialog?
     stopRecording,
     cancelRecording,
     toggleRecording,
+    /** True while a dispatched start is still opening the mic (isRecording not yet true). */
+    isStartPending: () => startPending,
+    /** Increments on every dispatched start; lets a caller recognise its own start. */
+    getStartSeq: () => startSeq,
     formatTime,
     cleanup,
   };

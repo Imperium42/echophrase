@@ -56,6 +56,18 @@ export interface HotkeyModeOptions {
   mode: () => HotkeyMode;
   /** Current recording state (the isRecording store in useRecording.ts). */
   isRecording: () => boolean;
+  /**
+   * Optional view of the recording composable's start pipeline. Lets the hold
+   * handlers (a) treat a press during a slow mic startup as "stop once started"
+   * rather than "start again", and (b) only ever stop the session THEY started,
+   * never one begun later by a click, the tray or a retry.
+   */
+  start?: {
+    /** True while a dispatched start is still opening the mic. */
+    isPending: () => boolean;
+    /** Increments on every dispatched start. */
+    seq: () => number;
+  };
 }
 
 /** Hybrid: a press held at least this long counts as hold-to-talk (Wispr Flow / VoiceInk use 0.5s). */
@@ -68,16 +80,20 @@ const RELEASE_POLL_MAX_MS = 3000;
 
 /**
  * Wrap a toggle callback into press/release handlers for the hotkey modes.
- * OS key-repeat re-fires Pressed while held; those repeats are ignored.
+ * In hybrid and hold modes OS key-repeat re-fires Pressed while held; those
+ * repeats are ignored. In toggle mode every press toggles (repeats included).
+ * `onCancel` clears a stuck held key (eg a keyup lost on the in-window path).
  */
 export function createHoldHandlers(
   callback: () => void,
   opts?: HotkeyModeOptions,
   now: () => number = Date.now
-): { onPress: () => void; onRelease: () => void } {
+): { onPress: () => void; onRelease: () => void; reset: () => void } {
   let held = false; // this press started a recording and the key is still down
   let pressedAt = 0;
   let pollTimer: ReturnType<typeof setTimeout> | null = null;
+  /** startSeq of the start this handler dispatched (or is waiting on). */
+  let ownedSeq: number | null = null;
 
   const clearPoll = () => {
     if (pollTimer) clearTimeout(pollTimer);
@@ -91,6 +107,14 @@ export function createHoldHandlers(
       return;
     }
     if (held) return; // key repeat
+    const start = opts!.start;
+    if (start?.isPending()) {
+      // A start is still opening the mic. Pressing now means "stop once it is
+      // up", never "start again" (that would open the mic twice).
+      ownedSeq = start.seq();
+      stopWhenRecording();
+      return;
+    }
     if (opts!.isRecording()) {
       // hybrid: a tap while a tap-started recording runs stops it.
       // hold: recording without our press (eg started by click) - stop it too.
@@ -100,10 +124,21 @@ export function createHoldHandlers(
     held = true;
     pressedAt = now();
     clearPoll();
+    const seqBefore = start?.seq();
     callback();
+    // Remember which start (if any) this press caused.
+    ownedSeq = start && start.seq() !== seqBefore ? start.seq() : null;
+  };
+
+  /** Is the start this handler owns still the latest one? False once superseded or never dispatched. */
+  const ownsLatestStart = () => {
+    const start = opts!.start;
+    return !start || (ownedSeq !== null && start.seq() === ownedSeq);
   };
 
   const stopWhenRecording = () => {
+    clearPoll();
+    if (!ownsLatestStart()) return; // nothing of ours to stop
     if (opts!.isRecording()) {
       callback();
       return;
@@ -112,7 +147,10 @@ export function createHoldHandlers(
     const poll = () => {
       pollTimer = null;
       if (held) return; // pressed again - the new press owns the stop
+      if (!ownsLatestStart()) return; // a newer start (click/tray/retry) took over
       if (opts!.isRecording()) callback();
+      else if (opts!.start && !opts!.start.isPending())
+        return; // our start failed
       else if (now() < deadline) pollTimer = setTimeout(poll, RELEASE_POLL_MS);
     };
     pollTimer = setTimeout(poll, RELEASE_POLL_MS);
@@ -128,7 +166,23 @@ export function createHoldHandlers(
     // hybrid short tap: keep recording until the next tap
   };
 
-  return { onPress, onRelease };
+  /** Treat a lost keyup (window blur, tab hidden) as a release so `held` can't stay stuck. */
+  const reset = () => onRelease();
+
+  return { onPress, onRelease, reset };
+}
+
+/** Does this keyboard event correspond to the main (last) key of a hotkey string? */
+export function isMainKeyEvent(
+  event: Pick<KeyboardEvent, 'key' | 'code'>,
+  hotkey: string
+): boolean {
+  const main = hotkey.split('+').pop()?.trim().toLowerCase();
+  if (!main) return false;
+  const key = event.key === ' ' ? 'space' : event.key.toLowerCase();
+  if (key === main) return true;
+  const code = (event.code ?? '').replace(/^Key|^Digit/, '').toLowerCase();
+  return code === main;
 }
 
 /** Modifier tokens that can't stand alone as a hotkey. */
@@ -163,6 +217,13 @@ export function useHotkeys() {
     shakeTimeout = setTimeout(() => hotkeyShake.set(false), HOTKEY_SHAKE_MS);
   }
 
+  // Teardown for the in-window release listeners installed by setupHotkey.
+  let releaseListenersCleanup: (() => void) | null = null;
+  function removeReleaseListeners() {
+    releaseListenersCleanup?.();
+    releaseListenersCleanup = null;
+  }
+
   // Derived state from hotkey store
   const currentHotkey = derived(hotkeyStore, $hotkeyStore => $hotkeyStore.currentHotkey);
   const isRecordingHotkey = derived(hotkeyStore, $hotkeyStore => $hotkeyStore.isRecording);
@@ -194,7 +255,32 @@ export function useHotkeys() {
     shouldDisableCallback?: () => boolean,
     hold?: HotkeyModeOptions
   ) {
-    const { onPress, onRelease } = createHoldHandlers(callback, hold);
+    const { onPress, onRelease, reset } = createHoldHandlers(callback, hold);
+
+    // In-window fallback only (global registration failed, eg WSL): hotkeys-js
+    // misses the keyup when a modifier is let go first or focus leaves the
+    // window, which would leave a hold stuck. Release on the main key's own
+    // keyup, window blur and tab hide. Replaced on every re-registration.
+    removeReleaseListeners();
+    const onMainKeyUp = (event: KeyboardEvent) => {
+      if (globalShortcutService.hasActiveGlobalShortcut()) return;
+      if (isMainKeyEvent(event, hotkey)) onRelease();
+    };
+    const onFocusLost = () => {
+      if (globalShortcutService.hasActiveGlobalShortcut()) return;
+      reset();
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') onFocusLost();
+    };
+    window.addEventListener('keyup', onMainKeyUp, true);
+    window.addEventListener('blur', onFocusLost);
+    document.addEventListener('visibilitychange', onVisibility);
+    releaseListenersCleanup = () => {
+      window.removeEventListener('keyup', onMainKeyUp, true);
+      window.removeEventListener('blur', onFocusLost);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
 
     // macOS: keep the dictation-key HID remap in sync with the binding. If the
     // mic key (F13) is what's bound, disable native dictation by remapping;
@@ -234,12 +320,7 @@ export function useHotkeys() {
       return $isRecordingHotkey || shouldDisable;
     };
 
-    await globalShortcutService.registerShortcut(
-      hotkey,
-      onPress,
-      shouldDisableGlobal,
-      onRelease
-    );
+    await globalShortcutService.registerShortcut(hotkey, onPress, shouldDisableGlobal, onRelease);
   }
 
   /**
@@ -417,6 +498,7 @@ export function useHotkeys() {
       countdownInterval = null;
     }
     hotkeys.unbind();
+    removeReleaseListeners();
     window.removeEventListener('keydown', handleHotkeyRecording, { capture: true });
 
     // Cleanup global shortcuts

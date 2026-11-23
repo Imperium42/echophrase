@@ -181,11 +181,7 @@ export function classifyRecordingError(
     };
   }
 
-  if (
-    lower.includes('gpu') ||
-    lower.includes('directml') ||
-    lower.includes('onnx')
-  ) {
+  if (lower.includes('gpu') || lower.includes('directml') || lower.includes('onnx')) {
     return {
       message: 'GPU unavailable',
       type: 'gpu_error',

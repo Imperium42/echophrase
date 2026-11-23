@@ -123,6 +123,8 @@ SPDX-License-Identifier: MPL-2.0
     isOpenMicListening: isOpenMicListeningStore,
     isOpenMicSilenceCounting: isOpenMicSilenceCountingStore,
     toggleRecording,
+    isStartPending,
+    getStartSeq,
     cancelRecording,
     formatTime,
     cleanup: cleanupRecording,
@@ -243,6 +245,7 @@ SPDX-License-Identifier: MPL-2.0
             ? ($tauriSettings?.hotkey_mode ?? 'hybrid')
             : 'toggle',
         isRecording: () => get(isRecordingStore),
+        start: { isPending: isStartPending, seq: getStartSeq },
       },
       onDownloadComplete: triggerModelSelectorGlow,
       loadTauriSettings,

@@ -42,13 +42,13 @@ async function initializeTauri(): Promise<boolean> {
   return false;
 }
 
+/** Wait after the paste keystroke before restoring the user's previous clipboard. */
+const CLIPBOARD_RESTORE_DELAY_MS = 400;
+
 /**
  * Composable for handling transcription output to various destinations
  * Supports: paste at cursor, copy to clipboard, save to file
  */
-/** Wait after the paste keystroke before restoring the user's previous clipboard. */
-const CLIPBOARD_RESTORE_DELAY_MS = 400;
-
 export function useOutputHandler() {
   const clipboard = useClipboard();
 
@@ -93,8 +93,10 @@ export function useOutputHandler() {
    * Pasting has to go through the clipboard. When `keepOnClipboard` is false
    * (opt-in setting `restore_clipboard_after_paste`), the previous clipboard
    * text is put back after the paste. Reading the clipboard may trigger a
-   * privacy prompt on macOS, hence opt-in. Not on WSL (clip.exe can't be read back), and
-   * a non-text clipboard (eg an image) can't be restored - it is left cleared.
+   * privacy prompt on macOS, hence opt-in. Not on WSL (clip.exe can't be read back).
+   * A non-text or unreadable clipboard (eg an image) can't be restored, so the
+   * transcript is left on it rather than wiping the previous content with ''.
+   * A failed restore write never turns an already successful paste into a failure.
    * On a paste failure the transcript is deliberately left on the clipboard
    * so the user can paste it by hand.
    */
@@ -132,7 +134,13 @@ export function useOutputHandler() {
         // The target app reads the clipboard asynchronously after Ctrl+V;
         // restoring too early would paste the OLD content.
         await new Promise(resolve => setTimeout(resolve, CLIPBOARD_RESTORE_DELAY_MS));
-        await clipboard.copyToClipboard(previous ?? '');
+        if (previous !== null) {
+          try {
+            await clipboard.copyToClipboard(previous);
+          } catch (restoreError) {
+            console.warn('Failed to restore previous clipboard after paste:', restoreError);
+          }
+        }
       }
 
       return { success: true };

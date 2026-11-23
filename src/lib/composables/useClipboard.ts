@@ -81,7 +81,8 @@ export function useClipboard() {
   }
 
   return {
-    copyToClipboard, readClipboard,
+    copyToClipboard,
+    readClipboard,
     copyWithFeedback,
   };
 }

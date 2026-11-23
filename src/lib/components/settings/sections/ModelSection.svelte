@@ -182,7 +182,7 @@ SPDX-License-Identifier: MPL-2.0
               >
             {/if}
           </span>
-          {#if selectedModel}
+          {#if selectedModel && selectedModel.sizeBytes > 0 && selectedModel.id !== 'custom'}
             <span class="model-meta">{formatSize(selectedModel.sizeBytes)}</span>
           {/if}
         {:else}

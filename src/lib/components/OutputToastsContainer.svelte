@@ -17,11 +17,7 @@ SPDX-License-Identifier: MPL-2.0
    */
   import { onMount, onDestroy } from 'svelte';
   import { mustInvoke } from '$lib/ipc/invoke';
-  import {
-    outputToasts,
-    scheduleToastDismiss,
-    type OutputToast,
-  } from '$lib/stores/outputToasts';
+  import { outputToasts, scheduleToastDismiss, type OutputToast } from '$lib/stores/outputToasts';
   import { lastRun } from '$lib/stores/lastRun';
   import { demoChipsPinned } from '$lib/stores/demo';
   import { rightProjection } from '$lib/stores/rightProjection';
