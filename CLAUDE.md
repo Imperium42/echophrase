@@ -344,6 +344,7 @@ buttons). Add an entry whenever you work around a bug you do not own.
 
 ## Coding Guidelines
 
+- **A consistent UX is the #1 rule.** Before adding any UI element or behavior, find how the app already does it and reuse that exact pattern (copy the markup/classes or the shared component), never invent a new one. Examples: setting explanations use the "?" `.hint-trigger` + `.hint-tooltip` icon (see Paste at cursor in `OutputSection.svelte`), never a native `title=` tooltip (it doesn't show in the webview); toggles use `SettingToggle` / `.toggle-switch`; a locked or forced-on toggle must actually refuse clicks, not just look grey.
 - **Never use em dashes (`—`) anywhere.** Always replace with a hyphen `-` or reword. Applies to locale strings, code comments, doc strings, commit messages, PR descriptions, everything. Em dashes cause shell encoding issues and the project explicitly bans them. If you catch yourself typing one, stop and use `-`.
 - **Same ban covers the en dash (`–`)** - the medium-length one used traditionally for numeric
   ranges (`2020–2024`, `$89–$99`). It has the same encoding problem and is easier to emit by
