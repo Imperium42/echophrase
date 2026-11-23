@@ -37,3 +37,24 @@ path = [
 precedence = "override"
 SPDX-FileCopyrightText = "2022 OpenAI"
 SPDX-License-Identifier = "MIT"
+
+# ONNX Runtime notices, copied verbatim from the pinned nupkg (scripts/ensure-ort.mjs).
+[[annotations]]
+path = "src-tauri/licenses/onnxruntime-*"
+precedence = "override"
+SPDX-FileCopyrightText = "Microsoft Corporation"
+SPDX-License-Identifier = "MIT"
+
+# DirectML notices, copied verbatim from the pinned nupkg (proprietary, redistributable in apps).
+[[annotations]]
+path = "src-tauri/licenses/DirectML-*"
+precedence = "override"
+SPDX-FileCopyrightText = "Microsoft Corporation"
+SPDX-License-Identifier = "LicenseRef-Microsoft-DirectML"
+
+# Generated compilation of third-party license texts; the texts quote their own SPDX tags.
+[[annotations]]
+path = "src-tauri/licenses/THIRD-PARTY-NOTICES.txt"
+precedence = "override"
+SPDX-FileCopyrightText = "2025-2026 Imperium42 LLC"
+SPDX-License-Identifier = "MPL-2.0"
