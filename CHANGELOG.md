@@ -2,7 +2,7 @@
 
 All notable changes to Echophrase will be documented in this file.
 
-## [Unreleased]
+## [v1.0.0] - 2026-11-23
 
 ### Added
 - **Echophrase is now free and open source** under the [Mozilla Public License 2.0](LICENSE) (MPL-2.0).
@@ -21,6 +21,8 @@ All notable changes to Echophrase will be documented in this file.
 - Windows 11 is the officially supported Windows version. Windows 10 should work but is unofficial.
 - Bundled ONNX Runtime 1.24.4 and DirectML 1.15.4, so GPU transcription no longer depends on the older DirectML that ships with Windows.
 - Open Mic is now marked Beta.
+- The start hint now tells you whether to tap or hold your hotkey, based on your setting.
+- When Paste at cursor leaves the text on your clipboard, Settings now shows Copy to Clipboard as on, with a tip explaining why.
 - Small branding touch-up: a trademark mark next to the Echophrase name.
 - Settings > Model shows your model's name and size instead of its internal id.
 
