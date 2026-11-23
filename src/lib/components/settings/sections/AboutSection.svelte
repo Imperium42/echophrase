@@ -565,7 +565,7 @@ SPDX-License-Identifier: MPL-2.0
   .contract-link {
     color: inherit;
     text-decoration: underline;
-    text-decoration-color: rgba(236, 72, 153, 0.7);
+    text-decoration-color: rgba(249, 168, 212, 0.55); /* light pink-300, so it reads as a link, not a spellcheck squiggle */
     text-decoration-thickness: 1px;
     text-underline-offset: 3px;
     transition:
