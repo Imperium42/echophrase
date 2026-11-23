@@ -464,8 +464,6 @@ SPDX-License-Identifier: MPL-2.0
     color: #4ade80;
   }
 
-
-
   .ep-item-reason {
     font-size: 0.625rem;
     color: #52525b;

@@ -174,7 +174,7 @@ SPDX-License-Identifier: MPL-2.0
             <HintTooltip hint={getPasteAtCursorTip()} />
           {/if}
         </span>
-        {#if copyImpliedByPaste}
+        {#if isCopyToClipboard && copyImpliedByPaste}
           <HintTooltip hint={t('outputSettings.copyImpliedByPaste')} />
         {/if}
       </div>

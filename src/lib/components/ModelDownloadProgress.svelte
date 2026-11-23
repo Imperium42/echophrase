@@ -1415,14 +1415,6 @@ SPDX-License-Identifier: MPL-2.0
   }
 
   /* Hint tooltip (same as SettingRow) */
-  .hint-trigger {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    cursor: help;
-    margin-left: 0.25rem;
-    vertical-align: middle;
-  }
 
   /* GPU hint - dashed underline with native tooltip */
   .gpu-hint {

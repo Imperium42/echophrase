@@ -604,6 +604,7 @@ SPDX-License-Identifier: MPL-2.0
   }
 
   .step-text {
+    text-wrap: balance;
     font-size: 0.8125rem;
     color: #a1a1aa;
     line-height: 1.5;
