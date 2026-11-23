@@ -1,3 +1,7 @@
+; SPDX-FileCopyrightText: 2025-2026 Imperium42 LLC
+;
+; SPDX-License-Identifier: MPL-2.0
+
 ; Echophrase NSIS Installer Hooks
 ; No custom install hooks needed - DirectML handles Windows GPU acceleration natively.
 

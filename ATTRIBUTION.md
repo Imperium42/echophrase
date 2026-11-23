@@ -12,6 +12,8 @@ not captured by dependency tooling).
 - **ONNX Runtime** (`onnxruntime.dll` / `libonnxruntime.dylib`) - Microsoft, MIT License. https://github.com/microsoft/onnxruntime
 - **DirectML** (`DirectML.dll`, Windows) - Microsoft, redistributed under the Microsoft DirectML license (proprietary, redistributable; not open source). https://www.nuget.org/packages/Microsoft.AI.DirectML
 - **Silero VAD** (`silero_vad.onnx`, embedded) - Silero Team, MIT License. https://github.com/snakers4/silero-vad
+- **Whisper mel filterbanks** (`mel_filters*.bytes`, embedded) - OpenAI, MIT License. https://github.com/openai/whisper
+- **Noto Color Emoji subset** (`static/fonts/emoji`) - Google, SIL Open Font License 1.1 (OFL-1.1). https://github.com/googlefonts/noto-emoji
 
 ## BSD Zero Clause License (0BSD) - 1
 

@@ -18,8 +18,9 @@
  *   - Windows: `src-tauri/resources/ort/directml/` (onnxruntime.dll, onnxruntime_providers_shared.dll,
  *     DirectML.dll). That is the bundled-resource path `select_ort_runtime()` probes in production,
  *     and Tauri copies resources next to the dev exe too, so dev needs no `ORT_DYLIB_PATH` at all.
- *     A placeholder or non-existent `ORT_DYLIB_PATH` in env.yaml's `windows:` section is removed
- *     (it would win over the bundled copy); a real existing path is left alone as a manual override.
+ *     A template-placeholder `ORT_DYLIB_PATH` in env.yaml's `windows:` section is removed (it
+ *     would win over the bundled copy); any other value is left alone (a warning is printed if
+ *     the path does not exist).
  *   - Linux/WSL/macOS: `.ort/<platform>/lib/`, and `ORT_DYLIB_PATH` in env.yaml points at it.
  *     macOS also copies the dylib to `src-tauri/macos-frameworks/` (see stageMacosFramework).
  *
@@ -111,8 +112,22 @@ async function sha256File(path) {
   return createHash('sha256').update(await readFile(path)).digest('hex');
 }
 
+/** Max wait for a download to start responding. */
+const FETCH_TIMEOUT_MS = 120_000;
+
 async function downloadToFile(url, dest) {
-  const res = await fetch(url, { redirect: 'follow' });
+  // Timeout covers connect + response headers only; the body then streams without a cap so
+  // slow-but-alive connections can still finish the large runtime download.
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
+  let res;
+  try {
+    res = await fetch(url, { redirect: 'follow', signal: ctrl.signal });
+  } catch (e) {
+    throw new Error(`Could not download ${url} (${e?.name === 'AbortError' ? 'timed out' : e?.message ?? e}). Are you offline?`);
+  } finally {
+    clearTimeout(timer);
+  }
   if (!res.ok) throw new Error(`Download failed: HTTP ${res.status} for ${url}`);
   await pipeline(Readable.fromWeb(res.body), createWriteStream(dest));
 }
@@ -239,9 +254,15 @@ async function loadEnvSection(envKey) {
 /** Linux/WSL/macOS: write (or insert) ORT_DYLIB_PATH under the platform section. */
 async function updateEnvYaml(envKey, absLibPath) {
   const { envPath, lines, headerIdx, ortIdx } = await loadEnvSection(envKey);
-  const newLine = `  ORT_DYLIB_PATH: "${absLibPath.replaceAll('\\', '/')}"`;
+  // Reuse the file's line ending: lines were split on '\n', so CRLF files keep a trailing '\r'.
+  const cr = (lines[headerIdx === -1 ? 0 : headerIdx] ?? '').endsWith('\r') ? '\r' : '';
+  const newLine = `  ORT_DYLIB_PATH: "${absLibPath.replaceAll('\\', '/')}"${cr}`;
+  if (ortIdx !== -1 && lines[ortIdx] === newLine) {
+    log(`  env.yaml [${envKey}] ORT_DYLIB_PATH already up to date`);
+    return;
+  }
   if (headerIdx === -1) {
-    lines.push('', `${envKey}:`, newLine, '');
+    lines.push('', `${envKey}:${cr}`, newLine, '');
   } else if (ortIdx !== -1) {
     lines[ortIdx] = newLine;
   } else {
@@ -251,22 +272,28 @@ async function updateEnvYaml(envKey, absLibPath) {
   log(`✓ env.yaml [${envKey}] ORT_DYLIB_PATH -> ${absLibPath}`);
 }
 
-/** Windows: drop an ORT_DYLIB_PATH that is the template placeholder or doesn't exist, so the
- *  staged bundled copy wins. A real existing path is kept (manual override). */
+/** Windows: drop an ORT_DYLIB_PATH that is the template placeholder so the staged bundled copy
+ *  wins. Any other value is kept (an existing path is a manual override; a missing one only warns). */
 async function clearStaleWindowsOverride() {
   if (!existsSync(join(REPO_ROOT, 'env.yaml'))) return;
   const { envPath, lines, ortIdx } = await loadEnvSection('windows');
   if (ortIdx === -1) return;
   const raw = lines[ortIdx].replace(/^\s+ORT_DYLIB_PATH\s*:\s*/, '').trim().replace(/^["']|["']$/g, '');
   const expanded = raw.replace(/\$\{(\w+)\}/g, (_, v) => process.env[v] ?? '');
-  const isPlaceholder = /\/YOU\//i.test(raw);
-  if (!isPlaceholder && existsSync(expanded)) {
-    log(`  env.yaml [windows] ORT_DYLIB_PATH override kept: ${raw}`);
+  const isPlaceholder = /\/YOU\/|^C:\/path\/to\//i.test(raw);
+  if (!isPlaceholder) {
+    if (existsSync(expanded)) {
+      log(`  env.yaml [windows] ORT_DYLIB_PATH override kept: ${raw}`);
+    } else {
+      // Never delete a user-authored line: it may rely on env vars we cannot see here.
+      log(`! env.yaml [windows] ORT_DYLIB_PATH points at a path that does not exist (${raw}). ` +
+        `It overrides the bundled runtime; fix or remove it by hand.`);
+    }
     return;
   }
   lines.splice(ortIdx, 1);
   await writeFile(envPath, lines.join('\n'));
-  log(`✓ Removed ${isPlaceholder ? 'placeholder' : 'non-existent'} env.yaml [windows] ORT_DYLIB_PATH (${raw}); using the bundled runtime`);
+  log(`✓ Removed placeholder env.yaml [windows] ORT_DYLIB_PATH (${raw}); using the bundled runtime`);
 }
 
 /**

@@ -19,6 +19,7 @@ real cause, where the workaround lives, and what would let us drop it.
 | [Parakeet TDT drops sentences](#parakeet-tdt-collapses-tokens-without-timestampmodewords) | Transcription | Workaround required |
 | [cpal pulls a conflicting windows-core](#cpal-can-resolve-a-conflicting-windows-core) | Windows build | Held by Cargo.lock only |
 | [Tauri: new resource files not copied to dev exe](#tauri-new-resource-files-are-not-copied-next-to-the-dev-exe) | Windows dev | Workaround required |
+| [DirectML: System32 copy too old](#directml-the-copy-in-system32-is-too-old-for-ort-124) | Windows runtime | Workaround required |
 
 ---
 

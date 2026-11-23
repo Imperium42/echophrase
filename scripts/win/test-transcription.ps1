@@ -32,11 +32,12 @@ $env:ORT_LOG_LEVEL = "verbose"
 
 # ONNX Runtime (ort 2.0.0-rc.12 requires 1.24.x; a 1.23 DLL crashes the test with
 # STATUS_ENTRYPOINT_NOT_FOUND). An ORT_DYLIB_PATH already in the environment wins;
-# otherwise use the pinned runtime scripts/ensure-ort.mjs stages (run from repo root).
+# otherwise use the pinned runtime scripts/ensure-ort.mjs stages.
 if (-not ($env:ORT_DYLIB_PATH -and (Test-Path $env:ORT_DYLIB_PATH))) {
-    bun scripts/ensure-ort.mjs --ci
+    # Absolute paths: the working directory is src-tauri at this point.
+    bun "$ProjectRoot/scripts/ensure-ort.mjs" --ci
     if ($LASTEXITCODE -ne 0) { throw "ensure-ort.mjs failed" }
-    $env:ORT_DYLIB_PATH = (Resolve-Path "src-tauri/resources/ort/directml/onnxruntime.dll").Path
+    $env:ORT_DYLIB_PATH = (Resolve-Path "$ProjectRoot/src-tauri/resources/ort/directml/onnxruntime.dll").Path
 }
 Write-Host "ONNX Runtime: $env:ORT_DYLIB_PATH" -ForegroundColor Green
 

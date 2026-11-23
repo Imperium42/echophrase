@@ -25,6 +25,8 @@ jobs:
       - run: bun run check
       - run: bun run lint
       - run: bun run test:run
+      # Production build also runs the license guard in vite.config.js.
+      - run: bunx --bun vite build --mode production
 
   rust:
     name: Rust (${{ matrix.os }})

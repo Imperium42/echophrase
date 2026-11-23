@@ -34,7 +34,7 @@ if [ "$ARCH" != "arm64" ]; then
     exit 1
 fi
 
-# Check macOS version >= 13.3 (required for ONNX Runtime 1.23.2)
+# Check macOS version >= 13.3 (required for ONNX Runtime 1.24.x)
 MACOS_VERSION=$(sw_vers -productVersion)
 MAJOR=$(echo "$MACOS_VERSION" | cut -d. -f1)
 MINOR=$(echo "$MACOS_VERSION" | cut -d. -f2)
@@ -49,13 +49,13 @@ echo -e "${GREEN}macOS ${MACOS_VERSION} (${ARCH}) - OK${NC}"
 if [ -n "$ORT_DYLIB_PATH" ]; then
     if [ ! -f "$ORT_DYLIB_PATH" ]; then
         echo -e "${YELLOW}Warning: ORT_DYLIB_PATH set but file not found: ${ORT_DYLIB_PATH}${NC}"
-        echo -e "${YELLOW}Run: bun run setup:onnxruntime:macos${NC}"
+        echo -e "${YELLOW}Run: bun run setup:ort${NC}"
     else
         echo -e "${GREEN}ONNX Runtime: ${ORT_DYLIB_PATH} - OK${NC}"
     fi
 else
     echo -e "${YELLOW}ORT_DYLIB_PATH not set - ONNX models will be unavailable.${NC}"
-    echo -e "${YELLOW}Run: bun run setup:onnxruntime:macos${NC}"
+    echo -e "${YELLOW}Run: bun run setup:ort${NC}"
 fi
 
 # ── Launch ─────────────────────────────────────────────────────────────────

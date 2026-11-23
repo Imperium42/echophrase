@@ -176,7 +176,7 @@ function renderMarkdown(blocks, counts) {
   lines.push("");
   // Native runtimes shipped as prebuilt binaries (not crates or npm packages,
   // so cargo-about / rollup-license-plugin can't see them). Keep in sync with
-  // what release.yml stages into the installer.
+  // what scripts/ensure-ort.mjs stages into the installer.
   lines.push("## Bundled native runtimes");
   lines.push("");
   lines.push(
@@ -187,6 +187,12 @@ function renderMarkdown(blocks, counts) {
   );
   lines.push(
     "- **Silero VAD** (`silero_vad.onnx`, embedded) - Silero Team, MIT License. https://github.com/snakers4/silero-vad",
+  );
+  lines.push(
+    "- **Whisper mel filterbanks** (`mel_filters*.bytes`, embedded) - OpenAI, MIT License. https://github.com/openai/whisper",
+  );
+  lines.push(
+    "- **Noto Color Emoji subset** (`static/fonts/emoji`) - Google, SIL Open Font License 1.1 (OFL-1.1). https://github.com/googlefonts/noto-emoji",
   );
   lines.push("");
   const bySpdx = new Map();

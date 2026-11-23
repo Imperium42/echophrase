@@ -42,7 +42,7 @@
     "targets": ["nsis", "deb", "appimage", "dmg", "app"],  // NSIS (Windows), deb+AppImage (Linux), DMG + .app (macOS - "app" target is required so Tauri keeps the .app bundle around for the updater .app.tar.gz). Tauri skips irrelevant targets per platform.
     "createUpdaterArtifacts": true,
     // ONNX Runtime bundled for transcription (DLLs staged by CI before `tauri build`):
-    //   - `resources/ort/directml/*` is the Windows default (DirectML runtime, ~15MB).
+    //   - `resources/ort/directml/*` is the Windows default (DirectML runtime, ~25MB).
     //     Contains: onnxruntime.dll, onnxruntime_providers_shared.dll, DirectML.dll.
     // Transform models are pure DLC now (downloaded from HF on demand);
     // the previously bundled T5-tiny was removed from the registry.
