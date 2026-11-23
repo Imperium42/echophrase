@@ -15,6 +15,9 @@ SPDX-License-Identifier: MPL-2.0
   import { onDestroy } from 'svelte';
   import { Icon } from '$lib/icons';
   import { openReleaseNotes } from '$lib/stores/updater';
+  import { demoSession } from '$lib/stores/demo';
+  // The scripted marketing demo shows the launch version, not the dev build's.
+  const DEMO_VERSION = 'v1.0.0';
 
   /** App version string (e.g., "0.8.0") */
   export let appVersion: string;
@@ -36,7 +39,11 @@ SPDX-License-Identifier: MPL-2.0
 
   // Compact display: "v0.8.0-beta.37" -> "beta.37"; otherwise "v<version>".
   $: betaMatch = appVersion?.match(/-beta\.(\d+)/);
-  $: displayVersion = betaMatch ? `beta.${betaMatch[1]}` : `v${appVersion ?? ''}`;
+  $: displayVersion = $demoSession
+    ? DEMO_VERSION
+    : betaMatch
+      ? `beta.${betaMatch[1]}`
+      : `v${appVersion ?? ''}`;
 
   async function copyDebugInfo() {
     // ort native device enumeration.
