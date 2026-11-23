@@ -50,9 +50,10 @@ CUDA was removed entirely; see [gpu-and-cuda.md](gpu-and-cuda.md).
 
 ## Telemetry removal (done)
 
-Earlier open-source builds still shipped optional anonymous usage stats (Aptabase) in official
-builds only, behind the `official` Cargo feature. On 2026-11-23 the maintainers removed it
-completely so the network policy above is the whole story:
+Before the first public release, the official builds of the pre-release open-source code still
+shipped optional anonymous usage stats (Aptabase), behind the `official` Cargo feature. On
+2026-11-23 the maintainers removed it completely (no public build ever shipped it), so the
+network policy above is the whole story:
 
 - **Rust:** `src-tauri/src/telemetry/`, its call sites, the two telemetry commands, the
   `APTABASE_APP_KEY` handling in `build.rs` and the `official` Cargo feature are gone. The
