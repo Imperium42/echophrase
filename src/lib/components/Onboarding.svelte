@@ -233,6 +233,9 @@ SPDX-License-Identifier: MPL-2.0
             <h3 class="step-title">{t('onboarding.welcome')}</h3>
             <p class="step-text">
               {t('onboarding.welcomeDescription')}
+              <br />
+              <br />
+              {t('onboarding.welcomeNoTelemetry')}
             </p>
           {:else if step === micPermStepIndex}
             <div class="step-icon">

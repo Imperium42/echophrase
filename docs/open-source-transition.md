@@ -67,11 +67,6 @@ completely so the network policy above is the whole story:
 - Old v0.9.x installs could still send anonymous stats if allowed; updating removes that.
   (`telemetry.echophrase.com` was never in the CSP, so there was nothing to drop there.)
 
-## Other open items before v1.0.0
+## Remaining before v1.0.0
 
-- Attribution: list ONNX Runtime and DirectML on the attribution page, add the embedded Whisper
-  mel filterbanks (OpenAI, MIT) and the Noto Color Emoji subset (OFL-1.1) to `ATTRIBUTION.md`, and
-  ship the ONNX Runtime and DirectML license notices next to the bundled DLLs.
-- Docs accuracy fixes: Node.js as a prerequisite for frontend tests, a stale network-call line in
-  `CLAUDE.md`, and minor stale comments and scripts (tracked in the CHANGELOG as they land).
 - Make the repository public, then tag v1.0.0.

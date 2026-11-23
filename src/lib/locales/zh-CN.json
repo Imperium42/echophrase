@@ -650,7 +650,8 @@
   },
   "onboarding": {
     "welcome": "欢迎使用 Echophrase",
-    "welcomeDescription": "隐私优先的语音转文字工具，完全在您的设备上运行。您的语音永远不会离开您的电脑。",
+    "welcomeDescription": "隐私优先的语音转文字工具，完全在您的设备上运行。",
+    "welcomeNoTelemetry": "您的语音永远不会离开您的电脑，也没有任何遥测 😼",
     "permissionsTitle": "macOS 权限",
     "micPermissionTitle": "麦克风 - 必要",
     "micPermissionDescription": "让 Echophrase 能听见您说话。音频在本机处理，不会发送到任何地方。",

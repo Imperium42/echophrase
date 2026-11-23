@@ -650,7 +650,8 @@
   },
   "onboarding": {
     "welcome": "Welcome to Echophrase",
-    "welcomeDescription": "Privacy-first speech-to-text that runs entirely on your device. Your voice never leaves your computer.",
+    "welcomeDescription": "Privacy-first speech-to-text that runs entirely on your device.",
+    "welcomeNoTelemetry": "Your voice never leaves your computer and there's no telemetry 😼",
     "permissionsTitle": "macOS Permissions",
     "micPermissionTitle": "Microphone - Required",
     "micPermissionDescription": "So Echophrase can hear you. Audio is processed locally and never sent anywhere.",

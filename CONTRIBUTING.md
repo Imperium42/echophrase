@@ -9,7 +9,7 @@ Security problems go through [private reporting](SECURITY.md), not public issues
 
 ## Setup
 
-See [Building from source](README.md#building-from-source). In short:
+See [Building from source](README.md#build-from-source). In short:
 
 ```bash
 git clone https://github.com/<you>/echophrase.git
