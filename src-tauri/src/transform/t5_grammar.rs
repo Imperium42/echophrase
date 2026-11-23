@@ -21,6 +21,8 @@ use std::sync::LazyLock;
 use tokenizers::Tokenizer;
 
 use crate::models::{ModelRegistryEntry, get_model_info};
+// Default model id when settings have no `transform_model` value.
+use crate::settings::DEFAULT_TRANSFORM_MODEL_ID;
 
 // ============================================================================
 // Constants
@@ -33,9 +35,6 @@ const MAX_OUTPUT_LENGTH: usize = 512;
 const PAD_TOKEN_ID: i64 = 0;
 const EOS_TOKEN_ID: i64 = 1;
 const DECODER_START_TOKEN_ID: i64 = 0; // T5 uses pad as decoder start
-
-// Default model id when settings have no `transform_model` value.
-use crate::settings::DEFAULT_TRANSFORM_MODEL_ID;
 
 // ============================================================================
 // Cached Model State

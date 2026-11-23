@@ -336,8 +336,6 @@ fn open_input_device(name: Option<&str>) -> Result<cpal::Device> {
     }
 }
 
-/// Build an input stream for sample type `T`: each callback downmixes the
-/// interleaved frames to mono f32 (via `convert`) and feeds the chunker.
 /// Stream errors after which cpal keeps the stream alive: a buffer glitch,
 /// an automatic reroute, or a refused realtime promotion. Everything else
 /// means the session is dead.
@@ -348,6 +346,8 @@ fn is_recoverable_stream_error(kind: cpal::ErrorKind) -> bool {
     )
 }
 
+/// Build an input stream for sample type `T`: each callback downmixes the
+/// interleaved frames to mono f32 (via `convert`) and feeds the chunker.
 fn build_stream_for_format<T>(
     device: &cpal::Device,
     config: &cpal::StreamConfig,

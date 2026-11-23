@@ -255,6 +255,31 @@ mod tests {
         std::sync::Arc::new(|_path| Box::pin(async move { Ok("hi".to_string()) }))
     }
 
+    /// Points `ECHOPHRASE_HOME` and `ECHOPHRASE_CONFIG_DIR` at a sandbox dir
+    /// and unsets them on drop.
+    struct EnvGuard;
+
+    impl EnvGuard {
+        fn set(dir: &std::path::Path) -> Self {
+            // SAFETY: only this serial lifecycle test mutates these vars.
+            unsafe {
+                std::env::set_var("ECHOPHRASE_HOME", dir);
+                std::env::set_var(crate::settings::CONFIG_DIR_ENV, dir);
+            }
+            EnvGuard
+        }
+    }
+
+    impl Drop for EnvGuard {
+        fn drop(&mut self) {
+            // SAFETY: see `set`.
+            unsafe {
+                std::env::remove_var("ECHOPHRASE_HOME");
+                std::env::remove_var(crate::settings::CONFIG_DIR_ENV);
+            }
+        }
+    }
+
     /// Read back the `state` field of the state file, if present and parseable.
     fn read_state() -> Option<String> {
         let contents = std::fs::read_to_string(paths::ipc_state_file()).ok()?;
@@ -270,6 +295,22 @@ mod tests {
     /// transitions for `spawn`/`start`/`stop` are folded in here as well.
     #[test]
     fn start_stop_lifecycle_is_idempotent() {
+        // A running Echophrase (dev or installed, MCP toggle on) already owns
+        // the fixed IPC port; that's an environment conflict, not a bug here.
+        // Checked FIRST so a skipped run never touches any state.
+        if std::net::TcpListener::bind(("127.0.0.1", server::IPC_PORT)).is_err() {
+            eprintln!(
+                "skipping: 127.0.0.1:{} is in use (is Echophrase running?)",
+                server::IPC_PORT
+            );
+            return;
+        }
+
+        // Redirect settings.yaml and the IPC run dir (token + state file) into
+        // a tempdir so this test can never touch the real user's files.
+        let sandbox = tempfile::tempdir().unwrap();
+        let _env = EnvGuard::set(sandbox.path());
+
         // Populate IPC_CONFIG once; ignore "already set" if another test in
         // this binary ran first (OnceLock is process-wide).
         let _ = IPC_CONFIG.set((ok_transcribe(), "9.9.9"));
@@ -279,16 +320,6 @@ mod tests {
 
         // Ensure clean slate.
         stop();
-
-        // A running Echophrase (dev or installed, MCP toggle on) already owns
-        // the fixed IPC port; that's an environment conflict, not a bug here.
-        if std::net::TcpListener::bind(("127.0.0.1", server::IPC_PORT)).is_err() {
-            eprintln!(
-                "skipping: 127.0.0.1:{} is in use (is Echophrase running?)",
-                server::IPC_PORT
-            );
-            return;
-        }
 
         let rt = tokio::runtime::Runtime::new().unwrap();
         let _guard = rt.enter();
