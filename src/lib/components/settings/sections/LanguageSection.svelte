@@ -25,8 +25,9 @@ SPDX-License-Identifier: MPL-2.0
   function optionLabel(code: string, name: string, beta: boolean | undefined): string {
     const localized = t(`languageSettings.${code}`);
     const parts = [name];
-    if (localized !== name) parts.push(`(${localized})`);
-    if (beta) parts.push(`- ${t('languageSettings.beta')}`);
+    // Skip our wrapping parens when the name already has its own: "Chinese (Traditional)".
+    if (localized !== name) parts.push(localized.includes('(') ? localized : `(${localized})`);
+    if (beta) parts.push(t('languageSettings.beta'));
     return parts.join(' ');
   }
 </script>
