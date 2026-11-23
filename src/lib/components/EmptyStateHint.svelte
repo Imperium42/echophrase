@@ -21,6 +21,7 @@ SPDX-License-Identifier: MPL-2.0
   import { hotkeyAliases } from '$lib/stores/hotkeyAliases';
   import { onboardingStore } from '$lib/stores/onboarding';
   import { demoSession, DEMO_HOTKEY } from '$lib/stores/demo';
+  import { tauriSettings } from '$lib/composables/useTauriSettings';
   import { resolveEmptyStateHint } from '$lib/utils/emptyStateHint';
   import { fade } from 'svelte/transition';
   import { t } from '$lib/locales';
@@ -40,6 +41,13 @@ SPDX-License-Identifier: MPL-2.0
       ? formatHotkey(DEMO_HOTKEY)
       : formatHotkey($hotkeyStore.currentHotkey, { aliases: $hotkeyAliases })
   );
+  // Name the gesture the hotkey expects (tap / hold / tap or hold). Open mic keeps the plain wording.
+  const pressToStartKey = $derived.by(() => {
+    if (($tauriSettings?.recording_mode ?? 'push_to_talk') !== 'push_to_talk') {
+      return 'emptyState.pressToStart';
+    }
+    return `emptyState.pressToStart_${$tauriSettings?.hotkey_mode ?? 'hybrid'}`;
+  });
   const hotkeyReady = $derived($hotkeyStore.initialized);
   const modelExists = $derived($modelStore.modelExists);
   const isPreloading = $derived($modelStore.isPreloading);
@@ -86,7 +94,7 @@ SPDX-License-Identifier: MPL-2.0
     }
 
     return {
-      text: t('emptyState.pressToStart', { hotkey }),
+      text: t(pressToStartKey, { hotkey }),
     };
   });
 </script>

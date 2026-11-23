@@ -171,6 +171,9 @@
   },
   "emptyState": {
     "pressToStart": "按下麦克风或 {hotkey} 开始",
+    "pressToStart_toggle": "按下麦克风或轻按 {hotkey} 开始",
+    "pressToStart_hold": "按下麦克风或按住 {hotkey} 开始",
+    "pressToStart_hybrid": "按下麦克风或轻按/按住 {hotkey} 开始",
     "downloadModel": "下载模型以开始使用",
     "download": "下载"
   },

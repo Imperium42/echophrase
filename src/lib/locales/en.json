@@ -171,6 +171,9 @@
   },
   "emptyState": {
     "pressToStart": "Press the mic or {hotkey} to start",
+    "pressToStart_toggle": "Press the mic or tap {hotkey} to start",
+    "pressToStart_hold": "Press the mic or hold {hotkey} to start",
+    "pressToStart_hybrid": "Press the mic or tap/hold {hotkey} to start",
     "downloadModel": "Download a model to get started",
     "download": "Download"
   },
