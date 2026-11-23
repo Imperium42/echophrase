@@ -1,21 +1,63 @@
-# Echophrase
-
 <div align="center">
 
-[![CI](https://github.com/Imperium42/echophrase/actions/workflows/ci.yml/badge.svg)](https://github.com/Imperium42/echophrase/actions/workflows/ci.yml)
-[![Latest release](https://img.shields.io/github/v/release/imperium42/echophrase-releases?include_prereleases&label=release&color=22d3ee)](https://github.com/imperium42/echophrase-releases/releases/latest)
-[![Downloads](https://img.shields.io/github/downloads/imperium42/echophrase-releases/total?color=a855f7)](https://github.com/imperium42/echophrase-releases/releases)
-[![Homebrew](https://img.shields.io/badge/homebrew-imperium42%2Ftap-f9d094?logo=homebrew&logoColor=white)](https://github.com/imperium42/homebrew-tap)
-[![winget](https://img.shields.io/badge/winget-Imperium42.Echophrase-0078d4?logo=windows&logoColor=white)](https://winstall.app/apps/Imperium42.Echophrase)
-[![Scoop](https://img.shields.io/badge/scoop-echophrase-4c8eda?logo=windows&logoColor=white)](https://github.com/imperium42/scoop-bucket)
-[![Website](https://img.shields.io/badge/echophrase.com-visit-22d3ee)](https://echophrase.com)
-[![Discord](https://img.shields.io/badge/discord-join-5865F2?logo=discord&logoColor=white)](https://discord.com/invite/Er6NUcx)
-[![Sponsor](https://img.shields.io/badge/sponsor-%E2%9D%A4-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/imperium42)
+<a href="https://echophrase.com"><img src="static/images/echophrase-icon.svg" alt="Echophrase logo" width="96" height="96"></a>
+
+# Echophrase
+
+### Talk. It types. Nothing leaves your machine.
+
+Free, open-source, GPU-accelerated speech-to-text for your desktop.<br>
+Press a hotkey, speak, and the text lands wherever your cursor is.
+
+[![License: MPL 2.0](https://img.shields.io/badge/license-MPL--2.0-brightgreen?style=for-the-badge)](LICENSE)
+[![Latest release](https://img.shields.io/github/v/release/imperium42/echophrase-releases?include_prereleases&label=release&color=22d3ee&style=for-the-badge)](https://github.com/imperium42/echophrase-releases/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/imperium42/echophrase-releases/total?color=a855f7&style=for-the-badge)](https://github.com/imperium42/echophrase-releases/releases)
+[![CI](https://img.shields.io/github/actions/workflow/status/Imperium42/echophrase/ci.yml?branch=main&label=CI&style=for-the-badge)](https://github.com/Imperium42/echophrase/actions/workflows/ci.yml)
+
+[![Windows](https://img.shields.io/badge/Windows-11-0078D4?logo=windows&logoColor=white)](#install)
+[![macOS](https://img.shields.io/badge/macOS-13.3%2B%20Apple%20Silicon-000000?logo=apple&logoColor=white)](#install)
+[![Linux](https://img.shields.io/badge/Linux-build%20from%20source-FCC624?logo=linux&logoColor=black)](#build-from-source)
+[![Built with Tauri](https://img.shields.io/badge/Tauri-2-24C8DB?logo=tauri&logoColor=white)](https://v2.tauri.app)
+[![Rust](https://img.shields.io/badge/Rust-stable-DEA584?logo=rust&logoColor=black)](https://www.rust-lang.org)
+[![Svelte 5](https://img.shields.io/badge/Svelte-5-FF3E00?logo=svelte&logoColor=white)](https://svelte.dev)
+[![Discord](https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white)](https://discord.com/invite/Er6NUcx)
+
+[**Download**](https://echophrase.com/download) &nbsp;&middot;&nbsp;
+[**Docs**](https://docs.echophrase.com) &nbsp;&middot;&nbsp;
+[**Quickstart**](https://docs.echophrase.com/quickstart) &nbsp;&middot;&nbsp;
+[**Report a bug**](https://github.com/Imperium42/echophrase/issues/new/choose) &nbsp;&middot;&nbsp;
+[**Sponsor**](https://github.com/sponsors/imperium42)
+
+<a href="https://github.com/sponsors/imperium42"><img src="https://img.shields.io/badge/Buy%20me%20a%20coffee-GitHub%20Sponsors-ea4aaa?style=for-the-badge&logo=githubsponsors&logoColor=white" alt="Buy me a coffee via GitHub Sponsors"></a>
 
 </div>
 
-Privacy-first, GPU-accelerated speech-to-text for your desktop. Press a hotkey, talk, and the
-text lands where your cursor is. Everything runs locally: no account, no cloud, free and open source.
+---
+
+## Why Echophrase
+
+| | |
+|---|---|
+| **It just works** | Install, press the hotkey, talk. No CUDA, no Python, no driver or toolkit installs, no model wrangling: the GPU runtime ships inside the app and models download themselves. No compatibility hell, unlike most local speech-to-text setups. |
+| **Private by design** | Audio is captured in memory and transcribed on your device. No account, no cloud, no upload. |
+| **Fast** | GPU inference via ONNX Runtime (DirectML on Windows, CoreML on Apple Silicon). Transcripts in well under real time. |
+| **Light** | Tauri + Rust, not a bundled browser. A fraction of an Electron app's size and memory. See [BENCHMARKS.md](BENCHMARKS.md). |
+| **Free, for real** | Every feature, no tiers, no trials, no limits. [MPL-2.0](LICENSE) licensed. |
+
+Speaking runs at ~150 words per minute; typing at ~40. Echophrase is built for long prompts to AI
+assistants, docs, messages and anything else you would rather say than type.
+
+## Features
+
+- **Global hotkeys** - push to talk (tap or hold) or toggle, from any app
+- **Paste at cursor** or copy to clipboard, with optional clipboard restore after pasting
+- **Open mic** - hands-free dictation with voice activity detection (Silero VAD)
+- **Local speech models** - auto-downloaded on first use, integrity-checked, [25+ languages](#models)
+- **Grammar cleanup** - optional on-device T5 pass after transcription
+- **Bring your own model** - load any compatible ONNX speech model ([docs](https://docs.echophrase.com/features/custom-models))
+- **CLI and MCP server** - script it, or let AI agents record and transcribe ([CLI](https://docs.echophrase.com/cli), [MCP](https://docs.echophrase.com/mcp))
+- **JSON output with timestamps** and compute-type selection
+- **Localized** in English and Chinese (Simplified and Traditional) for now; more languages welcome
 
 ## Install
 
@@ -31,34 +73,21 @@ scoop bucket add echophrase https://github.com/imperium42/scoop-bucket
 scoop install echophrase
 ```
 
-Or download the installer from [echophrase.com](https://echophrase.com). The app updates itself.
+Or grab the installer from [echophrase.com/download](https://echophrase.com/download). The app updates itself.
 
-| Platform | Status |
-|----------|--------|
-| **Windows 11** | Official builds. GPU via DirectML (any DirectX 12 GPU). Windows 10 should work but is not officially supported. |
-| **macOS 13.3+ (Apple Silicon)** | Official builds, signed and notarized. GPU via CoreML/Metal. Intel Macs are not supported ([MAC.md](MAC.md)). |
-| **Linux** | **Community-supported, build from source.** CPU-only today. No official binaries; PRs welcome. |
+| Platform | Status | GPU |
+|---|---|---|
+| **Windows 11** | Official, signed builds. Windows 10 should work but is not officially supported. | DirectML (any DirectX 12 GPU), bundled |
+| **macOS 13.3+ (Apple Silicon)** | Official, signed and notarized builds. Intel Macs are not supported ([MAC.md](MAC.md)). | CoreML / Metal |
+| **Linux** | Community-supported: [build from source](#build-from-source). No official binaries; PRs welcome. | CPU only today |
 
-**Why no Mac App Store?** App Store apps must run in Apple's sandbox, and sandboxed apps can't
-send the synthetic keystroke (Cmd+V) that pastes your transcript into the focused app. Auto-paste
-is the core feature, so Echophrase ships outside the store, signed with a Developer ID and
-notarized by Apple.
+<details>
+<summary><b>Why not the Mac App Store?</b></summary>
 
-## Why Echophrase?
-
-- **Speaking is faster than typing.** ~150 WPM spoken vs ~40 WPM typed. Great for long prompts to AI assistants, docs and messages.
-- **Private by design.** Audio is captured in memory and transcribed on your machine. It is never uploaded.
-- **Fast.** GPU-accelerated inference with ONNX Runtime; transcripts in well under real time.
-- **Light.** Built with Tauri and Rust, not a bundled browser.
-
-## Features
-
-- Global push-to-talk / toggle hotkeys, paste-at-cursor or clipboard output
-- Open-mic mode with voice activity detection (Silero VAD)
-- Multiple local speech models, auto-downloaded on first use with integrity checks
-- Optional grammar cleanup (T5) after transcription
-- Bring your own ONNX model
-- English, Simplified Chinese and Traditional Chinese UI
+App Store apps must run in Apple's sandbox, and sandboxed apps can't send the synthetic keystroke
+(Cmd+V) that pastes your transcript into the focused app. Auto-paste is the core feature, so
+Echophrase ships outside the store, signed with a Developer ID and notarized by Apple.
+</details>
 
 ## Models
 
@@ -73,10 +102,20 @@ of this repository, and each keeps its own license:
 | [T5-efficient-mini grammar correction](https://huggingface.co/visheratin/t5-efficient-mini-grammar-correction) | Grammar cleanup | 60 MB | English | MIT |
 | [Silero VAD v5](https://github.com/snakers4/silero-vad) | Voice activity detection (bundled) | 2 MB | any | MIT |
 
-## Building from source
+## Privacy
 
-Prerequisites: [Rust](https://rustup.rs) (stable, 1.88+), [Bun](https://bun.sh), and the
+Your voice and your transcripts never leave your device. Official builds ask on first run whether
+to send **anonymous** usage stats (OS, app version, GPU class, crash locations; no user ID, no audio,
+no text), and you can change that anytime in Settings > Data. Builds from source send nothing at all.
+Every event is listed in [TELEMETRY.md](TELEMETRY.md).
+
+The only other network traffic is model downloads (Hugging Face) and update checks (CrabNebula CDN).
+
+## Build from source
+
+**Prerequisites:** [Rust](https://rustup.rs) (stable, 1.88+), [Bun](https://bun.sh), and the
 [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) for your OS.
+[Node.js](https://nodejs.org) is also needed to run the frontend tests (vitest runs on Node).
 
 ```bash
 git clone https://github.com/Imperium42/echophrase.git
@@ -125,6 +164,9 @@ build time; nothing else to install.
 Xcode Command Line Tools (`xcode-select --install`), then `bun run tauri:dev:mac`.
 </details>
 
+<details>
+<summary><b>Production build, checks and dev port</b></summary>
+
 **Production build:** `bun run tauri:build` (output in `src-tauri/target/release/bundle/`).
 
 **Checks** (the same ones CI runs on every PR):
@@ -137,40 +179,43 @@ cargo test --workspace --no-default-features
 
 **Dev port:** the Vite dev server uses `DEV_PORT` (default `8420`, HMR on `8421`). If that port is
 taken, set `DEV_PORT` in your gitignored `env.yaml` instead of editing tracked files.
-
-Architecture notes for contributors (and AI coding agents) are in [CLAUDE.md](CLAUDE.md).
-Workarounds for upstream bugs are in [KNOWN_ISSUES.md](KNOWN_ISSUES.md).
+</details>
 
 ## Troubleshooting
 
-**System tray icon missing (Ubuntu/GNOME):** install and enable AppIndicator support:
-`sudo apt install gnome-shell-extension-appindicator && gnome-extensions enable appindicatorsupport@rgcjonas.gmail.com`
+<details>
+<summary><b>Common fixes</b></summary>
 
-**`gobject-2.0` / `pango` not found:** install the Linux system packages above.
+- **System tray icon missing (Ubuntu/GNOME):** `sudo apt install gnome-shell-extension-appindicator && gnome-extensions enable appindicatorsupport@rgcjonas.gmail.com`
+- **`gobject-2.0` / `pango` not found:** install the [Linux system packages](#build-from-source).
+- **No microphone on WSL:** install `libasound2-plugins`; see [docs/WSL.md](docs/WSL.md).
+- **Debug panel (dev builds only):** click "Debug" (top-left) for logs and quick actions; F4 restores it after "Hide 5m".
 
-**No microphone on WSL:** install `libasound2-plugins`; see [docs/WSL.md](docs/WSL.md).
+More in the [troubleshooting docs](https://docs.echophrase.com/troubleshooting/common-issues).
+</details>
 
-**Debug panel (dev builds only):** click "Debug" (top-left) for logs and quick actions; F4 restores it after "Hide 5m".
+## Contributing
 
-## Privacy
-
-Your voice never leaves your device. Official builds send **anonymous** usage stats (OS, app
-version, GPU class, crashes; no user ID, no audio, no text), and you can turn them off in
-Settings > Data. Builds from source send nothing. Details: [TELEMETRY.md](TELEMETRY.md).
+Bugs and ideas go in [issues](https://github.com/Imperium42/echophrase/issues). Read
+[CONTRIBUTING.md](CONTRIBUTING.md) before opening a PR, and [SECURITY.md](SECURITY.md) to report a
+vulnerability privately. Architecture notes for contributors (and AI coding agents) are in
+[CLAUDE.md](CLAUDE.md); workarounds for upstream bugs are in [KNOWN_ISSUES.md](KNOWN_ISSUES.md).
 
 ## Support the project
 
-Echophrase is free and community-maintained. If it saves you time, consider
-[sponsoring on GitHub](https://github.com/sponsors/imperium42). Bugs and ideas go in
-[issues](https://github.com/Imperium42/echophrase/issues); see [CONTRIBUTING.md](CONTRIBUTING.md)
-before opening a PR.
+Echophrase is free, with no ads, no upsells and no paid tier. If it saves you time, a coffee keeps
+it going:
+
+<a href="https://github.com/sponsors/imperium42"><img src="https://img.shields.io/badge/Sponsor%20on%20GitHub-ea4aaa?style=for-the-badge&logo=githubsponsors&logoColor=white" alt="Sponsor on GitHub"></a>
 
 ## License
 
-Echophrase is open source under the [Mozilla Public License 2.0](LICENSE). Third-party code
-notices are in [ATTRIBUTION.md](ATTRIBUTION.md); model licenses are listed under [Models](#models).
+Echophrase is open source under the [Mozilla Public License 2.0](LICENSE) (MPL-2.0). Third-party
+code notices are in [ATTRIBUTION.md](ATTRIBUTION.md); model licenses are listed under [Models](#models).
 
 The license covers the code, not the name: "Echophrase" and the logo are trademarks of
 Imperium42 LLC, so forks must ship under a different name. See [TRADEMARKS.md](TRADEMARKS.md).
 
-Copyright © 2025-2026 Imperium42 LLC.
+<div align="center">
+<sub>Copyright &copy; 2025-2026 Imperium42 LLC &middot; Made with Rust, Tauri and too much coffee</sub>
+</div>
