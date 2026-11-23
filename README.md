@@ -198,6 +198,8 @@ Bugs and ideas go in [issues](https://github.com/Imperium42/echophrase/issues). 
 vulnerability privately. Architecture notes for contributors (and AI coding agents) are in
 [CLAUDE.md](CLAUDE.md); workarounds for upstream bugs are in [KNOWN_ISSUES.md](KNOWN_ISSUES.md).
 
+Questions, ideas or just want to chat? Join us on [Discord](https://discord.com/invite/Er6NUcx).
+
 ## Support the project
 
 Echophrase is free, with no ads, no upsells, no telemetry and no paid tier.
