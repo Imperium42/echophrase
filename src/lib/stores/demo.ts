@@ -36,8 +36,14 @@ export const demoChromeHidden = writable<boolean>(false);
 export const DEMO_MODEL_ID = 'parakeet-tdt-0.6b-v3';
 /** Execution provider shown in the model chip during the demo (DirectML = "GPU"). */
 export const DEMO_PROVIDER = 'direct_ml';
-/** Hotkey the hint advertises during the demo, regardless of the user's binding. */
-export const DEMO_HOTKEY = 'ctrl+shift+space';
+/**
+ * Hotkey the hint advertises during the demo, regardless of the user's binding: the platform
+ * default (matches settings/mod.rs). macOS uses the Dictation key, stored as `f13` and shown as "F5".
+ */
+export const DEMO_HOTKEY =
+  typeof navigator !== 'undefined' && /Mac/i.test(navigator.platform || navigator.userAgent)
+    ? 'f13'
+    : 'ctrl+shift+space';
 
 /** True while the demo is pretending to record. */
 export const demoRecording = writable<boolean>(false);
