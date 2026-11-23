@@ -182,11 +182,13 @@ pub fn preload_ort_providers() {
         }
     }
 
-    // Prefer the DirectML.dll we bundle next to onnxruntime.dll (from the
-    // microsoft.ai.directml NuGet, staged by CI). Bare-name LoadLibrary would
-    // hit System32, where Win10 22H2 / early Win11 can ship an older
-    // DirectML that mismatches ORT 1.24's expected API. Bundling pins the
-    // pair and also avoids a Defender first-launch scan on the system DLL.
+    // Prefer the DirectML.dll we bundle next to onnxruntime.dll (Microsoft.AI.DirectML
+    // 1.15.4 NuGet, staged by scripts/ensure-ort.mjs). Bare-name LoadLibrary would hit
+    // System32, whose inbox DirectML is too old for ORT 1.24 even on current Win11
+    // (22H2/23H2 = 1.8.0, 24H2 = 1.13.1). Microsoft's DirectML version history lists
+    // 1.15.4 as "Redistributable only", ie it never ships with Windows, so apps must
+    // bundle it. Never drop the bundled copy to save size. See KNOWN_ISSUES.md
+    // ("DirectML: the copy in System32 is too old for ORT 1.24").
     #[cfg(target_os = "windows")]
     {
         let bundled_dml = ort_dir.join("DirectML.dll");

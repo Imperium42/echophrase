@@ -93,6 +93,38 @@ WSL only, inert elsewhere.
 
 ---
 
+## DirectML: the copy in System32 is too old for ORT 1.24
+
+**Upstream:** [DirectML version history](https://learn.microsoft.com/en-us/windows/ai/directml/dml-version-history),
+[microsoft/DirectML Releases.md](https://github.com/microsoft/DirectML/blob/master/Releases.md),
+real-world report: [lightonai/next-plaid#204](https://github.com/lightonai/next-plaid/issues/204)
+
+**Symptom.** Windows ships its own `C:/Windows/System32/DirectML.dll`, but it lags far
+behind the version ORT's DirectML build is made against. If `DirectML.dll` is not next to
+`onnxruntime.dll`, ORT loads the inbox copy and ops fail (next-plaid#204: Win11 22H2/23H2
+loaded inbox 1.8.0 and `MatMulIntegerToFloat` failed with `0x80070057`).
+
+| Windows build | Inbox DirectML |
+|---|---|
+| Win10 1903 (18362) | 1.0.0 |
+| Win10 2004 (19041) | 1.1.0 |
+| Win11 21H2 (22000) | 1.6.0 |
+| Win11 22H2 / 23H2 (22621 / 22631) | 1.8.0 |
+| Win11 24H2 (26100) | 1.13.1 |
+| 1.15.1-1.15.4 | Redistributable (NuGet) only, never inbox |
+
+Per Microsoft's version history, 1.15.4 is "Redistributable only | Microsoft.AI.DirectML.1.15.4".
+The `Microsoft.ML.OnnxRuntime.DirectML` 1.24.4 nuspec depends on `Microsoft.AI.DirectML` 1.15.4.
+So dropping older Windows versions does not help: even current Win11 (24H2) is too old.
+
+**Workaround.** Bundle the NuGet `DirectML.dll` (1.15.4, ~18.5 MB) next to `onnxruntime.dll` and
+preload it by absolute path before ORT starts. Do not "save installer size" by relying on System32.
+
+**Enforced by:** `scripts/ensure-ort.mjs` (`directml` package pin) and
+`src-tauri/src/setup/ort_runtime.rs::preload_ort_providers`.
+
+---
+
 ## Parakeet TDT collapses tokens without `TimestampMode::Words`
 
 **Symptom.** Whole sentences silently disappear from a transcript. The classic

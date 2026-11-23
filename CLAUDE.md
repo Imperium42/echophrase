@@ -225,6 +225,8 @@ See [TELEMETRY.md](TELEMETRY.md) for what data is collected.
 Why there is no CUDA, and what was removed: [docs/gpu-and-cuda.md](docs/gpu-and-cuda.md).
 
 ### Windows (DirectML)
+- **Windows 11 is the officially supported version.** Windows 10 should work (same build,
+  bundled DirectML) but is not tested or officially supported - say exactly that in user-facing copy.
 - **DirectML**: DirectX 12 compatible GPU (NVIDIA, AMD, Intel). No additional
   drivers required. Bundled with installer (~15MB).
 - Automatic fallback to CPU if GPU unavailable
@@ -251,7 +253,8 @@ via the C API. This avoids MSVC STL ABI coupling from static linking (pykeio/ort
   `select_ort_runtime()` probes in production, and Tauri copies it next to the dev exe, so dev
   needs no `ORT_DYLIB_PATH`. A placeholder or non-existent `ORT_DYLIB_PATH` in env.yaml's
   `windows:` section is removed; an existing path is kept as a manual override. `DirectML.dll`
-  is bundled rather than taken from System32 to avoid version drift on older Windows; it is
+  is bundled rather than taken from System32 because even current Win11 ships a too-old inbox copy
+  (24H2 = 1.13.1; 1.15.x is redistributable-only - see KNOWN_ISSUES.md). It is
   proprietary (redistributable), see `ATTRIBUTION.md`.
 - **Linux/WSL (CPU, x64 + arm64) and macOS (CoreML, arm64)**: `Microsoft.ML.OnnxRuntime` NuGet
   into a gitignored `.ort/<platform>/lib/`, and an absolute `ORT_DYLIB_PATH` is written into the
