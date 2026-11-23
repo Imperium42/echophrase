@@ -4,9 +4,9 @@
 
 # Echophrase
 
-### Talk. It types. Nothing leaves your machine.
+### Just speak. It's already typed.
 
-Free, open-source, GPU-accelerated speech-to-text for your desktop.<br>
+Free, open-source, GPU-accelerated speech-to-text for your desktop. Nothing leaves your machine.<br>
 Press a hotkey, speak, and the text lands wherever your cursor is.
 
 [![License: MPL 2.0](https://img.shields.io/badge/license-MPL--2.0-brightgreen?style=for-the-badge)](LICENSE)
