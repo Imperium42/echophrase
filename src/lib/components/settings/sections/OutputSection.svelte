@@ -67,6 +67,12 @@ SPDX-License-Identifier: MPL-2.0
   const pasteEnabled = $derived(currentOutputTo.includes('paste_at_cursor'));
   const copyEnabled = $derived(currentOutputTo.includes('copy_to_clipboard'));
 
+  // Paste goes through the clipboard, so unless Restore is on the transcript stays on it:
+  // show Copy as on (locked) to match what actually happens.
+  const copyImpliedByPaste = $derived(
+    pasteEnabled && !copyEnabled && $settings?.restore_clipboard_after_paste !== true
+  );
+
   // Any output other than the clipboard itself?
   const hasUsableOtherOutput = $derived(currentOutputTo.some(v => v !== 'copy_to_clipboard'));
 
@@ -151,10 +157,10 @@ SPDX-License-Identifier: MPL-2.0
     {@const isCopyToClipboard = mode.value === 'copy_to_clipboard'}
     {@const isPasteAtCursor = mode.value === 'paste_at_cursor'}
     {@const isActive = isCopyToClipboard
-      ? currentOutputTo.includes('copy_to_clipboard') || !hasUsableOtherOutput
+      ? currentOutputTo.includes('copy_to_clipboard') || !hasUsableOtherOutput || copyImpliedByPaste
       : currentOutputTo.includes(mode.value)}
-    {@const isForcedOn = isCopyToClipboard && !hasUsableOtherOutput}
-    {@const canToggle = isActive || !isForcedOn}
+    {@const isForcedOn = isCopyToClipboard && (!hasUsableOtherOutput || copyImpliedByPaste)}
+    {@const canToggle = !isForcedOn}
     {@const isSaveAsFile = mode.value === 'save_as_file'}
 
     <div class="setting-row" class:locked={isForcedOn}>
@@ -163,6 +169,17 @@ SPDX-License-Identifier: MPL-2.0
           {mode.label}
           {#if isCopyToClipboard}
             <span class="default-hint">{t('outputSettings.default')}</span>
+            {#if copyImpliedByPaste}
+              <span class="hint-trigger" title={t('outputSettings.copyImpliedByPaste')}>
+                <svg class="hint-icon" viewBox="0 0 16 16" fill="currentColor">
+                  <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
+                  <path
+                    d="M5.255 5.786a.237.237 0 0 0 .241.247h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.286zm1.557 5.763c0 .533.425.927 1.01.927.609 0 1.028-.394 1.028-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94z"
+                  />
+                </svg>
+                <span class="hint-tooltip">{t('outputSettings.copyImpliedByPaste')}</span>
+              </span>
+            {/if}
           {/if}
           {#if isPasteAtCursor}
             <span class="hint-trigger" title={getPasteAtCursorTip()}>
@@ -255,7 +272,11 @@ SPDX-License-Identifier: MPL-2.0
           aria-checked={isActive}
           aria-label={mode.label}
           aria-disabled={!canToggle}
-          title={isForcedOn ? t('outputSettings.enableOtherToDisable') : ''}
+          title={isForcedOn
+            ? copyImpliedByPaste
+              ? t('outputSettings.copyImpliedByPaste')
+              : t('outputSettings.enableOtherToDisable')
+            : ''}
         >
           <span class="toggle-thumb"></span>
         </button>

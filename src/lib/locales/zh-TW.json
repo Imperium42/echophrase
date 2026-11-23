@@ -472,6 +472,7 @@
     "templateHint": "使用 {variables} 自訂 JSON 輸出：id、text、timestamp、language、model、duration",
     "validJson": "有效 JSON",
     "invalidJson": "無效 JSON",
+    "copyImpliedByPaste": "在游標處貼上需要透過剪貼簿，所以文字也會被複製。如需保留原有剪貼簿內容，請開啟下方的「貼上後還原剪貼簿」。",
     "restoreClipboard": "貼上後還原剪貼簿",
     "restoreClipboardHint": "貼上後放回你先前剪貼簿中的文字，而不是把轉錄文字留在剪貼簿。僅還原文字內容。在 macOS 上可能需要額外的剪貼簿權限。",
     "restoreClipboardCopyOn": "已開啟「複製到剪貼簿」，因此轉錄文字會保留在剪貼簿中。",
