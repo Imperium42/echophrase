@@ -61,12 +61,14 @@ const MacOSConfigSchema = z.object({
 /**
  * Root env.yaml schema
  */
+// Sections are nullish: a platform block with every key commented out (e.g. `windows:`) parses
+// as YAML null, and that must not fail validation on a fresh clone.
 export const EnvConfigSchema = z.object({
-  shared: SharedConfigSchema.optional(),
-  wsl: WSLConfigSchema.optional(),
-  windows: WindowsConfigSchema.optional(),
-  linux: LinuxConfigSchema.optional(),
-  macos: MacOSConfigSchema.optional(),
+  shared: SharedConfigSchema.nullish(),
+  wsl: WSLConfigSchema.nullish(),
+  windows: WindowsConfigSchema.nullish(),
+  linux: LinuxConfigSchema.nullish(),
+  macos: MacOSConfigSchema.nullish(),
 });
 
 export type EnvConfig = z.infer<typeof EnvConfigSchema>;
