@@ -200,8 +200,9 @@ vulnerability privately. Architecture notes for contributors (and AI coding agen
 
 ## Support the project
 
-Echophrase is free, with no ads, no upsells and no paid tier. If it saves you time, a coffee keeps
-it going:
+Echophrase is free, with no ads, no upsells, no telemetry and no paid tier.
+
+If you found this app useful, consider [contracting me](https://imperium42.com) - or buy me a coffee:
 
 <a href="https://github.com/sponsors/imperium42"><img src="https://img.shields.io/badge/Sponsor%20on%20GitHub-ea4aaa?style=for-the-badge&logo=githubsponsors&logoColor=white" alt="Sponsor on GitHub"></a>
 
