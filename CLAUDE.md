@@ -118,7 +118,7 @@ model_detection/        # Auto model selection
 1. **Recording**: Rust `AudioRecorder` (echo-audio/cpal) captures 16 kHz mono f32 chunks in memory on every platform
 2. **VAD** (optional): Silero VAD V5 detects speech segments (self-implemented with ort)
 3. **Backend selection**: TranscriptionBackend trait dispatches to appropriate backend
-4. **Preprocessing**: Audio → 16kHz mono → mel spectrogram (80 bins Whisper, 128 bins Parakeet)
+4. **Preprocessing**: Audio → 16kHz mono → mel spectrogram (128 bins for Parakeet and Qwen3-ASR; disabled Candle Whisper takes 80 or 128)
 5. **Inference**: GPU-accelerated (DirectML on Windows, CoreML/Metal on macOS), CPU on Linux/WSL
 6. **Output**: Transcription → clipboard or paste-at-cursor
 
@@ -126,8 +126,9 @@ model_detection/        # Auto model selection
 
 | Backend | Models | Format | GPU Provider | VRAM |
 |---------|--------|--------|--------------|------|
-| Candle | Distil-Whisper Large-v3 (recommended), Whisper variants | safetensors | Metal/CPU | 2-6GB |
-| parakeet-rs | NVIDIA Parakeet-TDT 0.6B v3 | ONNX (TDT decode) | DirectML/CoreML/CPU | 2GB |
+| parakeet-rs | NVIDIA Parakeet-TDT 0.6B v3 (default), Parakeet Lite 120M | ONNX (TDT decode) | DirectML/CoreML/CPU | 2GB |
+| Qwen3-ASR | Qwen3-ASR 0.6B | ONNX | DirectML/CoreML/CPU | Varies |
+| Candle | Whisper (disabled: `ONNX_ONLY_MODE = true` in `src/lib/types/models.ts`; registry entry kept as a template) | safetensors | Metal/CPU | 2-6GB |
 | ONNX (generic) | Any ONNX model | ONNX | DirectML/CoreML/CPU | Varies |
 
 Models auto-download to `~/.cache/huggingface/hub/` on first use with progress streaming.
