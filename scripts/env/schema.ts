@@ -9,7 +9,7 @@
  * Note: Platform sections contain only platform-specific overrides.
  * Shared fields live in the `shared` section and are merged at runtime by
  * load.mjs. Every object is .passthrough(), so extra keys are exported as-is.
- * There is no CUDA (see docs/gpu-and-cuda.md), so no CUDA keys are declared.
+ * There is no CUDA (see https://docs.echophrase.com/developers/decisions/0001-no-cuda), so no CUDA keys are declared.
  */
 
 import { z } from 'zod';

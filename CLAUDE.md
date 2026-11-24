@@ -142,7 +142,7 @@ Models auto-download to `~/.cache/huggingface/hub/` on first use with progress s
 |-------|----------|-----|--------------|--------------|
 | parakeet-tdt-0.6b-v3 | DirectML | RTX 5080 | warm | ~7.1s |
 
-> **Warm vs cold matters more than the number.** DirectML JIT-compiles shaders on the *first* run for a given GPU architecture and caches them per machine. Warm-cache reloads (above) are fast. A cold first-run on a new GPU arch can take far longer - this is exactly why the Rust-side preload timeout is 300s and why a fast dev reload does **not** prove the cold-JIT deadlock path is healthy. Treat ~7s as the warm regression baseline, not the worst case. See [docs/model-load-baselines.md](docs/model-load-baselines.md).
+> **Warm vs cold matters more than the number.** DirectML JIT-compiles shaders on the *first* run for a given GPU architecture and caches them per machine. Warm-cache reloads (above) are fast. A cold first-run on a new GPU arch can take far longer - this is exactly why the Rust-side preload timeout is 300s and why a fast dev reload does **not** prove the cold-JIT deadlock path is healthy. Treat ~7s as the warm regression baseline, not the worst case. See [model load baselines](https://docs.echophrase.com/developers/deep-dives/model-load-baselines).
 
 ### Backend Architecture (Trait-Based)
 
@@ -218,7 +218,7 @@ updating that file, the README privacy section and the public privacy docs in th
 - GPU acceleration on Linux is a wanted future feature (see the TODO in
   `env.yaml.template`).
 
-Why there is no CUDA, and what was removed: [docs/gpu-and-cuda.md](docs/gpu-and-cuda.md).
+Why there is no CUDA, and what was removed: [ADR 0001: no CUDA](https://docs.echophrase.com/developers/decisions/0001-no-cuda).
 
 ### Windows (DirectML)
 - **Windows 11 is the officially supported version.** Windows 10 should work (same build,
