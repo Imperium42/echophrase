@@ -39,8 +39,16 @@ export default defineConfig(
       '@typescript-eslint/no-unused-vars': [
         'error',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }
-      ]
+      ],
+      // Every href in this Tauri desktop app is an external URL (opened via launchUrl) or a
+      // generic <a>/<button> primitive; there is no SvelteKit base path to resolve() against.
+      'svelte/no-navigation-without-resolve': 'off'
     }
+  },
+  {
+    // Tests mock Tauri/window internals, where `any` is the pragmatic type.
+    files: ['**/*.test.ts', '**/*.test.js'],
+    rules: { '@typescript-eslint/no-explicit-any': 'off' }
   },
   {
     files: ['**/*.svelte', '**/*.svelte.ts', '**/*.svelte.js'],
