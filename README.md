@@ -146,8 +146,8 @@ sudo pacman -S webkit2gtk-4.1 base-devel curl wget file openssl \
   appmenu-gtk-module libappindicator-gtk3 librsvg xdotool alsa-lib
 ```
 
-On WSL, see [docs/WSL.md](docs/WSL.md). Linux runs on CPU; see
-[docs/gpu-and-cuda.md](docs/gpu-and-cuda.md) for why there is no CUDA path.
+On WSL, see [Building on WSL](https://docs.echophrase.com/developers/building#wsl). Linux runs on CPU; see
+[ADR 0001: no CUDA](https://docs.echophrase.com/developers/decisions/0001-no-cuda) for why there is no CUDA path.
 </details>
 
 <details>
@@ -188,7 +188,7 @@ taken, set `DEV_PORT` in your gitignored `env.yaml` instead of editing tracked f
 
 - **System tray icon missing (Ubuntu/GNOME):** `sudo apt install gnome-shell-extension-appindicator && gnome-extensions enable appindicatorsupport@rgcjonas.gmail.com`
 - **`gobject-2.0` / `pango` not found:** install the [Linux system packages](#build-from-source).
-- **No microphone on WSL:** install `libasound2-plugins`; see [docs/WSL.md](docs/WSL.md).
+- **No microphone on WSL:** install `pulseaudio-utils` (the app captures through `parec`); see [Building on WSL](https://docs.echophrase.com/developers/building#wsl).
 - **Debug panel (dev builds only):** click "Debug" (top-left) for logs and quick actions; F4 restores it after "Hide 5m".
 
 More in the [troubleshooting docs](https://docs.echophrase.com/troubleshooting/common-issues).

@@ -13,7 +13,7 @@ anything else about you or your machine, and there are no accounts.
 | `cdn.crabnebula.app` | The app checks for updates, and downloads one if you accept it | The standard Tauri updater request: current app version, OS and CPU architecture. |
 
 Nothing else. Once the models you want are downloaded, Echophrase works fully offline.
-`docs/open-source-transition.md` records this policy and what was removed to get here.
+[ADR 0006: open source, local only](https://docs.echophrase.com/developers/decisions/0006-open-source) records this policy and what was removed to get here.
 
 ## Your audio and text
 

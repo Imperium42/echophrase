@@ -7,7 +7,7 @@
 # Dev server port (DEV_PORT from env.yaml, default 8420)
 DEV_PORT="${DEV_PORT:-8420}"
 # WSL Development Launch Script
-# Launches Echophrase in WSL (CPU-only; see docs/gpu-and-cuda.md)
+# Launches Echophrase in WSL (CPU-only; see https://docs.echophrase.com/developers/decisions/0001-no-cuda)
 
 set -e
 

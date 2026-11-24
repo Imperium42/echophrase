@@ -58,7 +58,7 @@ pub trait VadBackend: Send {
 ///
 /// Model: https://github.com/snakers4/silero-vad
 /// Expects 16kHz mono audio, 256 samples per chunk (16ms).
-/// See docs/silero-vad-v5.md for details.
+/// See https://docs.echophrase.com/developers/deep-dives/silero-vad-v5 for details.
 #[allow(dead_code)]
 pub struct SileroVad {
     session: Session,

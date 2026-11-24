@@ -81,7 +81,7 @@ dunce = "1.0.5"
 # Candle + ONNX Runtime: platform-specific GPU acceleration
 # macOS: Metal GPU (or CPU fallback)
 # Windows: ONNX Runtime uses DirectML; Candle runs on CPU
-# Linux/WSL: CPU only. There is no CUDA support (see docs/gpu-and-cuda.md).
+# Linux/WSL: CPU only. There is no CUDA support (see https://docs.echophrase.com/developers/decisions/0001-no-cuda).
 [target.'cfg(not(target_os = "macos"))'.dependencies]
 candle-core = { version = "0.9.2" }
 candle-nn = { version = "0.9.2" }
