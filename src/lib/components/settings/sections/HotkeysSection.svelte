@@ -93,7 +93,7 @@ SPDX-License-Identifier: MPL-2.0
     capturedKeys = keys;
   }
 
-  function handleKeyRelease(event: KeyboardEvent) {
+  function handleKeyRelease(_event: KeyboardEvent) {
     if (!isCapturingHotkey || capturedKeys.length === 0) return;
     if (capturedKeys.length >= 2) {
       const hotkeyString = capturedKeys.join('+');

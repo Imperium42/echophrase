@@ -44,7 +44,6 @@ SPDX-License-Identifier: MPL-2.0
 
   import { setSettingsContext, type SettingsContext } from './context';
   import { useTauriSettings } from '$lib/composables/useTauriSettings';
-  import { derived, writable, type Readable, type Writable } from 'svelte/store';
   import { t } from '$lib/locales';
   import { isDev } from '$lib/config/environment';
 
@@ -252,7 +251,7 @@ SPDX-License-Identifier: MPL-2.0
         <div class="skeleton-section">
           <Skeleton width="4rem" height="0.625rem" />
           <div class="skeleton-rows">
-            {#each Array(3) as _}
+            {#each Array(3) as _, i (i)}
               <div class="skeleton-row">
                 <Skeleton width="40%" height="0.875rem" />
                 <Skeleton width="2.5rem" height="1.25rem" rounded="0.625rem" />
@@ -263,7 +262,7 @@ SPDX-License-Identifier: MPL-2.0
         <div class="skeleton-section">
           <Skeleton width="5rem" height="0.625rem" />
           <div class="skeleton-rows">
-            {#each Array(4) as _}
+            {#each Array(4) as _, i (i)}
               <div class="skeleton-row">
                 <Skeleton width="55%" height="0.875rem" />
                 <Skeleton width="2.5rem" height="1.25rem" rounded="0.625rem" />
@@ -274,7 +273,7 @@ SPDX-License-Identifier: MPL-2.0
         <div class="skeleton-section">
           <Skeleton width="6rem" height="0.625rem" />
           <div class="skeleton-rows">
-            {#each Array(2) as _}
+            {#each Array(2) as _, i (i)}
               <div class="skeleton-row">
                 <Skeleton width="45%" height="0.875rem" />
                 <Skeleton width="2.5rem" height="1.25rem" rounded="0.625rem" />

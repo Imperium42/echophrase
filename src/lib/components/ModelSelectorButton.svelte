@@ -36,7 +36,7 @@ SPDX-License-Identifier: MPL-2.0
   // "Custom Model" placeholder, the user knows their model by ITS name.
   let customModelName = $state<string | null>(null);
   $effect(() => {
-    $customModelChanged;
+    void $customModelChanged;
     if (currentSelectedModel !== 'custom') {
       customModelName = null;
       return;

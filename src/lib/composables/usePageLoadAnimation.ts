@@ -11,9 +11,7 @@ import { writable, derived } from 'svelte/store';
 
 // Animation timing constants (ms) - SYNCED WITH PULSE
 const BUTTON_FADE_DELAY = 100; // Delay for GPU layer warmup before button starts
-const BUTTON_FADE_DURATION = 500; // Button fade takes 500ms
 const SONAR_START_DELAY = 350; // Sonar starts after button is visible
-const PULSE_DURATION = 600; // Pulse animation lasts 600ms
 const CORNER_START_DELAY = 650; // Corners start right after pulse ends (350 + 600 = 950ms from start)
 const CORNER_STAGGER = 120; // 120ms between each corner
 

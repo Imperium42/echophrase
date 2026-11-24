@@ -220,7 +220,7 @@ SPDX-License-Identifier: MPL-2.0
 
       <!-- Step indicators -->
       <div class="step-dots">
-        {#each Array(TOTAL_STEPS) as _, i}
+        {#each Array(TOTAL_STEPS) as _, i (i)}
           <div class="dot" class:active={i === step} class:completed={i < step}></div>
         {/each}
       </div>

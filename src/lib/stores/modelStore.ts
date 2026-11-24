@@ -5,14 +5,9 @@
 import { writable, get } from 'svelte/store';
 import { mustInvoke } from '$lib/ipc/invoke';
 import { getSettings, updateSetting } from '$lib/ipc/settings';
-import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+import { listen } from '@tauri-apps/api/event';
 import type { Settings } from '../types/settings';
-import {
-  DEFAULT_MODEL_ID,
-  getModelById,
-  getRecommendedModel,
-  getAvailableModels,
-} from '../types/models';
+import { DEFAULT_MODEL_ID, getRecommendedModel, getAvailableModels } from '../types/models';
 import { showModelAutoSwitchToast } from './modelAutoSwitchToast';
 import { appLog, appWarn } from '$lib/utils/appLog';
 import { translate } from './locale.svelte';
@@ -50,9 +45,6 @@ interface PreloadFinishedEvent {
 }
 
 let preloadEventsListening = false;
-let preloadStartedUnlisten: UnlistenFn | null = null;
-let preloadFinishedUnlisten: UnlistenFn | null = null;
-let preloadStatusUnlisten: UnlistenFn | null = null;
 
 // Dedupe guard: if a preload invoke is already in flight (e.g. HMR reload
 // kicked off a second call while the first is still running), return the
@@ -72,7 +64,7 @@ interface ModelStoreState {
 
 // Create the writable store
 function createModelStore() {
-  const { subscribe, set, update } = writable<ModelStoreState>({
+  const { subscribe, update } = writable<ModelStoreState>({
     selectedModel: DEFAULT_MODEL_ID, // Default to recommended model
     modelExists: false,
     downloadedModels: {},
@@ -326,38 +318,35 @@ function createModelStore() {
     if (preloadEventsListening) return;
     preloadEventsListening = true;
     try {
-      preloadStartedUnlisten = await listen<PreloadStartedEvent>('model-preload-started', event => {
+      await listen<PreloadStartedEvent>('model-preload-started', event => {
         console.log('[ModelStore] model-preload-started', event.payload);
         preloadPhase.set('loading');
         preloadElapsedSec.set(0);
       });
-      preloadFinishedUnlisten = await listen<PreloadFinishedEvent>(
-        'model-preload-finished',
-        event => {
-          const { ok, duration_ms, backend, model, error } = event.payload;
-          const seconds = (duration_ms / 1000).toFixed(2);
-          if (ok) {
-            console.log(
-              `%c Model preloaded in ${seconds}s (${duration_ms}ms, ${backend}, ${model})`,
-              'color:#a3e635;font-weight:600'
-            );
-            preloadPhase.set('done');
-            if (duration_ms > 15_000) {
-              console.warn(
-                `[ModelStore] Preload took ${seconds}s - this is unusually slow. ` +
-                  `If you expected GPU acceleration, check Settings > GPU Acceleration.`
-              );
-            }
-          } else {
+      await listen<PreloadFinishedEvent>('model-preload-finished', event => {
+        const { ok, duration_ms, backend, model, error } = event.payload;
+        const seconds = (duration_ms / 1000).toFixed(2);
+        if (ok) {
+          console.log(
+            `%c Model preloaded in ${seconds}s (${duration_ms}ms, ${backend}, ${model})`,
+            'color:#a3e635;font-weight:600'
+          );
+          preloadPhase.set('done');
+          if (duration_ms > 15_000) {
             console.warn(
-              `[ModelStore] Model preload FAILED after ${seconds}s (${backend}, ${model}): ${error ?? 'unknown'}`
+              `[ModelStore] Preload took ${seconds}s - this is unusually slow. ` +
+                `If you expected GPU acceleration, check Settings > GPU Acceleration.`
             );
-            preloadPhase.set('failed');
           }
+        } else {
+          console.warn(
+            `[ModelStore] Model preload FAILED after ${seconds}s (${backend}, ${model}): ${error ?? 'unknown'}`
+          );
+          preloadPhase.set('failed');
         }
-      );
+      });
       // Subscribe to fine-grained preload status events (loading/done/failed + heartbeat)
-      preloadStatusUnlisten = await listen<{ phase: string; elapsed_ms: number; error?: string }>(
+      await listen<{ phase: string; elapsed_ms: number; error?: string }>(
         'model-preload-status',
         event => {
           const { phase, elapsed_ms, error } = event.payload;

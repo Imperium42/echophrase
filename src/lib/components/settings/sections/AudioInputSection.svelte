@@ -147,7 +147,9 @@ SPDX-License-Identifier: MPL-2.0
         if (nativeDevices && nativeDevices.length > 0) {
           audioInputDevices = [
             { deviceId: 'default', label: translate('audioInput.systemDefault') },
-            ...nativeDevices.map(d => ({ deviceId: d.id, label: d.name })),
+            ...nativeDevices
+              .filter(d => d.id !== 'default') // keeps each-block keys unique
+              .map(d => ({ deviceId: d.id, label: d.name })),
           ];
           return;
         }
@@ -280,7 +282,7 @@ SPDX-License-Identifier: MPL-2.0
           {:else if audioInputDevices.length === 0}
             <option value="default">{t('audioInput.systemDefault')}</option>
           {:else}
-            {#each audioInputDevices as device}
+            {#each audioInputDevices as device (device.deviceId)}
               <option value={device.deviceId} title={device.label}>
                 {device.label}
               </option>

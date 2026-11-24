@@ -51,9 +51,9 @@ export interface AppInitState {
   /** OS info (platform, WSL detection) */
   osInfo: Readable<OsInfo>;
   /** Tauri invoke function (null in web mode) */
-  invoke: any;
+  invoke: typeof import('@tauri-apps/api/core').invoke | null;
   /** Tauri listen function (null in web mode) */
-  listen: any;
+  listen: typeof import('@tauri-apps/api/event').listen | null;
 }
 
 export interface InitCallbacks {
@@ -129,8 +129,8 @@ export function useAppInit(): AppInit {
   const gpuInfo = writable<GpuInfo>(defaultGpuInfo);
   const osInfo = writable<OsInfo>(defaultOsInfo);
 
-  let invoke: any = null;
-  let listen: any = null;
+  let invoke: typeof import('@tauri-apps/api/core').invoke | null = null;
+  let listen: typeof import('@tauri-apps/api/event').listen | null = null;
 
   // Intercept known Tauri dev-mode warnings and append context so they
   // don't look like real bugs in the console.
@@ -143,7 +143,7 @@ export function useAppInit(): AppInit {
       console.log(`[AppInit] ${label}: ${(performance.now() - t0).toFixed(0)}ms`);
 
     // Check for Tauri context
-    if (typeof (window as any).__TAURI_INTERNALS__ !== 'undefined') {
+    if (typeof window.__TAURI_INTERNALS__ !== 'undefined') {
       try {
         const { invoke: tauriInvoke } = await import('@tauri-apps/api/core');
         const { listen: tauriListen } = await import('@tauri-apps/api/event');
@@ -204,16 +204,16 @@ export function useAppInit(): AppInit {
           hotkeyResult,
         ] = await Promise.all([
           // Download event listeners
-          callbacks.setupDownloadListeners(listen),
+          callbacks.setupDownloadListeners(tauriListen),
           // Transcription segment listener
-          listen('transcription-segment', (event: any) => {
+          tauriListen<{ text: string; is_final: boolean }>('transcription-segment', event => {
             const { text, is_final } = event.payload;
             callbacks.onTranscriptionSegment(text, is_final, undefined);
           }),
           // Backend settings changed (any writer: a patch, auto-detection, the
           // tray). The backend is authoritative - resync so the UI can never
           // display a model the backend is not actually dispatching to.
-          listen('settings-changed', () => {
+          tauriListen('settings-changed', () => {
             import('$lib/composables/useTauriSettings')
               .then(({ refreshSettingsFromBackend }) => refreshSettingsFromBackend())
               .catch(err => console.warn('[AppInit] settings resync failed:', err));
@@ -221,7 +221,7 @@ export function useAppInit(): AppInit {
           // Tray icon toggle-recording: fired when user clicks the tray context menu
           // item whose label flips between "Start Recording" and "Stop Recording".
           // Reuses the same toggle callback as the global hotkey.
-          listen('tray-toggle-recording', () => {
+          tauriListen('tray-toggle-recording', () => {
             if (!callbacks.isHotkeyDisabled()) {
               callbacks.onHotkeyToggle();
             }
@@ -376,7 +376,7 @@ export function useAppInit(): AppInit {
     // checks from Settings > About still work in dev.
     // Also skipped for package-manager installs (Scoop/winget/brew): the
     // manager owns the installed version, so self-updating would desync it.
-    if (!import.meta.env.DEV && typeof (window as any).__TAURI_INTERNALS__ !== 'undefined') {
+    if (!import.meta.env.DEV && typeof window.__TAURI_INTERNALS__ !== 'undefined') {
       import('$lib/utils/managedInstall')
         .then(({ isManagedInstall }) => isManagedInstall())
         .catch(() => false)

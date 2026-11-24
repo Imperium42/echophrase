@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
+import type { InvokeArgs } from '@tauri-apps/api/core';
 import { writable, get } from 'svelte/store';
 import { updateSettings } from '$lib/ipc/settings';
 import { mustInvoke } from '$lib/ipc/invoke';
@@ -73,9 +74,13 @@ const settingsStore = writable<TauriSettings | null>(null);
 const isLoadingStore = writable(true);
 const errorStore = writable<string | null>(null);
 
-// Track initialization state
-let isInitialized = false;
-let invoke: any = null;
+let invoke: typeof import('@tauri-apps/api/core').invoke | null = null;
+
+/** Call the lazily-loaded Tauri invoke; throws (caught by callers) if it never loaded. */
+async function callInvoke<T = unknown>(cmd: string, args?: InvokeArgs): Promise<T> {
+  if (!invoke) throw new Error('Tauri invoke is not initialized');
+  return invoke<T>(cmd, args);
+}
 
 /**
  * Initialize Tauri API - called once
@@ -83,7 +88,7 @@ let invoke: any = null;
 async function initializeTauri(): Promise<boolean> {
   if (invoke) return true;
 
-  if (typeof window !== 'undefined' && typeof (window as any).__TAURI_INTERNALS__ !== 'undefined') {
+  if (typeof window !== 'undefined' && typeof window.__TAURI_INTERNALS__ !== 'undefined') {
     try {
       const { invoke: tauriInvoke } = await import('@tauri-apps/api/core');
       invoke = tauriInvoke;
@@ -113,10 +118,9 @@ async function loadSettings(): Promise<void> {
     isLoadingStore.set(true);
     errorStore.set(null);
 
-    const settingsData = await invoke('get_settings');
+    const settingsData = await callInvoke<TauriSettings>('get_settings');
 
     settingsStore.set(settingsData);
-    isInitialized = true;
   } catch (err) {
     console.error('Failed to load settings:', err);
     errorStore.set(err instanceof Error ? err.message : 'Failed to load settings');
@@ -140,7 +144,7 @@ async function saveSettings(newSettings: TauriSettings): Promise<void> {
   };
 
   try {
-    await invoke('save_settings', { settings: sanitized });
+    await callInvoke('save_settings', { settings: sanitized });
     settingsStore.set(sanitized);
   } catch (err) {
     console.error('Failed to save settings:', err);
@@ -223,7 +227,7 @@ export async function setMcpServerEnabled(enabled: boolean): Promise<void> {
  */
 export async function refreshSettingsFromBackend(): Promise<void> {
   try {
-    const fresh = (await invoke('get_settings')) as TauriSettings;
+    const fresh = (await callInvoke('get_settings')) as TauriSettings;
     settingsStore.set(fresh);
   } catch (err) {
     console.warn('Failed to refresh settings from backend:', err);

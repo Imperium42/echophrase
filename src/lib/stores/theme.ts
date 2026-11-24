@@ -27,9 +27,6 @@ function createThemeStore() {
           applyTheme(saved);
         } else {
           // Default to system preference
-          const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches
-            ? 'dark'
-            : 'light';
           applyTheme('system');
         }
       }
@@ -66,7 +63,7 @@ export const theme = createThemeStore();
 
 // Listen for system theme changes
 if (browser) {
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
     theme.subscribe(currentTheme => {
       if (currentTheme === 'system') {
         applyTheme('system');

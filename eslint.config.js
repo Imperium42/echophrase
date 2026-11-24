@@ -2,44 +2,62 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
+import { defineConfig } from 'eslint/config';
 import js from '@eslint/js';
+import ts from 'typescript-eslint';
+import svelte from 'eslint-plugin-svelte';
+import prettier from 'eslint-config-prettier';
+import globals from 'globals';
+import svelteConfig from './svelte.config.js';
 
-export default [
+export default defineConfig(
   {
     ignores: [
-      '**/*.ts',
-      '**/*.svelte',
       'dist/**',
       'build/**',
       '.svelte-kit/**',
       'node_modules/**',
-      'src-tauri/**'
-    ]
+      'src-tauri/**',
+      'coverage/**',
+    ],
   },
   js.configs.recommended,
+  ...ts.configs.recommended,
+  ...svelte.configs.recommended,
+  prettier,
+  ...svelte.configs.prettier,
   {
-    files: ['**/*.js', '**/*.cjs', '**/*.mjs'],
     languageOptions: {
-      ecmaVersion: 2020,
+      ecmaVersion: 2022,
       sourceType: 'module',
-      globals: {
-        browser: true,
-        node: true,
-        es2017: true,
-        window: true,
-        document: true,
-        console: true,
-        process: true,
-        Buffer: true,
-        setTimeout: true,
-        clearTimeout: true,
-        setInterval: true,
-        clearInterval: true,
-        global: true,
-      }
+      globals: { ...globals.browser, ...globals.node },
     },
     rules: {
-      'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      // TypeScript already reports undefined names, and no-undef misfires on type-only globals.
+      'no-undef': 'off',
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
+      ],
+      // Every href in this Tauri desktop app is an external URL (opened via launchUrl) or a
+      // generic <a>/<button> primitive; there is no SvelteKit base path to resolve() against.
+      'svelte/no-navigation-without-resolve': 'off',
+    },
+  },
+  {
+    // Tests mock Tauri/window internals, where `any` is the pragmatic type.
+    files: ['**/*.test.ts', '**/*.test.js'],
+    rules: { '@typescript-eslint/no-explicit-any': 'off' },
+  },
+  {
+    files: ['**/*.svelte', '**/*.svelte.ts', '**/*.svelte.js'],
+    languageOptions: {
+      parserOptions: {
+        extraFileExtensions: ['.svelte'],
+        parser: ts.parser,
+        svelteConfig,
+      },
     },
   }
-];
+);

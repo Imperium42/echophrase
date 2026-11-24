@@ -43,7 +43,6 @@ let register: ((shortcuts: string | string[], handler: ShortcutHandler) => Promi
   null;
 let unregister: ((shortcuts: string | string[]) => Promise<void>) | null = null;
 let unregisterAll: (() => Promise<void>) | null = null;
-let isRegistered: ((shortcut: string) => Promise<boolean>) | null = null;
 
 // Store
 export const isInitialized = writable(false);
@@ -122,7 +121,6 @@ export async function init(): Promise<boolean> {
     register = plugin.register;
     unregister = plugin.unregister;
     unregisterAll = plugin.unregisterAll;
-    isRegistered = plugin.isRegistered;
 
     // Defensive cleanup: clear orphaned shortcuts from crashed/previous sessions
     try {
@@ -444,7 +442,7 @@ export function setupGlobalKeyboard(context: KeyboardContext): () => void {
       } catch (err) {
         console.warn('[Keyboard] Could not clear browsing data:', err);
       }
-      window.location.href = window.location.href;
+      window.location.reload();
       return;
     }
   }

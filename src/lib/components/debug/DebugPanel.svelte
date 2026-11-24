@@ -199,7 +199,9 @@ SPDX-License-Identifier: MPL-2.0
           on:click={() => {
             try {
               localStorage.removeItem('echophrase_history_peek_shown');
-            } catch {}
+            } catch {
+              // localStorage can be unavailable; the reset is best-effort in the debug panel
+            }
             window.dispatchEvent(new CustomEvent('history-peek-reset'));
           }}
           class="bg-purple-800/80 backdrop-blur-sm px-2 py-1 rounded text-xs text-purple-400 hover:text-purple-300 border border-purple-700/50 cursor-pointer whitespace-nowrap"
@@ -292,7 +294,7 @@ SPDX-License-Identifier: MPL-2.0
           class="p-2 overflow-y-auto text-xs font-mono text-zinc-300 space-y-1"
           style="height: {logsPanelHeight - 40}px;"
         >
-          {#each $logs as log}
+          {#each $logs as log, i (i)}
             <div class="text-wrap break-words">{log}</div>
           {/each}
           {#if $logs.length === 0}
