@@ -126,10 +126,11 @@ static LOADING_PARAKEET_TDT: LazyLock<parking_lot::Mutex<()>> =
 /// giving up. A held lock means another caller's `from_pretrained` is still
 /// running - on a cold release install, that's the DirectML EP JIT-compiling
 /// shaders for this GPU arch for the first time, which can run well past the
-/// warm ~7s baseline. Match the 300s preload deadline (see `preload_onnx_model`
-/// and commit 9ce98cc) so a transcribe that races a cold preload waits for it
-/// to finish and then hits the populated cache, instead of bailing fast with
-/// MODEL_STILL_LOADING and forcing the user to retry manually.
+/// warm ~7s baseline. Deliberately longer than the 60s preload ceiling
+/// (`PRELOAD_CEILING_SECS`): the preload reports failure early, but a transcribe
+/// that races a still-running load waits for it to finish and then hits the
+/// populated cache, instead of bailing fast with MODEL_STILL_LOADING and forcing
+/// the user to retry manually.
 const LOAD_LOCK_TRY_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(300);
 
 /// Sentinel prefix on the "model still loading" error so the frontend can map
