@@ -18,8 +18,8 @@ export default defineConfig(
       '.svelte-kit/**',
       'node_modules/**',
       'src-tauri/**',
-      'coverage/**'
-    ]
+      'coverage/**',
+    ],
   },
   js.configs.recommended,
   ...ts.configs.recommended,
@@ -30,7 +30,7 @@ export default defineConfig(
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
-      globals: { ...globals.browser, ...globals.node }
+      globals: { ...globals.browser, ...globals.node },
     },
     rules: {
       // TypeScript already reports undefined names, and no-undef misfires on type-only globals.
@@ -38,17 +38,17 @@ export default defineConfig(
       'no-unused-vars': 'off',
       '@typescript-eslint/no-unused-vars': [
         'error',
-        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
       ],
       // Every href in this Tauri desktop app is an external URL (opened via launchUrl) or a
       // generic <a>/<button> primitive; there is no SvelteKit base path to resolve() against.
-      'svelte/no-navigation-without-resolve': 'off'
-    }
+      'svelte/no-navigation-without-resolve': 'off',
+    },
   },
   {
     // Tests mock Tauri/window internals, where `any` is the pragmatic type.
     files: ['**/*.test.ts', '**/*.test.js'],
-    rules: { '@typescript-eslint/no-explicit-any': 'off' }
+    rules: { '@typescript-eslint/no-explicit-any': 'off' },
   },
   {
     files: ['**/*.svelte', '**/*.svelte.ts', '**/*.svelte.js'],
@@ -56,8 +56,8 @@ export default defineConfig(
       parserOptions: {
         extraFileExtensions: ['.svelte'],
         parser: ts.parser,
-        svelteConfig
-      }
-    }
+        svelteConfig,
+      },
+    },
   }
 );
