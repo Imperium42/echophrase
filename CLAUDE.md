@@ -356,7 +356,7 @@ buttons). Add an entry whenever you work around a bug you do not own.
 - **Before pushing, ask: would a user notice this?** If yes, add a very brief entry to `CHANGELOG.md` under `## [Unreleased]` (`### Added` / `### Fixed` / `### Improved`) **in the same push** - not as a follow-up commit afterwards. `/deploy` turns `[Unreleased]` into the release notes, so anything missing at push time is missing from the release.
   - Write it for users, not for us: what they will notice, in plain language. No file names, function names, or internal mechanics.
   - **Match bullet length to impact.** Tiny cosmetic fixes get tiny bullets ("Fixed text alignments in the top banner." - not a sentence describing each nudged pixel). Save the longer bullets for features and behavior changes users actually care about. Fold multiple micro-fixes in the same area into one short bullet.
-  - Skip it for anything invisible to users: refactors, tests, CI, dev-only tooling (e.g. the Debug panel), internal docs.
+  - Skip it for anything invisible to users: refactors, tests, CI, dev-only tooling (e.g. the Debug panel), dev docs.
   - **No fix/improvement bullets for unreleased features.** If a feature is still in `[Unreleased]`, fixes and polish to it are iteration users never saw a "before" of - fold them into (or just refine) the feature's own `### Added` bullet instead of adding separate `### Fixed`/`### Improved` entries. Fixed/Improved bullets are only for behavior that already shipped in a tagged release.
 - When updating `env.yaml`, also update `env.yaml.template`
 - Safetensors only for Candle models (no GGUF, no PyTorch .bin)
