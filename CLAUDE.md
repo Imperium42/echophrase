@@ -143,7 +143,7 @@ Models auto-download to `~/.cache/huggingface/hub/` on first use with progress s
 |-------|----------|-----|--------------|--------------|
 | parakeet-tdt-0.6b-v3 | DirectML | RTX 5080 | warm | ~7.1s |
 
-> **Warm vs cold matters more than the number.** DirectML JIT-compiles shaders on the *first* run for a given GPU architecture and caches them per machine. Warm-cache reloads (above) are fast. A cold first-run on a new GPU arch can take far longer - this is exactly why the Rust-side preload timeout is 300s and why a fast dev reload does **not** prove the cold-JIT deadlock path is healthy. Treat ~7s as the warm regression baseline, not the worst case. See [model load baselines](https://docs.echophrase.com/developers/deep-dives/model-load-baselines).
+> **Warm vs cold matters more than the number.** DirectML JIT-compiles shaders on the *first* run for a given GPU architecture and caches them per machine. Warm-cache reloads (above) are fast. A cold first-run on a new GPU arch can take far longer. Two separate limits: a preload reports failure after 60s (`PRELOAD_CEILING_SECS`, `commands/transcription.rs`; the ORT#26858 DirectML workaround makes session creation return in seconds, so a real hang fails fast), while a transcription that races an in-flight load waits up to 300s for it (`LOAD_LOCK_TRY_TIMEOUT`, `onnx_backend.rs`). A fast dev reload does **not** prove the cold-JIT deadlock path is healthy. Treat ~7s as the warm regression baseline, not the worst case. See [model load baselines](https://docs.echophrase.com/developers/deep-dives/model-load-baselines).
 
 ### Backend Architecture (Trait-Based)
 
