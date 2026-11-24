@@ -44,6 +44,7 @@ target*/
 # Local scratch dirs at the repo root only
 /thoughts/
 /tools/
+/marketing/
 
 # Playwright MCP browser session output (snapshots, downloads) - never commit
 .playwright-mcp/
