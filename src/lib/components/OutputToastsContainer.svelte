@@ -154,7 +154,9 @@ SPDX-License-Identifier: MPL-2.0
     peekShown = true;
     try {
       localStorage.setItem(PEEK_SHOWN_KEY, 'true');
-    } catch {}
+    } catch {
+      // localStorage can be unavailable (private mode); the peek just shows again next launch
+    }
     clearPeekTimers();
     peekActive = false;
   }

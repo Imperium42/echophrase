@@ -94,7 +94,10 @@ export const DEMO_CHIPS_PINNED_MS = 8_000;
 const COUNTDOWN_MIN_VISIBLE = 3;
 /** sessionStorage flag: the Demo click reloads the window, the fresh page then runs the script. */
 const PENDING_KEY = 'echophrase-demo-pending';
-/** Fake compute time in seconds (0.1 ms). */
+/**
+ * Fake compute time in seconds (0.1 ms). Emulates an RTX 5080 (DirectML),
+ * matching what earlier real tests on that GPU measured.
+ */
 export const DEMO_COMPUTE_SECONDS = 0.0001;
 
 const RECORD_BUTTON_SELECTOR = '.record-btn';

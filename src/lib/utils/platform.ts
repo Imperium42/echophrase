@@ -66,7 +66,7 @@ export async function isWSLAsync(): Promise<boolean> {
   if (typeof window === 'undefined') return false;
 
   // Check if Tauri is available
-  if (!(window as any).__TAURI_INTERNALS__) return false;
+  if (!window.__TAURI_INTERNALS__) return false;
 
   try {
     const { invoke } = await import('@tauri-apps/api/core');

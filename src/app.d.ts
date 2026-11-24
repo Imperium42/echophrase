@@ -14,6 +14,11 @@ declare global {
     // interface PageState {}
     // interface Platform {}
   }
+
+  interface Window {
+    /** Injected by the Tauri runtime; undefined in a plain browser. */
+    __TAURI_INTERNALS__?: unknown;
+  }
 }
 
 export {};

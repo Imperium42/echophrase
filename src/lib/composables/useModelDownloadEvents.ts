@@ -15,7 +15,7 @@
  * with module-scope state makes that automatic.
  */
 
-import { writable, type Readable, type Writable, get } from 'svelte/store';
+import { writable, type Readable, type Writable } from 'svelte/store';
 import { modelStore } from '$lib/stores/modelStore';
 import { transformModelStore } from '$lib/stores/transformModelStore';
 import { getModelById, type ModelCategory } from '$lib/types/models';
@@ -148,7 +148,7 @@ function createModelDownloadEvents(): ModelDownloadEvents {
     return def?.category ?? 'transcription';
   }
 
-  async function setupListeners(listen: any): Promise<() => void> {
+  async function setupListeners(listen: typeof tauriListen): Promise<() => void> {
     // Singleton-style: ignore repeat calls. Returning a no-op cleanup keeps
     // the API stable for callers that always call cleanup on unmount.
     if (listenersInstalled) return () => {};
@@ -158,38 +158,41 @@ function createModelDownloadEvents(): ModelDownloadEvents {
 
     // Download started - derive category from the registry via model_id.
     unlisteners.push(
-      await listen('model-download-start', (event: any) => {
-        const payload = event.payload as { model_id?: string; model_dir_name?: string };
-        const cat = categoryForModel(payload?.model_id);
-        currentCategory.set(cat);
-        // Custom downloads already got here via beginCustomDownload() (called
-        // synchronously by ImportCustomModelModal for a flash-free handoff) -
-        // this just re-confirms the same state. Same shared dialog either way.
-        isModalOpen.set(true);
-        isCustomDownload.set(payload?.model_id === 'custom');
-        isDownloadActive.set(true);
-        progress.set(0);
-        // Backend knows the real on-disk directory name; merge it in for the
-        // check/delete-partial-download commands (beginCustomDownload's
-        // caller can't know this ahead of the backend resolving it).
-        if (payload?.model_id === 'custom' && payload.model_dir_name) {
-          customDownloadInfo.update(info =>
-            info ? { ...info, modelDirName: payload.model_dir_name } : info
-          );
+      await listen<{ model_id?: string; model_dir_name?: string }>(
+        'model-download-start',
+        event => {
+          const payload = event.payload;
+          const cat = categoryForModel(payload?.model_id);
+          currentCategory.set(cat);
+          // Custom downloads already got here via beginCustomDownload() (called
+          // synchronously by ImportCustomModelModal for a flash-free handoff) -
+          // this just re-confirms the same state. Same shared dialog either way.
+          isModalOpen.set(true);
+          isCustomDownload.set(payload?.model_id === 'custom');
+          isDownloadActive.set(true);
+          progress.set(0);
+          // Backend knows the real on-disk directory name; merge it in for the
+          // check/delete-partial-download commands (beginCustomDownload's
+          // caller can't know this ahead of the backend resolving it).
+          if (payload?.model_id === 'custom' && payload.model_dir_name) {
+            customDownloadInfo.update(info =>
+              info ? { ...info, modelDirName: payload.model_dir_name } : info
+            );
+          }
         }
-      })
+      )
     );
 
     // Download progress
     unlisteners.push(
-      await listen('model-download-progress', (event: any) => {
-        const payload = event.payload as {
-          progress: number;
-          speed?: string;
-          timeRemaining?: string;
-          timeElapsed?: string;
-          status?: string;
-        };
+      await listen<{
+        progress: number;
+        speed?: string;
+        timeRemaining?: string;
+        timeElapsed?: string;
+        status?: string;
+      }>('model-download-progress', event => {
+        const payload = event.payload;
 
         progress.set(payload.progress);
         speed.set(payload.speed || '');
@@ -210,8 +213,8 @@ function createModelDownloadEvents(): ModelDownloadEvents {
 
     // Download complete - route store update + preload to the right category.
     unlisteners.push(
-      await listen('model-download-complete', async (event: any) => {
-        const downloadedModelId = event.payload as string;
+      await listen<string>('model-download-complete', async event => {
+        const downloadedModelId = event.payload;
         const cat = categoryForModel(downloadedModelId);
         const store = storeForCategory(cat);
 

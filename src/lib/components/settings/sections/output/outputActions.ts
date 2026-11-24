@@ -93,6 +93,7 @@ export function highlightJSON(json: string): string {
     .replace(/:\s*(true|false|null)/g, ': <span class="json-boolean">$1</span>')
     .replace(/([{}[\],])/g, '<span class="json-punctuation">$1</span>');
   highlighted = highlighted.replace(
+    // eslint-disable-next-line no-control-regex -- NUL delimits template placeholders (set earlier in this function)
     /\u0000TEMPLATE_(\w+)\u0000/g,
     '<span class="json-template">{<!-- -->{$1}<!-- -->}</span>'
   );

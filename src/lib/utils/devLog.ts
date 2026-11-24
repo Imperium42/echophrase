@@ -40,9 +40,7 @@ export function setVerboseLoggingEnabled(enabled: boolean): void {
 }
 
 const noop = (): void => {};
-// eslint-disable-next-line no-console
 const originalLog = console.log;
-// eslint-disable-next-line no-console
 const originalDebug = console.debug;
 
 /**

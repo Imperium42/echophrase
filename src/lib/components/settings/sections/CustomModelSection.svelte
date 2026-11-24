@@ -60,8 +60,8 @@ SPDX-License-Identifier: MPL-2.0
   // imports/selects/removes a model - keeps this section in sync even
   // while the modal is still open above it.
   $effect(() => {
-    $customModelChanged;
-    $showImportCustomModelModal;
+    void $customModelChanged;
+    void $showImportCustomModelModal;
     void refresh();
   });
 

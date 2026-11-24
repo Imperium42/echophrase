@@ -47,7 +47,7 @@ SPDX-License-Identifier: MPL-2.0
 
   async function copyDebugInfo() {
     // ort native device enumeration.
-    let ortDevices = 'unknown';
+    let ortDevices: string;
     try {
       const devices =
         await mustInvoke<Array<{ ep_name: string; hw_vendor: string; device_type: string }>>(

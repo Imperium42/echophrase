@@ -47,16 +47,7 @@ SPDX-License-Identifier: MPL-2.0
     is_cpu_fallback: boolean;
   }
 
-  interface DeviceInfo {
-    ep_name: string;
-    ep_vendor: string;
-    hw_vendor: string;
-    device_type: string;
-    device_id: number;
-  }
-
   let epStatus = $state<ExecutionProviderSelection | null>(null);
-  let devices = $state<DeviceInfo[]>([]);
   let isLoading = $state(true);
   let selectError = $state<string | null>(null);
   // Track initial preferred to detect changes requiring restart
@@ -95,16 +86,6 @@ SPDX-License-Identifier: MPL-2.0
       if (p.provider === 'core_ml' && !isMacPlatform) return false;
       if (p.hard_incompatible) return false; // Hide hard-incompat options entirely
       return true;
-    })
-  );
-
-  // Find the current active device for the inline status line
-  const activeDevice = $derived(
-    devices.find(d => {
-      const ep = d.ep_name.toLowerCase();
-      if (epStatus?.active === 'direct_ml') return ep === 'dmlexecutionprovider';
-      if (epStatus?.active === 'core_ml') return ep === 'coremlexecutionprovider';
-      return false;
     })
   );
 
@@ -198,11 +179,6 @@ SPDX-License-Identifier: MPL-2.0
       setTimeout(() => (selectError = null), 5000);
     }
   }
-
-  function deviceLabel(d: DeviceInfo): string {
-    // "Intel (GPU)" or "Microsoft (CPU)"
-    return `${d.hw_vendor} (${d.device_type})`;
-  }
 </script>
 
 <SettingsSection id="gpu-acceleration" title={t('gpu.title')} icon="gpu">
@@ -248,7 +224,7 @@ SPDX-License-Identifier: MPL-2.0
         </div>
       </label>
 
-      {#each platformProviders as provider}
+      {#each platformProviders as provider (provider.provider)}
         {@const isSelected = provider.provider === selectedProvider}
         {@const isIncompatible = !provider.available}
         <label class="ep-item" class:selected={isSelected} class:incompatible={isIncompatible}>

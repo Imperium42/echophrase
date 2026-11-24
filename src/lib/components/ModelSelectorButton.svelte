@@ -15,7 +15,7 @@ SPDX-License-Identifier: MPL-2.0
   import { onDestroy } from 'svelte';
   import { t } from '$lib/locales';
   import { executionProviderStore } from '$lib/stores/executionProvider';
-  import { demoSession, DEMO_MODEL_ID, DEMO_PROVIDER } from '$lib/stores/demo';
+  import { demoSession, DEMO_MODEL_ID, demoProvider } from '$lib/stores/demo';
   import { customModelChanged, getCustomModelInfo } from '$lib/services/customModelService';
 
   type Props = {
@@ -36,7 +36,7 @@ SPDX-License-Identifier: MPL-2.0
   // "Custom Model" placeholder, the user knows their model by ITS name.
   let customModelName = $state<string | null>(null);
   $effect(() => {
-    $customModelChanged;
+    void $customModelChanged;
     if (currentSelectedModel !== 'custom') {
       customModelName = null;
       return;
@@ -60,7 +60,7 @@ SPDX-License-Identifier: MPL-2.0
   let transformNeedsSetup = $derived(transformEnabled && !transformModelReady);
 
   // Execution provider from centralized store
-  let activeProvider = $derived($demoSession ? DEMO_PROVIDER : $executionProviderStore.active);
+  let activeProvider = $derived($demoSession ? demoProvider() : $executionProviderStore.active);
 
   // Short labels for display
   const providerShortLabels: Record<string, string> = {

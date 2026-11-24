@@ -49,7 +49,7 @@ SPDX-License-Identifier: MPL-2.0
   // generic "Custom Model" placeholder, the user knows their model by ITS name.
   let customModelName = $state<string | null>(null);
   $effect(() => {
-    $customModelChanged;
+    void $customModelChanged;
     if (selectedModelValue !== 'custom') {
       customModelName = null;
       return;
@@ -102,7 +102,7 @@ SPDX-License-Identifier: MPL-2.0
   }
 
   onMount(async () => {
-    if (typeof window !== 'undefined' && (window as any).__TAURI_INTERNALS__) {
+    if (typeof window !== 'undefined' && window.__TAURI_INTERNALS__) {
       if (gpuInfoCache && cpuFallbackCache !== null) {
         gpuInfo = gpuInfoCache;
         isCpuFallback = cpuFallbackCache;

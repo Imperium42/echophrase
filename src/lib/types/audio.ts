@@ -137,7 +137,7 @@ export function validateAudioFile(file: File): { valid: boolean; error?: string 
   // Check file extension
   const extension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
 
-  if (!SUPPORTED_AUDIO_FORMATS.includes(extension as any)) {
+  if (!(SUPPORTED_AUDIO_FORMATS as readonly string[]).includes(extension)) {
     return {
       valid: false,
       error: `Unsupported format. Supported: ${SUPPORTED_AUDIO_FORMATS.join(', ')}`,

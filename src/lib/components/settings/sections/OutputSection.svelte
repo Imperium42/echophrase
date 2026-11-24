@@ -125,7 +125,7 @@ SPDX-License-Identifier: MPL-2.0
           onchange={e => updateSetting('output_format', e.currentTarget.value)}
         >
           <option value="text">{t('outputSettings.plainText')}</option>
-          {#each getAvailableOutputFormats(t) as format}
+          {#each getAvailableOutputFormats(t) as format (format.value)}
             {#if format.value !== 'text'}
               <option value={format.value}>{format.label}</option>
             {/if}
@@ -153,7 +153,7 @@ SPDX-License-Identifier: MPL-2.0
     <span class="subsection-hint">{t('outputSettings.chooseOnePlus')}</span>
   </div>
 
-  {#each getAvailableOutputModes(t) as mode}
+  {#each getAvailableOutputModes(t) as mode (mode.value)}
     {@const isCopyToClipboard = mode.value === 'copy_to_clipboard'}
     {@const isPasteAtCursor = mode.value === 'paste_at_cursor'}
     {@const isActive = isCopyToClipboard

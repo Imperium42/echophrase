@@ -23,7 +23,6 @@
 
 import {
   type SupportedLocale,
-  type LocaleStrings,
   DEFAULT_LOCALE,
   getLocaleStrings,
   getNestedValue,

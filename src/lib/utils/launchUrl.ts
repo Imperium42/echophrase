@@ -22,7 +22,7 @@ import { platformCache } from '$lib/stores/platformCache';
  * Platform is detected from cache (no IPC needed).
  */
 export async function launchUrl(url: string): Promise<void> {
-  if (typeof window === 'undefined' || !(window as any).__TAURI_INTERNALS__) {
+  if (typeof window === 'undefined' || !window.__TAURI_INTERNALS__) {
     // Web mode fallback
     window.open(url, '_blank');
     return;

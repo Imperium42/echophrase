@@ -36,7 +36,9 @@ function purgeLegacyKeys() {
   for (const key of LEGACY_FTUE_KEYS) {
     try {
       localStorage.removeItem(key);
-    } catch {}
+    } catch {
+      // localStorage may be unavailable; legacy keys are harmless if left behind
+    }
   }
 }
 
@@ -109,7 +111,9 @@ function createOnboardingStore() {
       for (const key of FTUE_KEYS) {
         try {
           localStorage.removeItem(key);
-        } catch {}
+        } catch {
+          // localStorage may be unavailable; nothing to clear
+        }
       }
       // Notify any mounted components that FTUE was reset
       window.dispatchEvent(new CustomEvent('ftue-reset'));

@@ -34,9 +34,11 @@ SPDX-License-Identifier: MPL-2.0
     >
       <p class="text-zinc-300/90 text-sm font-light leading-relaxed text-left">
         {#each words as word, i ($pageIndex + '-' + i)}
+          <!-- eslint-disable svelte/no-useless-mustaches -- {' '} keeps the inter-word space; a literal one is trimmed at the block edge -->
           <span class="inline-block animate-word-fade-in" style="animation-delay: {i * 30}ms"
             >{word}</span
           >{' '}
+          <!-- eslint-enable svelte/no-useless-mustaches -->
         {/each}
       </p>
     </div>

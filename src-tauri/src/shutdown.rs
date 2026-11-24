@@ -112,6 +112,30 @@ pub fn force_exit(code: i32) -> ! {
     }
 }
 
+/// Decide whether a Tauri run-loop event must end the process via
+/// [`force_exit`]. Returns the exit code, or `None` to keep running.
+///
+/// `RunEvent::Exit` is tao's `LoopDestroyed`. Our own quit paths never get
+/// here (they call `force_exit` directly). Tauri-initiated exits and
+/// restarts (`relaunch()` after an update, `request_restart`) always send
+/// `ExitRequested` first and restart only AFTER the `Exit` callback returns,
+/// so those must be left alone - `exit_requested_seen` is true for them.
+/// An `Exit` with no `ExitRequested` before it means something outside the
+/// app tore the loop down - in practice Windows `WM_ENDSESSION` (logoff,
+/// shutdown, or an installer's Restart Manager closing the app). tao 0.35
+/// moves its runner to `Destroyed` but keeps pumping messages, and the next
+/// event dispatched panics with "cannot move state from Destroyed"
+/// (tao runner.rs:371, tauri-apps/tao#1310). Terminating inside this event
+/// means there is no next event. tao 0.37 calls `std::process::exit` here
+/// instead, which can still hang in ORT/DirectML DLL teardown, so this stays
+/// useful after a tauri bump too. See KNOWN_ISSUES.md.
+pub fn exit_code_for_run_event(event: &tauri::RunEvent, exit_requested_seen: bool) -> Option<i32> {
+    match event {
+        tauri::RunEvent::Exit if !exit_requested_seen => Some(0),
+        _ => None,
+    }
+}
+
 /// Try to delete the single-instance lock file so a relaunch doesn't see a
 /// stale entry. Best-effort - errors are logged and swallowed because we are
 /// about to exit anyway.
@@ -148,5 +172,41 @@ fn unregister_shortcuts_best_effort() {
             "force_exit: unregister_all failed (proceeding anyway): {}",
             e
         ),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn unrequested_loop_exit_routes_through_force_exit() {
+        // WM_ENDSESSION path: Exit arrives with no ExitRequested before it.
+        assert_eq!(
+            exit_code_for_run_event(&tauri::RunEvent::Exit, false),
+            Some(0)
+        );
+    }
+
+    #[test]
+    fn requested_exit_or_restart_is_left_to_tauri() {
+        // relaunch() after an update: ExitRequested, then Exit, then tauri
+        // restarts the process. Force-exiting here would kill the relaunch.
+        assert_eq!(exit_code_for_run_event(&tauri::RunEvent::Exit, true), None);
+    }
+
+    #[test]
+    fn non_exit_events_do_not_exit() {
+        for seen in [false, true] {
+            assert_eq!(exit_code_for_run_event(&tauri::RunEvent::Ready, seen), None);
+            assert_eq!(
+                exit_code_for_run_event(&tauri::RunEvent::Resumed, seen),
+                None
+            );
+            assert_eq!(
+                exit_code_for_run_event(&tauri::RunEvent::MainEventsCleared, seen),
+                None
+            );
+        }
     }
 }
