@@ -2,7 +2,7 @@
 
 All notable changes to Echophrase will be documented in this file.
 
-## [Unreleased]
+## [v1.0.1] - 2026-11-24
 
 ### Fixed
 - Fixed a rare crash on Windows when signing out, shutting down or restarting with Echophrase running.
