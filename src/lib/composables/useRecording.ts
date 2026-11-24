@@ -486,12 +486,7 @@ export function useRecording(getModelExists?: () => boolean, showDownloadDialog?
         error?.toString?.().includes('no longer available') ||
         error?.toString?.().includes('unplugged')
       ) {
-        // Check if we're in WSL
-        if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-          errorMessage.set(translate('errors.wslMicLimitation'));
-        } else {
-          errorMessage.set(translate('errors.micNotAvailable'));
-        }
+        errorMessage.set(translate('errors.micNotAvailable'));
         setTimeout(() => errorMessage.set(''), 5000);
       } else if (error?.toString?.().includes('permission')) {
         errorMessage.set(translate('errors.micPermissionDenied'));
