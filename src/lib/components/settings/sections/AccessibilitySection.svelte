@@ -27,10 +27,7 @@ SPDX-License-Identifier: MPL-2.0
   const mode = $derived($settings?.ui_scale_mode === 'manual' ? 'manual' : 'auto');
 
   // Slider works in whole percent (50-200, step 5); settings store the factor
-  let sliderPercent = $state(100);
-  $effect(() => {
-    sliderPercent = Math.round(($settings?.ui_scale_manual ?? 1.0) * 100);
-  });
+  let sliderPercent = $derived(Math.round(($settings?.ui_scale_manual ?? 1.0) * 100));
 
   function onSliderChange(percent: number) {
     sliderPercent = percent;

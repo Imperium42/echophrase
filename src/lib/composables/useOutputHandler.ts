@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
+import type { InvokeArgs } from '@tauri-apps/api/core';
 import { useClipboard } from './useClipboard';
 import { tauriSettings } from './useTauriSettings';
 import { get } from 'svelte/store';
@@ -21,7 +22,13 @@ export type OutputMode = 'paste_at_cursor' | 'copy_to_clipboard' | 'save_as_file
 export { getAvailableOutputModes } from '$lib/types/settings';
 
 // Dynamic Tauri invoke reference
-let invoke: any = null;
+let invoke: typeof import('@tauri-apps/api/core').invoke | null = null;
+
+/** Call the lazily-loaded Tauri invoke; throws (caught by callers) if it never loaded. */
+async function callInvoke<T = unknown>(cmd: string, args?: InvokeArgs): Promise<T> {
+  if (!invoke) throw new Error('Tauri invoke is not initialized');
+  return invoke<T>(cmd, args);
+}
 
 /**
  * Initialize Tauri API
@@ -29,7 +36,7 @@ let invoke: any = null;
 async function initializeTauri(): Promise<boolean> {
   if (invoke) return true;
 
-  if (typeof window !== 'undefined' && typeof (window as any).__TAURI_INTERNALS__ !== 'undefined') {
+  if (typeof window !== 'undefined' && typeof window.__TAURI_INTERNALS__ !== 'undefined') {
     try {
       const { invoke: tauriInvoke } = await import('@tauri-apps/api/core');
       invoke = tauriInvoke;
@@ -117,7 +124,7 @@ export function useOutputHandler() {
       // Native: use Tauri clipboard plugin
       const wsl = await isWSLAsync();
       if (wsl) {
-        await invoke('copy_to_windows_clipboard', { text });
+        await callInvoke('copy_to_windows_clipboard', { text });
         console.log('📋 Text copied to Windows clipboard via clip.exe');
       }
       const previous = !wsl && !keepOnClipboard ? await clipboard.readClipboard() : null;
@@ -127,7 +134,7 @@ export function useOutputHandler() {
       }
 
       // Simulate paste keystroke (WSL-aware on Rust side)
-      await invoke('simulate_paste');
+      await callInvoke('simulate_paste');
       console.log('⌨️ Paste keystroke simulated');
 
       if (!wsl && !keepOnClipboard) {
@@ -201,7 +208,7 @@ export function useOutputHandler() {
 
       // Auto-save to configured directory if set
       if (settings?.save_directory) {
-        const savedPath = (await invoke('save_transcript_to_directory', {
+        const savedPath = (await callInvoke('save_transcript_to_directory', {
           content: text,
           filename,
           directory: settings.save_directory,
@@ -211,7 +218,7 @@ export function useOutputHandler() {
       }
 
       // Fall back to save dialog
-      const result = (await invoke('save_transcript_dialog', { content: text, filename })) as
+      const result = (await callInvoke('save_transcript_dialog', { content: text, filename })) as
         string | null;
 
       if (result) {

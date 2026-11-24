@@ -12,7 +12,7 @@
  * Command names match `#[tauri::command]` fn names in src-tauri/src/commands/.
  */
 
-import { mustInvoke, safeInvoke } from './invoke';
+import { mustInvoke } from './invoke';
 import type { Settings } from '$lib/types/settings';
 
 // ---------------------------------------------------------------------------

@@ -164,7 +164,7 @@ export class DownloadManager {
       failedDownloads: stats.failedDownloads + 1,
     }));
 
-    this.currentDownload.update(task => ({
+    this.currentDownload.update(_task => ({
       ...failed,
     }));
   }

@@ -21,6 +21,10 @@ import { planOutputModes } from '$lib/utils/outputPlan';
 import { devLog } from '$lib/utils/devLog';
 import { addOutputToast } from '$lib/stores/outputToasts';
 import type { UnlistenFn } from '@tauri-apps/api/event';
+import type { InvokeArgs } from '@tauri-apps/api/core';
+
+/** Shape we probe on caught values: Tauri rejects with plain strings as well as Errors. */
+type CaughtError = { message?: string; toString?: () => string } | null | undefined;
 
 // Speed toast duration (ms) - must match CSS animation in app.css
 const SPEED_TOAST_DURATION_MS = 4000;
@@ -136,13 +140,11 @@ function showSpeedToast(transcriptionSeconds: number, transformSeconds: number |
 }
 
 // Dynamic Tauri API references
-let invoke: any = null;
+let invoke: typeof import('@tauri-apps/api/core').invoke | null = null;
 
 // Check if Tauri context is available
 function isTauriAvailable(): boolean {
-  return (
-    typeof window !== 'undefined' && typeof (window as any).__TAURI_INTERNALS__ !== 'undefined'
-  );
+  return typeof window !== 'undefined' && typeof window.__TAURI_INTERNALS__ !== 'undefined';
 }
 
 // Initialize Tauri APIs dynamically
@@ -195,7 +197,7 @@ async function triggerAppRestart(): Promise<void> {
 const MAX_RETRIES = 3;
 const RETRY_DELAYS = [1000, 2000, 4000]; // Exponential backoff
 
-async function safeInvoke<T>(command: string, args?: any, retryCount = 0): Promise<T> {
+async function safeInvoke<T>(command: string, args?: InvokeArgs, retryCount = 0): Promise<T> {
   if (!isTauriAvailable() || !invoke) {
     throw new Error(translate('errors.webModeFull'));
   }
@@ -215,7 +217,8 @@ async function safeInvoke<T>(command: string, args?: any, retryCount = 0): Promi
 
     const invokePromise = invoke(command, args) as Promise<T>;
     return await Promise.race([invokePromise, timeoutPromise]);
-  } catch (error: any) {
+  } catch (caught: unknown) {
+    const error = caught as CaughtError;
     const isTimeoutError =
       error?.message === 'TIMEOUT' ||
       error?.message?.includes('Connection refused') ||
@@ -236,7 +239,8 @@ async function safeInvoke<T>(command: string, args?: any, retryCount = 0): Promi
       throw new Error(
         translate('errors.transcriptionTimeout', {
           seconds: String(TRANSCRIPTION_TIMEOUT_MS / 1000),
-        })
+        }),
+        { cause: caught }
       );
     }
 
@@ -253,7 +257,7 @@ async function safeInvoke<T>(command: string, args?: any, retryCount = 0): Promi
       console.error(`❌ Max retries exceeded for "${command}". Triggering auto-restart...`);
       // Give user a moment to see what's happening
       setTimeout(() => triggerAppRestart(), 1500);
-      throw new Error(translate('errors.connectionLost'));
+      throw new Error(translate('errors.connectionLost'), { cause: caught });
     }
 
     // Only treat specific initialization errors as server startup issues
@@ -262,10 +266,10 @@ async function safeInvoke<T>(command: string, args?: any, retryCount = 0): Promi
       error?.message?.includes('not registered') ||
       error?.message?.includes('failed to initialize')
     ) {
-      throw new Error(translate('errors.serverInitializing'));
+      throw new Error(translate('errors.serverInitializing'), { cause: caught });
     }
     // For other errors (like microphone issues), pass them through as-is
-    throw error;
+    throw caught;
   }
 }
 
@@ -469,7 +473,8 @@ export function useRecording(getModelExists?: () => boolean, showDownloadDialog?
       }, RECORDING_TIME_UPDATE_INTERVAL_MS);
 
       console.log('✅ Recording started successfully');
-    } catch (error: any) {
+    } catch (caught: unknown) {
+      const error = caught as CaughtError;
       console.error('❌ Error starting recording:', error);
       isRecording.set(false);
 
@@ -565,7 +570,7 @@ export function useRecording(getModelExists?: () => boolean, showDownloadDialog?
         console.log('🛑 Stopping recorder and transcribing directly from memory (no file I/O)');
         const transcriptionStart = performance.now();
         // Combined stop + transcribe for direct buffer processing
-        let rawText = await safeInvoke<string>('stop_audio_recording_and_transcribe');
+        const rawText = await safeInvoke<string>('stop_audio_recording_and_transcribe');
         transcriptionSeconds = (performance.now() - transcriptionStart) / 1000;
         devLog(`🎤 Raw transcription (${transcriptionSeconds.toFixed(2)}s): ${rawText}`);
 
@@ -924,7 +929,8 @@ export function useRecording(getModelExists?: () => boolean, showDownloadDialog?
         silenceTimeout,
         'ms)'
       );
-    } catch (error: any) {
+    } catch (caught: unknown) {
+      const error = caught as CaughtError;
       if (sessionId !== openMicSessionGeneration) {
         // Losing concurrent start (e.g. Rust returned "Already recording").
         // The winning session already owns openMicUnlisteners/recordingInterval -
@@ -1292,132 +1298,6 @@ export function useRecording(getModelExists?: () => boolean, showDownloadDialog?
           });
       }
       return true;
-    }
-  }
-
-  interface TranscribeResult {
-    text: string;
-    transcriptionSeconds: number;
-    transformSeconds: number | null;
-    originalText: string | null; // Original text before transform (null if no transform)
-  }
-
-  // Wait for the backend to emit `model-preload-status: done` (or `failed`),
-  // up to `timeoutMs`. Resolves true on done, false on failed/timeout. Used as
-  // the gate for retrying a transcribe that lost the race with a cold-JIT preload.
-  async function waitForPreloadDone(timeoutMs: number): Promise<boolean> {
-    const { listen } = await import('@tauri-apps/api/event');
-    return await new Promise<boolean>(resolve => {
-      let settled = false;
-      let unlisten: UnlistenFn | null = null;
-      const finish = (ok: boolean) => {
-        if (settled) return;
-        settled = true;
-        if (unlisten) unlisten();
-        clearTimeout(timer);
-        resolve(ok);
-      };
-      const timer = setTimeout(() => finish(false), timeoutMs);
-      listen<{ phase: string }>('model-preload-status', event => {
-        const phase = event.payload?.phase;
-        if (phase === 'done') finish(true);
-        else if (phase === 'failed') finish(false);
-      })
-        .then(u => {
-          unlisten = u;
-          if (settled) u();
-        })
-        .catch(() => finish(false));
-    });
-  }
-
-  async function transcribeAudio(audioPath: string): Promise<TranscribeResult> {
-    const invokeTranscribe = (): Promise<string> =>
-      safeInvoke<string>('transcribe_audio', { filePath: audioPath });
-
-    try {
-      const transcriptionStart = performance.now();
-      console.log(
-        `🧠 Invoking transcribe_audio backend (timeout: ${TRANSCRIPTION_TIMEOUT_MS / 1000}s)...`
-      );
-
-      // safeInvoke already handles timeout - no duplicate Promise.race needed
-      let result: string;
-      try {
-        result = await invokeTranscribe();
-      } catch (firstError) {
-        // Backend bails with MODEL_STILL_LOADING if it can't acquire the load
-        // lock within its budget - typically a cold-JIT DirectML preload that
-        // ran past the timeout. Show the localized status, wait for preload
-        // `done`, and retry once before giving up.
-        if (!String(firstError).includes('MODEL_STILL_LOADING')) throw firstError;
-        console.warn('⏳ Model still loading - waiting for preload to finish, will retry once');
-        errorMessage.set(translate('modelStore.stillLoading'));
-        const preloadOk = await waitForPreloadDone(300_000);
-        errorMessage.set('');
-        if (!preloadOk) throw firstError;
-        result = await invokeTranscribe();
-      }
-
-      const transcriptionTime = performance.now() - transcriptionStart;
-      const transcriptionSeconds = transcriptionTime / 1000;
-      const rawResult = result;
-      let transformSeconds: number | null = null;
-
-      console.log(`🎤 Raw transcription (${transcriptionSeconds.toFixed(2)}s): ${rawResult}`);
-
-      // Apply transform if enabled
-      let originalText: string | null = null;
-      try {
-        const settings = get(tauriSettings);
-        if (settings?.transform_enabled) {
-          const modelName = settings.transform_model || 't5-mini-grammar';
-          console.log(`🔄 Applying transform [${modelName}]...`);
-
-          const transformStart = performance.now();
-          const transformed = await safeInvoke<string>('transform_text', {
-            text: result,
-            rules: settings.transform_rules || null,
-          });
-          const transformTime = performance.now() - transformStart;
-          transformSeconds = transformTime / 1000;
-
-          if (transformed !== rawResult) {
-            devLog(`✨ Transformed (${transformSeconds.toFixed(2)}s): ${transformed}`);
-            originalText = rawResult; // Save original for transform toast
-            result = transformed;
-          } else {
-            console.log(`✅ Transform complete (${transformSeconds.toFixed(2)}s): (no change)`);
-          }
-
-          const totalTime = transcriptionSeconds + transformSeconds;
-          console.log(
-            `⏱️ Total: ${totalTime.toFixed(2)}s (transcription: ${transcriptionSeconds.toFixed(2)}s + transform: ${transformSeconds.toFixed(2)}s)`
-          );
-        }
-      } catch (transformError) {
-        console.warn('⚠️ Transform failed, using original transcription:', transformError);
-      }
-
-      return { text: result, transcriptionSeconds, transformSeconds, originalText };
-    } catch (error) {
-      console.error('❌ Transcription failed:', error);
-      // The backend returns a MODEL_STILL_LOADING-marked error when a transcribe
-      // arrives while a preload's first-run GPU shader JIT still holds the load
-      // lock. Surface a localized, friendly message instead of a raw error and
-      // don't treat it as a transcription result.
-      if (String(error).includes('MODEL_STILL_LOADING')) {
-        const msg = translate('modelStore.stillLoading');
-        errorMessage.set(msg);
-        setTimeout(() => errorMessage.set(''), 5000);
-        return { text: '', transcriptionSeconds: 0, transformSeconds: null, originalText: null };
-      }
-      return {
-        text: `Transcription failed: ${error}`,
-        transcriptionSeconds: 0,
-        transformSeconds: null,
-        originalText: null,
-      };
     }
   }
 

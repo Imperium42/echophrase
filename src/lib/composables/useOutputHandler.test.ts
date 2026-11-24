@@ -28,14 +28,14 @@ import { useOutputHandler } from './useOutputHandler';
 describe('paste at cursor with restore', () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    (window as any).__TAURI_INTERNALS__ = {};
+    window.__TAURI_INTERNALS__ = {};
     clip.copyToClipboard.mockReset().mockResolvedValue(undefined);
     clip.readClipboard.mockReset();
     tauri.invoke.mockReset().mockResolvedValue(undefined);
   });
   afterEach(() => {
     vi.useRealTimers();
-    delete (window as any).__TAURI_INTERNALS__;
+    delete window.__TAURI_INTERNALS__;
   });
 
   async function paste(keepOnClipboard: boolean) {

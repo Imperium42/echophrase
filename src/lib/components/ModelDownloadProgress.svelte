@@ -7,7 +7,7 @@ SPDX-License-Identifier: MPL-2.0
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { mustInvoke } from '$lib/ipc/invoke';
-  import { listen } from '@tauri-apps/api/event';
+  import { listen, type UnlistenFn } from '@tauri-apps/api/event';
   import ModalCloseButton from './ModalCloseButton.svelte';
   import HintTooltip from './settings/primitives/HintTooltip.svelte';
   import { modelStore } from '../stores/modelStore';
@@ -29,7 +29,6 @@ SPDX-License-Identifier: MPL-2.0
   import { fade } from 'svelte/transition';
   import { launchUrl } from '$lib/utils/launchUrl';
   import { cmdOpenDirectory, cmdGetModelsDir } from '$lib/ipc/commands';
-  import { Icon } from '$lib/icons';
   import { useCopyFeedback } from '$lib/composables/useCopyFeedback';
   import {
     getCustomModelInfo,
@@ -51,7 +50,6 @@ SPDX-License-Identifier: MPL-2.0
     progress?: number;
     downloadSpeed?: string;
     timeRemaining?: string;
-    timeElapsed?: string;
     /** Error message if download failed */
     error?: string;
     /** Real-time status label */
@@ -76,7 +74,6 @@ SPDX-License-Identifier: MPL-2.0
     progress = 0,
     downloadSpeed = '',
     timeRemaining = '',
-    timeElapsed = '',
     error = '',
     status = '',
     onClose = undefined,
@@ -162,8 +159,8 @@ SPDX-License-Identifier: MPL-2.0
   }
   let tempSelectedModel = $state('distil-large-v3'); // Temporary selection for preview only
   let previousIsDownloading = false;
-  let unlistenDownloadComplete: any = null;
-  let unlistenDownloadError: any = null;
+  let unlistenDownloadComplete: UnlistenFn | null = null;
+  let unlistenDownloadError: UnlistenFn | null = null;
   let errorType: 'download' | 'delete' = $state('download'); // Track what operation failed
   let partialDownloadSize = $state<number | null>(null); // Size of partial download in bytes
   let gpuInfo: GpuInfo = $state({ name: null, vramGb: null, vramMb: null, displayString: null });
@@ -216,7 +213,7 @@ SPDX-License-Identifier: MPL-2.0
   // import modal closes (an import/replace/remove may have landed).
   let customInfo = $state<CustomModelInfo | null>(null);
   $effect(() => {
-    $customModelChanged;
+    void $customModelChanged;
     if (isDownloading && !$showImportCustomModelModal) {
       void getCustomModelInfo().then(
         info => (customInfo = info),
@@ -272,7 +269,7 @@ SPDX-License-Identifier: MPL-2.0
       ortAvailable = gpuContext.ortAvailable;
 
       // Listen for model download complete event
-      unlistenDownloadComplete = await listen('model-download-complete', async (event: any) => {
+      unlistenDownloadComplete = await listen<string>('model-download-complete', async event => {
         const downloadedModelId = event.payload;
 
         // Only react to completions for *this* dialog's category - the other
@@ -289,7 +286,7 @@ SPDX-License-Identifier: MPL-2.0
       });
 
       // Listen for model download errors
-      unlistenDownloadError = await listen('model-download-error', async (event: any) => {
+      unlistenDownloadError = await listen<string>('model-download-error', async event => {
         // Set error state and show error view
         error = event.payload || t('modelDownload.downloadFailed');
         errorType = 'download';
@@ -299,7 +296,6 @@ SPDX-License-Identifier: MPL-2.0
         progress = 0;
         downloadSpeed = '';
         timeRemaining = '';
-        timeElapsed = '';
         status = '';
       });
     } catch (err) {
@@ -364,14 +360,13 @@ SPDX-License-Identifier: MPL-2.0
       status = partialDownloadSize ? t('modelDownload.resuming') : t('modelDownload.starting'); // Set initial status immediately
       downloadSpeed = '';
       timeRemaining = '';
-      timeElapsed = '';
 
       // Start download - this will trigger progress events
       await mustInvoke('download_whisper_model', { modelType: tempSelectedModel });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Download error:', err);
-      if (!err.toString().includes('cancelled')) {
-        error = err.toString().replace('Error: ', '');
+      if (!String(err).includes('cancelled')) {
+        error = String(err).replace('Error: ', '');
         viewState = ModelDialogState.Error;
       }
     }
@@ -466,7 +461,6 @@ SPDX-License-Identifier: MPL-2.0
     progress = 0;
     downloadSpeed = '';
     timeRemaining = '';
-    timeElapsed = '';
     status = '';
     isCompleting = false;
     isFadingOut = false;
@@ -548,7 +542,7 @@ SPDX-License-Identifier: MPL-2.0
 
   // Watch progress changes
   $effect(() => {
-    progress;
+    void progress;
     checkProgressCompletion(progress);
   });
 

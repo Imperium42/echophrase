@@ -27,8 +27,8 @@ SPDX-License-Identifier: MPL-2.0
     id?: string;
     /** Section title */
     title: string;
-    /** SVG icon path (d attribute) or preset name */
-    icon: string;
+    /** Icon name; not rendered by this component (kept so call sites stay unchanged) */
+    icon?: string;
     /** Make section collapsible (default: true) */
     collapsible?: boolean;
     /** Default open state (for collapsible) */
@@ -46,7 +46,6 @@ SPDX-License-Identifier: MPL-2.0
   let {
     id,
     title,
-    icon,
     collapsible = true,
     defaultOpen = true,
     featureTag = null,
@@ -58,35 +57,6 @@ SPDX-License-Identifier: MPL-2.0
   // Intentionally capture initial value only - isOpen is then managed independently by user interaction
   // svelte-ignore state_referenced_locally
   let isOpen = $state(defaultOpen);
-
-  // Icon paths for common section icons
-  const iconPaths: Record<string, string> = {
-    model:
-      'M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z',
-    gpu: 'M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z',
-    optimization: 'M13 10V3L4 14h7v7l9-11h-7z',
-    output:
-      'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
-    recording:
-      'M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z',
-    'audio-input':
-      'M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z',
-    hotkeys:
-      'M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122',
-    customize:
-      'M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z',
-    accessibility:
-      'M12 5a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM4 7.5l6.5 1v4l-2.4 7.2a1 1 0 001.9.7L12 14l1.999 6.4a1 1 0 001.9-.7l-2.4-7.2v-4l6.5-1a1 1 0 10-.3-2L14 6.5h-4L4.3 5.5a1 1 0 10-.3 2z',
-    'custom-model':
-      'M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4',
-    data: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z',
-    debug: 'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
-    transform:
-      'M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z',
-    mcp: 'M8 9l3 3-3 3m5 0h3M4 5h16a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V6a1 1 0 011-1z',
-  };
-
-  const iconPath = $derived(iconPaths[icon] || icon);
 </script>
 
 {#if collapsible}

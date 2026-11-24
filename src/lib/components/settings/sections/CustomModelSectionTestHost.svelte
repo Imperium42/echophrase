@@ -21,8 +21,9 @@ SPDX-License-Identifier: MPL-2.0
 
   let { context }: Props = $props();
 
-  // svelte-ignore state_referenced_locally -- context is set once at mount,
-  // matching how the real SettingsModal wires up its context provider.
+  // Context is set once at mount, matching how the real SettingsModal wires up
+  // its context provider.
+  // svelte-ignore state_referenced_locally
   setSettingsContext(context);
 </script>
 

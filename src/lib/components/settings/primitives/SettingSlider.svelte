@@ -140,7 +140,7 @@ SPDX-License-Identifier: MPL-2.0
 
   function handleKeydown(e: KeyboardEvent) {
     if (disabled) return;
-    let next = value;
+    let next: number;
     if (e.key === 'ArrowRight' || e.key === 'ArrowUp') next = snap(value + step);
     else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') next = snap(value - step);
     else if (e.key === 'Home') next = min;
@@ -183,7 +183,7 @@ SPDX-License-Identifier: MPL-2.0
   </div>
   {#if labels.length > 0}
     <div class="slider-labels" class:positioned={labelPositions != null}>
-      {#each labels as label, i}
+      {#each labels as label, i (label)}
         {#if labelPositions != null}
           <span class="positioned-label" style="left: {labelPositions[i] ?? 0}%">{label}</span>
         {:else}

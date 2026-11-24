@@ -74,7 +74,7 @@ SPDX-License-Identifier: MPL-2.0
 </script>
 
 <SettingsSection title={t('customize.title')} icon="customize">
-  {#each customizeToggles as toggle}
+  {#each customizeToggles as toggle (toggle.key)}
     <SettingToggle
       label={toggle.label}
       hint={toggle.hint}

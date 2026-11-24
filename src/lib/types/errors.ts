@@ -225,7 +225,7 @@ export class ErrorHandler {
   static async handle(error: unknown): Promise<AppError> {
     // Handle Tauri errors
     if (error && typeof error === 'object' && 'message' in error) {
-      const message = (error as any).message || 'Unknown error occurred';
+      const message: string = (error as { message?: string }).message || 'Unknown error occurred';
 
       // Categorize based on error message
       if (message.includes('network') || message.includes('timeout')) {

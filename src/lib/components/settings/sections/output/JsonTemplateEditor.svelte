@@ -89,6 +89,7 @@ SPDX-License-Identifier: MPL-2.0
     {t('outputSettings.templateHint')}
   </p>
 
+  <!-- eslint-disable svelte/no-at-html-tags -- highlightJSON HTML-escapes &, < and > before adding its own spans -->
   {#if editorMode === 'edit'}
     <div class="template-editor-container">
       {#key displayed}
@@ -117,6 +118,7 @@ SPDX-License-Identifier: MPL-2.0
       {@html highlightJSON(generateTemplatePreview(template || DEFAULT_JSON_TEMPLATE))}
     </div>
   {/if}
+  <!-- eslint-enable svelte/no-at-html-tags -->
 
   <!-- Validation Status -->
   <div class="template-validation" class:valid={isValid} class:invalid={!isValid}>

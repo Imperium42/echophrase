@@ -31,12 +31,8 @@ SPDX-License-Identifier: MPL-2.0
   const { settings, updateSetting } = getSettingsContext();
 
   // Local state for rules textarea
-  let rulesValue = $state('');
-
-  // Sync rules from settings
-  $effect(() => {
-    rulesValue = $settings?.transform_rules || DEFAULT_TRANSFORM_RULES;
-  });
+  // Writable derived: follows settings, can be overwritten while editing
+  let rulesValue = $derived($settings?.transform_rules || DEFAULT_TRANSFORM_RULES);
 
   // Derived values
   const isEnabled = $derived($settings?.transform_enabled ?? false);
@@ -85,6 +81,8 @@ SPDX-License-Identifier: MPL-2.0
     updateSetting('transform_enabled', value);
   }
 
+  // Used by the commented-out rules textarea below (TODO: re-enable with it)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function handleRulesBlur() {
     const trimmed = rulesValue.trim();
     if (trimmed !== ($settings?.transform_rules || DEFAULT_TRANSFORM_RULES)) {

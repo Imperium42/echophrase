@@ -28,7 +28,6 @@ SPDX-License-Identifier: MPL-2.0
 
   // Composables
   import { useRecording } from '$lib/composables/useRecording';
-  import { outputToasts } from '$lib/stores/outputToasts';
   import { useAppInit } from '$lib/composables/useAppInit';
   import { useModelDownloadEvents } from '$lib/composables/useModelDownloadEvents';
   import { useRealtimePreview } from '$lib/composables/useRealtimePreview';
@@ -43,12 +42,8 @@ SPDX-License-Identifier: MPL-2.0
     brandingReady,
     subtitleReady,
     topRightReady,
-    bottomLeftReady,
-    bottomCenterReady,
-    versionReady,
   } from '$lib/composables/usePageLoadAnimation';
   import { setupGlobalKeyboard } from '$lib/services/globalKeyboardService';
-  import { getModelById } from '$lib/types/models';
   import { isUnsupportedMac } from '$lib/stores/platformCache';
 
   // Onboarding & hints
@@ -89,7 +84,6 @@ SPDX-License-Identifier: MPL-2.0
   import UnsupportedPlatformBanner from '$lib/components/UnsupportedPlatformBanner.svelte';
   import OutputToastsContainer from '$lib/components/OutputToastsContainer.svelte';
   import ModelAutoSwitchToast from '$lib/components/ModelAutoSwitchToast.svelte';
-  import { invoke } from '@tauri-apps/api/core';
   // Initialize composables
   const { loadSettings: loadTauriSettings } = useTauriSettings();
   let uiScaleCleanup: (() => void) | null = null;
@@ -109,7 +103,6 @@ SPDX-License-Identifier: MPL-2.0
   const downloadProgress = downloadEvents.progress;
   const downloadSpeed = downloadEvents.speed;
   const downloadTimeRemaining = downloadEvents.timeRemaining;
-  const downloadTimeElapsed = downloadEvents.timeElapsed;
   const downloadStatus = downloadEvents.status;
 
   // Recording composable
@@ -177,6 +170,8 @@ SPDX-License-Identifier: MPL-2.0
   ) {
     triggerModelSelectorGlow();
   }
+  // Read by the `$:` block above; legacy reactive statements are invisible to this rule
+  // eslint-disable-next-line no-useless-assignment
   $: previousSelectedModel = currentSelectedModel;
 
   // Start fade timer when model exists
@@ -202,6 +197,8 @@ SPDX-License-Identifier: MPL-2.0
       console.log('[Page] Settings opened while recording -cancelling');
       cancelRecording();
     }
+    // Read by the same `$:` block on its next run; invisible to the rule
+    // eslint-disable-next-line no-useless-assignment
     prevShowSettingsPanel = $showSettingsPanel;
   }
 
@@ -468,7 +465,6 @@ SPDX-License-Identifier: MPL-2.0
     progress={$downloadProgress}
     downloadSpeed={$downloadSpeed}
     timeRemaining={$downloadTimeRemaining}
-    timeElapsed={$downloadTimeElapsed}
     status={$downloadStatus}
     category={$downloadCurrentCategory}
     activeStore={$downloadCurrentCategory === 'transformation' ? transformModelStore : modelStore}

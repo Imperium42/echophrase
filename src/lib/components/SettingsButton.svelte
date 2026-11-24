@@ -28,7 +28,6 @@ SPDX-License-Identifier: MPL-2.0
   onDestroy(() => fade.cleanup());
 </script>
 
-<!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
   class="relative transition-opacity duration-200 {$fading && !$hovered
     ? 'opacity-40'

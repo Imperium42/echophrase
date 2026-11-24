@@ -29,10 +29,7 @@ SPDX-License-Identifier: MPL-2.0
 
   // Local draft so typing (including an empty field mid-edit) never writes junk;
   // committed on change/blur only.
-  let minutesDraft = $state(String(DEFAULT_MINUTES));
-  $effect(() => {
-    minutesDraft = String($settings?.idle_unload_minutes ?? DEFAULT_MINUTES);
-  });
+  let minutesDraft = $derived(String($settings?.idle_unload_minutes ?? DEFAULT_MINUTES));
 
   function commitMinutes() {
     const parsed = Math.round(Number(minutesDraft));

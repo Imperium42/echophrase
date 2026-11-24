@@ -6,9 +6,8 @@ SPDX-License-Identifier: MPL-2.0
 
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  // @ts-ignore - visualization package from GitHub
   import DeformedCircleVisualizer from 'visualization/src/lib/visualizations/core/DeformedCircleVisualizer.svelte';
-  // @ts-ignore - visualization package from GitHub
+  // @ts-expect-error - visualization package from GitHub has no type declarations
   import Glow from 'visualization/src/lib/visualizations/core/Glow.svelte';
 
   import type { Snippet } from 'svelte';
