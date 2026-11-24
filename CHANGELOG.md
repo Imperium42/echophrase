@@ -33,6 +33,7 @@ All notable changes to Echophrase will be documented in this file.
 - Restore Clipboard After Pasting is more reliable: it puts back what you had copied before.
 - The tap/hold Push to Talk hotkey is more reliable: fixed missed or stuck starts and stops.
 - Open mic no longer opens a save dialog for every phrase.
+- Fixed a rare crash on Windows when signing out, shutting down or restarting with Echophrase running.
 
 ### Removed
 - Removed anonymous usage stats entirely. Echophrase now only connects to download models and check for updates.
