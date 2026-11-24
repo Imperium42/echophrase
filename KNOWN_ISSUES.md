@@ -20,6 +20,7 @@ real cause, where the workaround lives, and what would let us drop it.
 | [cpal pulls a conflicting windows-core](#cpal-can-resolve-a-conflicting-windows-core) | Windows build | Held by Cargo.lock only |
 | [Tauri: new resource files not copied to dev exe](#tauri-new-resource-files-are-not-copied-next-to-the-dev-exe) | Windows dev | Workaround required |
 | [DirectML: System32 copy too old](#directml-the-copy-in-system32-is-too-old-for-ort-124) | Windows runtime | Workaround required |
+| [tao panics after Windows ends the session](#tao-cannot-move-state-from-destroyed-after-wm_endsession) | Windows shutdown | Workaround required |
 
 ---
 
@@ -188,3 +189,32 @@ stages into `src-tauri/resources/ort/directml/` after a first build never reach 
 **Workaround.** In debug builds `select_ort_runtime()` (`src-tauri/src/setup/ort_runtime.rs`) falls
 back to `CARGO_MANIFEST_DIR/resources/ort/directml/onnxruntime.dll`. Release builds are unaffected
 (the bundler copies resources at package time). Don't remove the fallback.
+
+---
+
+## tao: "cannot move state from Destroyed" after WM_ENDSESSION
+
+**Upstream:** [tauri-apps/tao#1310](https://github.com/tauri-apps/tao/issues/1310) (open),
+fixed in tao 0.37.0 by [tauri-apps/tao#1157](https://github.com/tauri-apps/tao/pull/1157)
+**Affects:** tao 0.35.x (tauri 2.11.x, what we ship). Windows only.
+
+**Symptom.** The app crashes with `panicked at ... tao-0.35.3\src\platform_impl\windows\event_loop\runner.rs:371:
+cannot move state from Destroyed` while Windows signs out, shuts down or restarts, or when an
+installer's Restart Manager closes the app. Seen in the wild on 0.8.0-beta.74 and 0.9.1.
+
+**Cause.** On `WM_ENDSESSION` tao calls `loop_destroyed()` (moving its runner to `Destroyed`) but
+keeps pumping messages. The next event it dispatches calls `move_state_to` again and hits the
+`(Destroyed, _) => panic!` arm. None of our quit paths are involved, so `shutdown::force_exit`
+never ran.
+
+**Workaround.** `lib.rs` `.run(...)` force-exits on a `RunEvent::Exit` (tao's `LoopDestroyed`)
+that was NOT preceded by `RunEvent::ExitRequested`, so the process ends inside the event, before
+tao can dispatch another one. Exits with an `ExitRequested` first (tauri `relaunch()` after an
+update, `request_restart`) are left alone: tauri restarts only after the `Exit` callback returns,
+and force-exiting there would kill every relaunch. Decision logic and tests:
+`shutdown::exit_code_for_run_event`.
+
+**Drop it when:** probably never outright. tao 0.37's fix calls `std::process::exit(0)`, which on
+Windows still runs DLL detach for ORT/DirectML and can hang (see `shutdown.rs`), so our
+`TerminateProcess` path stays the better exit. Re-check on the tauri 2.12 bump (blocked on the
+tray-icon GUID fork, see the `[patch.crates-io]` note in the root `Cargo.toml`).

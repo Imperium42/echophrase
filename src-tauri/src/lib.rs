@@ -495,14 +495,21 @@ pub fn run() {
     ])
     .build(tauri::generate_context!())
     .expect("error while building tauri application")
-    .run(|_app, _event| {});
+    .run({
+      // Set once tauri itself asks to exit/restart (e.g. relaunch() after an
+      // update); those must reach tauri's own Exit handling untouched.
+      let mut exit_requested_seen = false;
+      move |_app, event| {
+        if matches!(event, tauri::RunEvent::ExitRequested { .. }) {
+          exit_requested_seen = true;
+        }
+        // An event loop torn down from outside the app (Windows logoff /
+        // shutdown / Restart Manager) must end here, or tao panics on the
+        // next event. See shutdown::exit_code_for_run_event.
+        if let Some(code) = shutdown::exit_code_for_run_event(&event, exit_requested_seen) {
+          log::info!("Event loop destroyed outside our quit paths - routing through force_exit");
+          shutdown::force_exit(code);
+        }
+      }
+    });
 }
-
-/* Disabled ct2rs tests - migrating to Candle backend
-#[cfg(test)]
-mod tests {
-  use super::*;
-  // ... (ct2rs tests omitted - see git history)
-}
-*/
-// End of disabled ct2rs tests
