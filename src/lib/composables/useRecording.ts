@@ -17,6 +17,7 @@ import { platformCache } from '$lib/stores/platformCache';
 import { translate } from '$lib/locales';
 import { promiseWithTimeout, TimeoutError } from '$lib/utils/promiseWithTimeout';
 import { isSilenceResult } from '$lib/utils/silenceResult';
+import { transcriptionErrorKey } from '$lib/utils/transcriptionError';
 import { planOutputModes } from '$lib/utils/outputPlan';
 import { devLog } from '$lib/utils/devLog';
 import { addOutputToast } from '$lib/stores/outputToasts';
@@ -758,7 +759,9 @@ export function useRecording(getModelExists?: () => boolean, showDownloadDialog?
         clearInterval(recordingInterval);
       }
 
-      const errorMsg = error instanceof Error ? error.message : String(error);
+      const rawMsg = error instanceof Error ? error.message : String(error);
+      const friendlyKey = transcriptionErrorKey(rawMsg);
+      const errorMsg = friendlyKey ? translate(friendlyKey) : rawMsg;
       errorMessage.set(errorMsg);
       console.log('⚠️ Setting error message:', errorMsg);
       setTimeout(() => errorMessage.set(''), 5000);

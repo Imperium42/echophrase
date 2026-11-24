@@ -6,6 +6,7 @@ All notable changes to Echophrase will be documented in this file.
 
 ### Fixed
 - Fixed a rare crash on Windows when signing out, shutting down or restarting with Echophrase running.
+- Recording while the speech model is still loading (first launch can take a while) now shows a friendly "still loading, try again in a moment" message instead of a raw error code.
 - Clearer microphone error messages: an unplugged mic no longer shows a misleading WSL message on macOS, and the permission hint no longer points Mac users to Windows settings.
 
 ## [v1.0.0] - 2026-11-23
