@@ -124,6 +124,12 @@ preload it by absolute path before ORT starts. Do not "save installer size" by r
 **Enforced by:** `scripts/ensure-ort.mjs` (`directml` package pin) and
 `src-tauri/src/setup/ort_runtime.rs::preload_ort_providers`.
 
+**Code signing note.** Because the needed DirectML is redistributable-only, the installer has to
+bundle Microsoft's (closed-source, Microsoft-signed) `DirectML.dll`. We asked SignPath Foundation
+whether that counts under their "System Libraries" exception for free OSS signing:
+[SignPath/fdn-website#29](https://github.com/SignPath/fdn-website/issues/29) (open, 2026-11-24).
+DirectML stays bundled either way.
+
 ---
 
 ## Parakeet TDT collapses tokens without `TimestampMode::Words`

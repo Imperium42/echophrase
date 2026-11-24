@@ -171,6 +171,9 @@
   },
   "emptyState": {
     "pressToStart": "按下麥克風或 {hotkey} 開始",
+    "pressToStart_toggle": "按下麥克風或輕按 {hotkey} 開始",
+    "pressToStart_hold": "按下麥克風或按住 {hotkey} 開始",
+    "pressToStart_hybrid": "按下麥克風或輕按/按住 {hotkey} 開始",
     "downloadModel": "下載模型以開始使用",
     "download": "下載"
   },
@@ -292,7 +295,7 @@
     "appendSpaceIncompleteHint": "讓你可以在句子中途暫停並繼續聽寫，而不必每次都手動加空格。當轉錄文字未以 . ! 或 ? 結尾時，會自動附加一個尾隨空格。"
   },
   "data": {
-    "title": "資料",
+    "title": "法律資訊",
     "termsOfService": "服務條款",
     "privacyPolicy": "隱私權政策"
   },
@@ -472,6 +475,7 @@
     "templateHint": "使用 {variables} 自訂 JSON 輸出：id、text、timestamp、language、model、duration",
     "validJson": "有效 JSON",
     "invalidJson": "無效 JSON",
+    "copyImpliedByPaste": "在游標處貼上需要透過剪貼簿，所以文字也會被複製。如需保留原有剪貼簿內容，請開啟下方的「貼上後還原剪貼簿」。",
     "restoreClipboard": "貼上後還原剪貼簿",
     "restoreClipboardHint": "貼上後放回你先前剪貼簿中的文字，而不是把轉錄文字留在剪貼簿。僅還原文字內容。在 macOS 上可能需要額外的剪貼簿權限。",
     "restoreClipboardCopyOn": "已開啟「複製到剪貼簿」，因此轉錄文字會保留在剪貼簿中。",
@@ -650,7 +654,8 @@
   },
   "onboarding": {
     "welcome": "歡迎使用 Echophrase",
-    "welcomeDescription": "隱私優先的語音轉文字工具，完全在您的裝置上運行。您的語音永遠不會離開您的電腦。",
+    "welcomeDescription": "隱私優先的語音轉文字工具，完全在您的裝置上運行。",
+    "welcomeNoTelemetry": "您的語音永遠不會離開您的電腦，也沒有任何遙測 😼",
     "permissionsTitle": "macOS 權限",
     "micPermissionTitle": "麥克風 - 必要",
     "micPermissionDescription": "讓 Echophrase 能聽見您說話。音訊在本機處理，不會傳送到任何地方。",

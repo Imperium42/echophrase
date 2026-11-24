@@ -37,7 +37,7 @@ export interface DemoOptions {
 }
 
 /** Canned transcription (the real slogan from the marketing site). */
-export const DEMO_TEXT = "Just speak. It's already typed.";
+export const DEMO_TEXT = 'Save your fingers and type faster - free and unlimited.';
 
 /** Defaults shown in the options modal. */
 export const DEFAULT_DEMO_OPTIONS: DemoOptions = {

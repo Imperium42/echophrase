@@ -43,8 +43,14 @@ export const DEMO_MODEL_ID = 'parakeet-tdt-0.6b-v3';
 export function demoProvider(): 'core_ml' | 'direct_ml' {
   return isMac() ? 'core_ml' : 'direct_ml';
 }
-/** Hotkey the hint advertises during the demo, regardless of the user's binding. */
-export const DEMO_HOTKEY = 'ctrl+shift+space';
+/**
+ * Hotkey the hint advertises during the demo, regardless of the user's binding: the platform
+ * default (matches settings/mod.rs). macOS uses the Dictation key, stored as `f13` and shown as "F5".
+ */
+export const DEMO_HOTKEY =
+  typeof navigator !== 'undefined' && /Mac/i.test(navigator.platform || navigator.userAgent)
+    ? 'f13'
+    : 'ctrl+shift+space';
 
 /** True while the demo is pretending to record. */
 export const demoRecording = writable<boolean>(false);

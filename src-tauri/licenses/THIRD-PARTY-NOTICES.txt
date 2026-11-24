@@ -11788,7 +11788,7 @@ Exhibit B - "Incompatible With Secondary Licenses" Notice
 
 ==============================================================================
 Mozilla Public License 2.0 (MPL-2.0)
-Used by: echo-audio 0.1.0, echophrase 0.9.9, option-ext 0.2.0, selectors 0.36.1
+Used by: echo-audio 0.1.0, echophrase 1.0.0, option-ext 0.2.0, selectors 0.36.1
 ------------------------------------------------------------------------------
 Mozilla Public License Version 2.0
 ==================================

@@ -3,5 +3,3 @@
 #   git config blame.ignoreRevsFile .git-blame-ignore-revs
 # (GitHub honors this file automatically.)
 
-# style: prettier sweep over src (formatting only, no behavior change)
-08da2ebced63b1f0edec2297f7aeb706257c20d1

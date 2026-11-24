@@ -32,6 +32,11 @@ codegen-units = 1     # Better optimization (slower compile, worth it)
 panic = "abort"       # Smaller panic handling code
 opt-level = 3         # Keep speed optimization (balanced choice)
 
+# Never strip build scripts and proc-macros: a stripped proc-macro dylib loses the metadata
+# rustc needs to load it ("can't find crate for `ctor_proc_macro`") in host builds.
+[profile.release.build-override]
+strip = false
+
 # tray-icon fork: adds a stable NIF_GUID identity for the Windows tray icon so
 # the user's "always show" pin survives updates that move the exe (Scoop
 # installs every version into its own directory). Upstream PR:

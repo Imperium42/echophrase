@@ -82,7 +82,7 @@ const RELEASE_POLL_MAX_MS = 3000;
  * Wrap a toggle callback into press/release handlers for the hotkey modes.
  * In hybrid and hold modes OS key-repeat re-fires Pressed while held; those
  * repeats are ignored. In toggle mode every press toggles (repeats included).
- * `onCancel` clears a stuck held key (eg a keyup lost on the in-window path).
+ * `reset` clears a stuck held key (eg a keyup lost on the in-window path).
  */
 export function createHoldHandlers(
   callback: () => void,

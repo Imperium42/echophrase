@@ -3,7 +3,8 @@
 # Consumed by `scripts/gen-attribution.mjs` (via `bun run licenses:generate`),
 # which runs `cargo about generate about.hbs`, merges the output with the bundled
 # npm license manifest, and writes the committed attribution data to
-# echophrase-www. See the /deploy skill for the release-time regeneration step.
+# echophrase-www. Run `bun run licenses:generate` to regenerate it; CI fails when
+# the committed ATTRIBUTION.md / THIRD-PARTY-NOTICES.txt are stale.
 #
 # Also read by `vite.config.js` for the frontend copyleft guard. That file parses
 # the `accepted = [ ... ]` array below with a plain regex (no TOML parser), so keep

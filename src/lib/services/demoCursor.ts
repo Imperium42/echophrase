@@ -20,6 +20,19 @@ const HAND_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="19" height="25"
   style="margin:-1px 0 0 -7px;filter:drop-shadow(1px 2px 2px rgba(0,0,0,.45))"><path d="M5 10.8V2.4Q5 1 6.3 1T7.6 2.4V7.2Q7.6 6.4 8.9 6.4T10.2 7.6Q10.2 7 11.5 7T12.8 8.2Q12.8 7.9 14 7.9T15.3 9.2V14.5Q15.3 17 13.5 18.5V21H6.5V18.5L2.2 12.6Q1.5 11.3 2.7 10.7Q3.8 10.3 5 11.8Z"
   fill="#fff" stroke="#000" stroke-width="0.9" stroke-linejoin="round"/></svg>`;
 
+/** macOS arrow (black fill, white outline: the system cursor in light and dark mode). Tip at the origin. */
+const MAC_CURSOR_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="17" height="25" viewBox="0 0 15 22"
+  style="margin:-1px 0 0 -1px;filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.5))"><path d="M1.5 1.2V17.6L5.4 13.9L8.1 20.2L10.9 19L8.2 12.8H13.6Z"
+  fill="#000" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/></svg>`;
+
+/** macOS pointing hand (black fill, white outline); margin puts the index fingertip on the origin. */
+const MAC_HAND_SVG = HAND_SVG.replace('fill="#fff" stroke="#000" stroke-width="0.9"', 'fill="#000" stroke="#fff" stroke-width="1.2"');
+
+/** Match the OS the demo is recorded on, so the cursor looks like the real one. */
+const IS_MAC = typeof navigator !== 'undefined' && /Mac/i.test(navigator.platform || navigator.userAgent);
+const ARROW = IS_MAC ? MAC_CURSOR_SVG : CURSOR_SVG;
+const HAND = IS_MAC ? MAC_HAND_SVG : HAND_SVG;
+
 const Z_INDEX = '2147483647';
 const MOVE_MS = 1100;
 const CLICK_MS = 450;
@@ -66,13 +79,13 @@ export function createDemoCursor(): DemoCursor {
   const cursor: HTMLDivElement = document.createElement('div');
   cursor.setAttribute('aria-hidden', 'true');
   cursor.style.cssText = `position:fixed;left:0;top:0;pointer-events:none;z-index:${Z_INDEX};will-change:transform;`;
-  cursor.innerHTML = CURSOR_SVG;
+  cursor.innerHTML = ARROW;
   let isHand = false;
   /** Real cursors turn into a pointing hand over buttons; mirror that. */
   const setHand = (hand: boolean): void => {
     if (hand === isHand) return;
     isHand = hand;
-    cursor.innerHTML = hand ? HAND_SVG : CURSOR_SVG;
+    cursor.innerHTML = hand ? HAND : ARROW;
   };
 
   const ripple: HTMLDivElement = document.createElement('div');

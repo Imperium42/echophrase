@@ -238,7 +238,7 @@ SPDX-License-Identifier: MPL-2.0
             <span class="ep-item-name">
               {t('gpu.providerAuto')}
               <span class="recommended-tag">{t('gpu.recommended')}</span>
-              <span class="tooltip-trigger" title={t('gpu.tooltipAuto')}>?</span>
+              <HintTooltip hint={t('gpu.tooltipAuto')} />
             </span>
             <span class="ep-item-reason">{t('gpu.providerAutoReason')}</span>
           </div>
@@ -268,9 +268,7 @@ SPDX-License-Identifier: MPL-2.0
                   ? t(providerLabelKeys[provider.provider])
                   : provider.provider}
                 {#if providerTooltipKeys[provider.provider]}
-                  <span class="tooltip-trigger" title={t(providerTooltipKeys[provider.provider])}
-                    >?</span
-                  >
+                  <HintTooltip hint={t(providerTooltipKeys[provider.provider])} />
                 {/if}
               </span>
               <span class="ep-item-reason">{provider.reason}</span>
@@ -300,7 +298,7 @@ SPDX-License-Identifier: MPL-2.0
           <div class="ep-item-info">
             <span class="ep-item-name">
               {t('gpu.providerCpu')}
-              <span class="tooltip-trigger" title={t('gpu.tooltipCpu')}>?</span>
+              <HintTooltip hint={t('gpu.tooltipCpu')} />
             </span>
             <span class="ep-item-reason">{t('gpu.providerCpuReason')}</span>
           </div>
@@ -464,26 +462,6 @@ SPDX-License-Identifier: MPL-2.0
     font-weight: 500;
     background: rgba(34, 197, 94, 0.15);
     color: #4ade80;
-  }
-
-  .tooltip-trigger {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 0.875rem;
-    height: 0.875rem;
-    font-size: 0.5625rem;
-    font-weight: 600;
-    color: #71717a;
-    background: rgba(113, 113, 122, 0.2);
-    border-radius: 50%;
-    cursor: help;
-    transition: all 0.15s;
-  }
-
-  .tooltip-trigger:hover {
-    color: #a1a1aa;
-    background: rgba(113, 113, 122, 0.3);
   }
 
   .ep-item-reason {

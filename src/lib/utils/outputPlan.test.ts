@@ -17,10 +17,10 @@ describe('planOutputModes', () => {
     });
   });
 
-  it('paste only + restore off: transcript stays on the clipboard', () => {
+  it('paste only + restore off: transcript stays on the clipboard, reported as copied', () => {
     expect(planOutputModes(['paste_at_cursor'], off)).toEqual({
       run: ['paste_at_cursor'],
-      copyImpliedByPaste: false,
+      copyImpliedByPaste: true,
       restoreClipboard: false,
     });
   });
@@ -49,5 +49,16 @@ describe('planOutputModes', () => {
     expect(planOutputModes(modes, {}, true).run).toEqual(['copy_to_clipboard']);
     expect(planOutputModes(modes, { save_directory: '/tmp/x' }, true).run).toEqual(modes);
     expect(planOutputModes(modes, {}, false).run).toEqual(modes);
+  });
+
+  it('open mic with only save_as_file and no auto-save dir falls back to copy', () => {
+    expect(planOutputModes(['save_as_file'], {}, true)).toEqual({
+      run: ['copy_to_clipboard'],
+      copyImpliedByPaste: false,
+      restoreClipboard: false,
+    });
+    expect(planOutputModes(['save_as_file'], { save_directory: '/tmp/x' }, true).run).toEqual([
+      'save_as_file',
+    ]);
   });
 });

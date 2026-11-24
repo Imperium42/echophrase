@@ -4,9 +4,9 @@
 
 # Echophrase
 
-### Talk. It types. Nothing leaves your machine.
+### Just speak. It's already typed.
 
-Free, open-source, GPU-accelerated speech-to-text for your desktop.<br>
+Free, open-source, GPU-accelerated speech-to-text for your desktop. Nothing leaves your machine.<br>
 Press a hotkey, speak, and the text lands wherever your cursor is.
 
 [![License: MPL 2.0](https://img.shields.io/badge/license-MPL--2.0-brightgreen?style=for-the-badge)](LICENSE)
@@ -101,6 +101,9 @@ of this repository, and each keeps its own license:
 | [NVIDIA Parakeet Realtime EOU 120M](https://huggingface.co/nvidia/parakeet_realtime_eou_120m-v1) ([ONNX](https://huggingface.co/altunenes/parakeet-rs)) | Speech-to-text ("Parakeet Lite") | 0.5 GB | English | NVIDIA Open Model License |
 | [T5-efficient-mini grammar correction](https://huggingface.co/visheratin/t5-efficient-mini-grammar-correction) | Grammar cleanup | 60 MB | English | MIT |
 | [Silero VAD v5](https://github.com/snakers4/silero-vad) | Voice activity detection (bundled) | 2 MB | any | MIT |
+
+**Bring your own model** ![Alpha](https://img.shields.io/badge/alpha-f59e0b?style=flat-square): you can also import your own ONNX speech-to-text model in
+Settings > Custom ONNX Models. See [Custom Models](https://docs.echophrase.com/features/custom-models).
 
 ## Privacy
 
@@ -198,10 +201,13 @@ Bugs and ideas go in [issues](https://github.com/Imperium42/echophrase/issues). 
 vulnerability privately. Architecture notes for contributors (and AI coding agents) are in
 [CLAUDE.md](CLAUDE.md); workarounds for upstream bugs are in [KNOWN_ISSUES.md](KNOWN_ISSUES.md).
 
+Questions, ideas or just want to chat? Join us on [Discord](https://discord.com/invite/Er6NUcx).
+
 ## Support the project
 
-Echophrase is free, with no ads, no upsells and no paid tier. If it saves you time, a coffee keeps
-it going:
+Echophrase is free, with no ads, no upsells, no telemetry and no paid tier.
+
+If you found this app useful, consider [contracting me](https://imperium42.com) - or buy me a coffee:
 
 <a href="https://github.com/sponsors/imperium42"><img src="https://img.shields.io/badge/Sponsor%20on%20GitHub-ea4aaa?style=for-the-badge&logo=githubsponsors&logoColor=white" alt="Sponsor on GitHub"></a>
 

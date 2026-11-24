@@ -1,4 +1,9 @@
 {
+    "##": [
+        "Seed manifest for the imperium42/scoop-bucket repo. The release workflow does not edit",
+        "this file: version, url and hash below are a stale snapshot. The bucket's checkver +",
+        "autoupdate fill in the current release (scoop checkver -u). Edit only the non-version fields here."
+    ],
     "version": "0.9.0",
     "description": "Privacy-first, GPU-accelerated speech-to-text desktop app that transcribes locally on your machine",
     "homepage": "https://echophrase.com",

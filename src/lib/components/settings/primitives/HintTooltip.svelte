@@ -46,6 +46,7 @@ SPDX-License-Identifier: MPL-2.0
   let top = $state(0);
   let left = $state(0);
   let arrowOffset = $state(0);
+  let above = $state(false);
 
   const EDGE_MARGIN = 8;
 
@@ -61,7 +62,10 @@ SPDX-License-Identifier: MPL-2.0
     );
 
     left = clampedLeft;
-    top = trigger.bottom + 6;
+    // Open below; flip above when there's no room at the bottom of the window.
+    const below = trigger.bottom + 6;
+    above = below + tooltipEl.offsetHeight + EDGE_MARGIN > window.innerHeight;
+    top = above ? trigger.top - 6 - tooltipEl.offsetHeight : below;
     // Keep the arrow pointing at the trigger even when the bubble itself
     // had to shift to stay on screen.
     arrowOffset = trigger.left + trigger.width / 2 - clampedLeft;
@@ -102,6 +106,7 @@ SPDX-License-Identifier: MPL-2.0
   <span
     class="hint-tooltip"
     class:visible
+    class:above
     bind:this={tooltipEl}
     use:portal
     style="top: {top}px; left: {left}px; --arrow-offset: {arrowOffset}px;"
@@ -121,12 +126,12 @@ SPDX-License-Identifier: MPL-2.0
   .hint-icon {
     width: 0.75rem;
     height: 0.75rem;
-    color: #3f3f46;
+    color: var(--color-hint);
     transition: color 0.15s ease;
   }
 
   .hint-trigger:hover .hint-icon {
-    color: #71717a;
+    color: var(--color-hint-hover);
   }
 
   /* Fixed to the viewport (not the trigger) so it can never be clipped by
@@ -163,6 +168,13 @@ SPDX-License-Identifier: MPL-2.0
     transform: translateX(-50%);
     border: 5px solid transparent;
     border-bottom-color: rgba(39, 39, 42, 0.95);
+  }
+
+  .hint-tooltip.above::after {
+    bottom: auto;
+    top: 100%;
+    border-bottom-color: transparent;
+    border-top-color: rgba(39, 39, 42, 0.95);
   }
 
   .hint-tooltip.visible {

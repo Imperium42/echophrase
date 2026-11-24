@@ -171,6 +171,9 @@
   },
   "emptyState": {
     "pressToStart": "Press the mic or {hotkey} to start",
+    "pressToStart_toggle": "Press the mic or tap {hotkey} to start",
+    "pressToStart_hold": "Press the mic or hold {hotkey} to start",
+    "pressToStart_hybrid": "Press the mic or tap/hold {hotkey} to start",
     "downloadModel": "Download a model to get started",
     "download": "Download"
   },
@@ -292,7 +295,7 @@
     "appendSpaceIncompleteHint": "Lets you pause mid-sentence and keep dictating without adding a space each time. When a transcription doesn't end with . ! or ?, a trailing space is added automatically."
   },
   "data": {
-    "title": "Data",
+    "title": "Legal",
     "termsOfService": "Terms of Service",
     "privacyPolicy": "Privacy Policy"
   },
@@ -472,6 +475,7 @@
     "templateHint": "Customize JSON output using {variables}: id, text, timestamp, language, model, duration",
     "validJson": "Valid JSON",
     "invalidJson": "Invalid JSON",
+    "copyImpliedByPaste": "Paste at cursor works through the clipboard, so the text is copied too. Turn on Restore Clipboard below to keep your old clipboard instead.",
     "restoreClipboard": "Restore Clipboard After Pasting",
     "restoreClipboardHint": "Puts your previous clipboard text back after pasting, instead of leaving the transcript on your clipboard. Only text is restored. On macOS this may need extra clipboard permissions.",
     "restoreClipboardCopyOn": "Copy to clipboard is on, so the transcript stays on the clipboard.",
@@ -650,7 +654,8 @@
   },
   "onboarding": {
     "welcome": "Welcome to Echophrase",
-    "welcomeDescription": "Privacy-first speech-to-text that runs entirely on your device. Your voice never leaves your computer.",
+    "welcomeDescription": "Privacy-first speech-to-text that runs entirely on your device.",
+    "welcomeNoTelemetry": "Your voice never leaves your computer and there's no telemetry 😼",
     "permissionsTitle": "macOS Permissions",
     "micPermissionTitle": "Microphone - Required",
     "micPermissionDescription": "So Echophrase can hear you. Audio is processed locally and never sent anywhere.",

@@ -1,0 +1,109 @@
+{
+  "$schema": "https://fundingjson.org/schema/v1.1.0.json",
+  "version": "v1.0.0",
+  "entity": {
+    "type": "organisation",
+    "role": "owner",
+    "name": "Imperium42 LLC",
+    "email": "echo@imperium42.com",
+    "description": "Imperium42 LLC is a small US software company that builds and maintains Echophrase. In November 2026 we released Echophrase as free, MPL-2.0 open source: no accounts, no subscriptions, no telemetry. Funding goes directly into engineering time and the infrastructure needed to ship signed, trustworthy builds.",
+    "webpageUrl": {
+      "url": "https://echophrase.com",
+        "wellKnown": "https://echophrase.com/.well-known/funding-manifest-urls"
+    }
+  },
+  "projects": [
+    {
+      "guid": "echophrase",
+      "name": "Echophrase",
+      "description": "Echophrase is a privacy-first desktop dictation app: press a hotkey, speak, and your words are typed into any app. All speech recognition runs locally on your own GPU or CPU with open models (Parakeet, Qwen3-ASR) through ONNX Runtime, so audio never leaves the machine. It is a free, open alternative to cloud dictation services, and it helps anyone who types less by choice or by necessity, including people with RSI, motor impairments or dyslexia. Built with Rust, Tauri 2 and Svelte. Official signed builds for Windows (DirectML, any DirectX 12 GPU) and Apple Silicon Macs (CoreML/Metal), with community Linux builds.",
+      "webpageUrl": {
+        "url": "https://echophrase.com",
+        "wellKnown": "https://echophrase.com/.well-known/funding-manifest-urls"
+      },
+      "repositoryUrl": {
+        "url": "https://github.com/Imperium42/echophrase"
+      },
+      "licenses": ["spdx:MPL-2.0"],
+      "tags": ["speech-recognition", "privacy", "accessibility", "audio", "machine-learning", "productivity", "desktop", "offline", "rust"]
+    }
+  ],
+  "funding": {
+    "channels": [
+      {
+        "guid": "github-sponsors",
+        "type": "payment-provider",
+        "address": "https://github.com/sponsors/imperium42",
+        "description": "GitHub Sponsors, for one-time or recurring support of any size."
+      },
+      {
+        "guid": "bank-transfer",
+        "type": "bank",
+        "address": "US bank transfer (ACH or international wire) to Imperium42 LLC. Details on request at echo@imperium42.com.",
+        "description": "For grants and larger organisational support."
+      }
+    ],
+    "plans": [
+      {
+        "guid": "linux-first-class",
+        "status": "active",
+        "name": "First-class Linux support",
+        "description": "Bring Linux from community-supported to officially supported: GPU acceleration, Wayland and X11 global hotkeys and text injection across GNOME and KDE, signed packages (Flatpak, AppImage, .deb/.rpm), Linux CI with real end-to-end tests, and auto-updates.",
+        "amount": 25000,
+        "currency": "USD",
+        "frequency": "one-time",
+        "channels": ["bank-transfer", "github-sponsors"]
+      },
+      {
+        "guid": "nvidia-cuda",
+        "status": "active",
+        "name": "Easy NVIDIA CUDA acceleration",
+        "description": "Make NVIDIA GPU acceleration work out of the box on Windows and Linux: detect the GPU and driver, fetch the matching CUDA execution provider on demand instead of asking users to install toolkits, fall back cleanly to DirectML or CPU, and publish per-GPU benchmarks.",
+        "amount": 25000,
+        "currency": "USD",
+        "frequency": "one-time",
+        "channels": ["bank-transfer", "github-sponsors"]
+      },
+      {
+        "guid": "bring-your-own-model",
+        "status": "active",
+        "name": "Bring-your-own-model out of beta",
+        "description": "Take custom ONNX speech models from beta to stable: an automated compatibility test suite and accuracy/latency benchmark harness, a public list of verified community models, clearer import errors, and docs for converting models from Hugging Face. This makes Echophrase a local test bed for new open speech models.",
+        "amount": 25000,
+        "currency": "USD",
+        "frequency": "one-time",
+        "channels": ["bank-transfer", "github-sponsors"]
+      },
+      {
+        "guid": "languages-accessibility",
+        "status": "active",
+        "name": "Localization and accessibility",
+        "description": "Translate the interface into more languages with a community translation platform (beyond English, Simplified and Traditional Chinese), validate and tune multilingual recognition models per language, and run an accessibility pass: full keyboard navigation, screen reader support and hands-free operation for users who cannot type.",
+        "amount": 10000,
+        "currency": "USD",
+        "frequency": "one-time",
+        "channels": ["bank-transfer", "github-sponsors"]
+      },
+      {
+        "guid": "trust-infrastructure",
+        "status": "active",
+        "name": "Signed builds and security",
+        "description": "Yearly costs of trustworthy releases: Windows code signing, Apple notarization, macOS and Windows CI runners, update hosting, test hardware across GPU vendors, and an independent security review of the app and its updater.",
+        "amount": 10000,
+        "currency": "USD",
+        "frequency": "yearly",
+        "channels": ["bank-transfer", "github-sponsors"]
+      },
+      {
+        "guid": "community-support",
+        "status": "active",
+        "name": "Community support",
+        "description": "Any amount helps cover maintenance: bug fixes, model updates and keeping up with Windows and macOS changes.",
+        "amount": 0,
+        "currency": "USD",
+        "frequency": "monthly",
+        "channels": ["github-sponsors"]
+      }
+    ]
+  }
+}
