@@ -8,7 +8,8 @@
     "email": "echo@imperium42.com",
     "description": "Imperium42 LLC is a small US software company that builds and maintains Echophrase. In November 2026 we released Echophrase as free, MPL-2.0 open source: no accounts, no subscriptions, no telemetry. Funding goes directly into engineering time and the infrastructure needed to ship signed, trustworthy builds.",
     "webpageUrl": {
-      "url": "https://echophrase.com"
+      "url": "https://echophrase.com",
+        "wellKnown": "https://echophrase.com/.well-known/funding-manifest-urls"
     }
   },
   "projects": [
@@ -17,7 +18,8 @@
       "name": "Echophrase",
       "description": "Echophrase is a privacy-first desktop dictation app: press a hotkey, speak, and your words are typed into any app. All speech recognition runs locally on your own GPU or CPU with open models (Parakeet, Qwen3-ASR) through ONNX Runtime, so audio never leaves the machine. It is a free, open alternative to cloud dictation services, and it helps anyone who types less by choice or by necessity, including people with RSI, motor impairments or dyslexia. Built with Rust, Tauri 2 and Svelte. Official signed builds for Windows (DirectML, any DirectX 12 GPU) and Apple Silicon Macs (CoreML/Metal), with community Linux builds.",
       "webpageUrl": {
-        "url": "https://echophrase.com"
+        "url": "https://echophrase.com",
+        "wellKnown": "https://echophrase.com/.well-known/funding-manifest-urls"
       },
       "repositoryUrl": {
         "url": "https://github.com/Imperium42/echophrase"
