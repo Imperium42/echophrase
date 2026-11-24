@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: MPL-2.0
 
 import { writable } from 'svelte/store';
+import { isMac } from '$lib/utils/platform';
 
 /**
  * State for the scripted marketing demo (DebugPanel > Demo).
@@ -34,8 +35,14 @@ export const demoChromeHidden = writable<boolean>(false);
 
 /** Model shown in the model chip during the demo. */
 export const DEMO_MODEL_ID = 'parakeet-tdt-0.6b-v3';
-/** Execution provider shown in the model chip during the demo (DirectML = "GPU"). */
-export const DEMO_PROVIDER = 'direct_ml';
+/**
+ * Execution provider shown in the model chip during the demo: the GPU provider the
+ * recording platform really uses. DirectML is Windows-only, so a macOS recording
+ * must show CoreML, or press shots and the demo video carry a wrong "DML" badge.
+ */
+export function demoProvider(): 'core_ml' | 'direct_ml' {
+  return isMac() ? 'core_ml' : 'direct_ml';
+}
 /**
  * Hotkey the hint advertises during the demo, regardless of the user's binding: the platform
  * default (matches settings/mod.rs). macOS uses the Dictation key, stored as `f13` and shown as "F5".
