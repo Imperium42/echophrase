@@ -118,7 +118,7 @@ model_detection/        # Auto model selection
 1. **Recording**: Rust `AudioRecorder` (echo-audio/cpal) captures 16 kHz mono f32 chunks in memory on every platform
 2. **VAD** (optional): Silero VAD V5 detects speech segments (self-implemented with ort)
 3. **Backend selection**: TranscriptionBackend trait dispatches to appropriate backend
-4. **Preprocessing**: Audio → 16kHz mono → mel spectrogram (80 bins Whisper, 128 bins Parakeet)
+4. **Preprocessing**: Audio → 16kHz mono → mel spectrogram (128 bins for Parakeet and Qwen3-ASR; disabled Candle Whisper takes 80 or 128)
 5. **Inference**: GPU-accelerated (DirectML on Windows, CoreML/Metal on macOS), CPU on Linux/WSL
 6. **Output**: Transcription → clipboard or paste-at-cursor
 
@@ -126,8 +126,9 @@ model_detection/        # Auto model selection
 
 | Backend | Models | Format | GPU Provider | VRAM |
 |---------|--------|--------|--------------|------|
-| Candle | Distil-Whisper Large-v3 (recommended), Whisper variants | safetensors | Metal/CPU | 2-6GB |
-| parakeet-rs | NVIDIA Parakeet-TDT 0.6B v3 | ONNX (TDT decode) | DirectML/CoreML/CPU | 2GB |
+| parakeet-rs | NVIDIA Parakeet-TDT 0.6B v3 (default), Parakeet Lite 120M | ONNX (TDT decode) | DirectML/CoreML/CPU | 2GB |
+| Qwen3-ASR | Qwen3-ASR 0.6B | ONNX | DirectML/CoreML/CPU | Varies |
+| Candle | Whisper (disabled: `ONNX_ONLY_MODE = true` in `src/lib/types/models.ts`; registry entry kept as a template) | safetensors | Metal/CPU | 2-6GB |
 | ONNX (generic) | Any ONNX model | ONNX | DirectML/CoreML/CPU | Varies |
 
 Models auto-download to `~/.cache/huggingface/hub/` on first use with progress streaming.
@@ -356,8 +357,9 @@ buttons). Add an entry whenever you work around a bug you do not own.
 - **Before pushing, ask: would a user notice this?** If yes, add a very brief entry to `CHANGELOG.md` under `## [Unreleased]` (`### Added` / `### Fixed` / `### Improved`) **in the same push** - not as a follow-up commit afterwards. `/deploy` turns `[Unreleased]` into the release notes, so anything missing at push time is missing from the release.
   - Write it for users, not for us: what they will notice, in plain language. No file names, function names, or internal mechanics.
   - **Match bullet length to impact.** Tiny cosmetic fixes get tiny bullets ("Fixed text alignments in the top banner." - not a sentence describing each nudged pixel). Save the longer bullets for features and behavior changes users actually care about. Fold multiple micro-fixes in the same area into one short bullet.
-  - Skip it for anything invisible to users: refactors, tests, CI, dev-only tooling (e.g. the Debug panel), internal docs.
+  - Skip it for anything invisible to users: refactors, tests, CI, dev-only tooling (e.g. the Debug panel), dev docs.
   - **No fix/improvement bullets for unreleased features.** If a feature is still in `[Unreleased]`, fixes and polish to it are iteration users never saw a "before" of - fold them into (or just refine) the feature's own `### Added` bullet instead of adding separate `### Fixed`/`### Improved` entries. Fixed/Improved bullets are only for behavior that already shipped in a tagged release.
+- **Every breaking change needs an ADR (Architecture Decision Record) in the dev docs**, in the same PR. ADRs live on the docs site under [Developers > Decisions](https://docs.echophrase.com/developers/decisions) (template and numbering there): add `developers/decisions/NNNN-short-title.mdx` (next number, zero-padded) to the docs site and link it from the PR, covering Status, Context, Decision, Consequences (what breaks, who is affected, migration path), and Alternatives considered. Breaking means anything an existing user, script or contributor depends on stops working as before: settings file keys/format, CLI flags or output, MCP tools, the local IPC API, file/cache locations, dropped platforms/OS versions or models, and build requirements. A breaking change users notice also gets its `CHANGELOG.md` entry; the ADR is the "why", not a substitute.
 - When updating `env.yaml`, also update `env.yaml.template`
 - Safetensors only for Candle models (no GGUF, no PyTorch .bin)
 - All user-facing strings must be localized. When adding or changing any string, update all three of `src/lib/locales/en.json`, `src/lib/locales/zh-TW.json` and `src/lib/locales/zh-CN.json` (a vitest parity test fails on key drift). Use `t('key')` in templates and `translate('key')` in JS.
