@@ -20,8 +20,8 @@ Tap or hold a hotkey, speak, and the text lands wherever your cursor is.
 [![Built with Tauri](https://img.shields.io/badge/Tauri-2-24C8DB?logo=tauri&logoColor=white)](https://v2.tauri.app)
 [![Rust](https://img.shields.io/badge/Rust-stable-DEA584?logo=rust&logoColor=black)](https://www.rust-lang.org)
 [![Svelte 5](https://img.shields.io/badge/Svelte-5-FF3E00?logo=svelte&logoColor=white)](https://svelte.dev)
-[![Discord](https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white)](https://discord.com/invite/Er6NUcx)
 
+[![Discord](https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white)](https://discord.com/invite/Er6NUcx)
 [![AlternativeTo](https://img.shields.io/badge/AlternativeTo-listed-0289D5?logo=alternativeto&logoColor=white)](https://alternativeto.net/software/echophrase/about/)
 
 [**Download**](https://echophrase.com/download) &nbsp;&middot;&nbsp;
