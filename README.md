@@ -28,6 +28,13 @@ Press a hotkey, speak, and the text lands wherever your cursor is.
 [**Report a bug**](https://github.com/Imperium42/echophrase/issues/new/choose) &nbsp;&middot;&nbsp;
 [**Sponsor**](https://github.com/sponsors/imperium42)
 
+<a href="https://alternativeto.net/software/echophrase/about/?utm_source=badge&utm_medium=referral">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://alternativeto.net/static/badges/badge-compact-dark.svg">
+    <img src="https://alternativeto.net/static/badges/badge-compact-light.svg" alt="Echophrase on AlternativeTo" width="171" height="58">
+  </picture>
+</a>
+
 <a href="https://github.com/sponsors/imperium42"><img src="https://img.shields.io/badge/Buy%20me%20a%20coffee-GitHub%20Sponsors-ea4aaa?style=for-the-badge&logo=githubsponsors&logoColor=white" alt="Buy me a coffee via GitHub Sponsors"></a>
 
 </div>
