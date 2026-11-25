@@ -1,7 +1,7 @@
 <div align="center">
 
 <h1>
-  <a href="https://echophrase.com"><img src="static/images/echophrase-icon.svg" alt="" width="56" height="56" align="absmiddle"></a>&nbsp;Echophrase
+  <a href="https://echophrase.com"><img src="static/images/readme-title-icon.svg" alt="" width="44" height="44" align="absmiddle"></a>&nbsp;Echophrase
 </h1>
 
 ### Just speak. It's already typed.
