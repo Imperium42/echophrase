@@ -1,13 +1,13 @@
 <div align="center">
 
 <h1>
-  <a href="https://echophrase.com"><img src="static/images/echophrase-icon.svg" alt="" width="56" height="56" align="center"></a>&nbsp;Echophrase
+  <a href="https://echophrase.com"><img src="static/images/echophrase-icon.svg" alt="" width="56" height="56" align="absmiddle"></a>&nbsp;Echophrase
 </h1>
 
 ### Just speak. It's already typed.
 
 Free, open-source, GPU-accelerated speech-to-text for your desktop. Nothing leaves your machine.<br>
-Press a hotkey, speak, and the text lands wherever your cursor is.
+Tap or hold a hotkey, speak, and the text lands wherever your cursor is.
 
 [![License: MPL 2.0](https://img.shields.io/badge/license-MPL--2.0-brightgreen?style=for-the-badge)](LICENSE)
 [![Latest release](https://img.shields.io/github/v/release/imperium42/echophrase-releases?include_prereleases&label=release&color=22d3ee&style=for-the-badge)](https://github.com/imperium42/echophrase-releases/releases/latest)
@@ -22,18 +22,13 @@ Press a hotkey, speak, and the text lands wherever your cursor is.
 [![Svelte 5](https://img.shields.io/badge/Svelte-5-FF3E00?logo=svelte&logoColor=white)](https://svelte.dev)
 [![Discord](https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white)](https://discord.com/invite/Er6NUcx)
 
+[![AlternativeTo](https://img.shields.io/badge/AlternativeTo-listed-0289D5?logo=alternativeto&logoColor=white)](https://alternativeto.net/software/echophrase/about/)
+
 [**Download**](https://echophrase.com/download) &nbsp;&middot;&nbsp;
 [**Docs**](https://docs.echophrase.com) &nbsp;&middot;&nbsp;
 [**Quickstart**](https://docs.echophrase.com/quickstart) &nbsp;&middot;&nbsp;
 [**Report a bug**](https://github.com/Imperium42/echophrase/issues/new/choose) &nbsp;&middot;&nbsp;
 [**Sponsor**](https://github.com/sponsors/imperium42)
-
-<a href="https://alternativeto.net/software/echophrase/about/?utm_source=badge&utm_medium=referral">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://alternativeto.net/static/badges/badge-compact-dark.svg">
-    <img src="https://alternativeto.net/static/badges/badge-compact-light.svg" alt="Echophrase on AlternativeTo" width="171" height="58">
-  </picture>
-</a>
 
 <a href="https://github.com/sponsors/imperium42"><img src="https://img.shields.io/badge/Buy%20me%20a%20coffee-GitHub%20Sponsors-ea4aaa?style=for-the-badge&logo=githubsponsors&logoColor=white" alt="Buy me a coffee via GitHub Sponsors"></a>
 
