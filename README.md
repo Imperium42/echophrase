@@ -16,7 +16,7 @@ Tap or hold a hotkey, speak, and the text lands wherever your cursor is.
 
 [![Windows](https://img.shields.io/badge/Windows-11-0078D4?logo=windows&logoColor=white)](#install)
 [![macOS](https://img.shields.io/badge/macOS-13.3%2B%20Apple%20Silicon-000000?logo=apple&logoColor=white)](#install)
-[![Linux](https://img.shields.io/badge/Linux-build%20from%20source-FCC624?logo=linux&logoColor=black)](#build-from-source)
+[![Linux](https://img.shields.io/badge/Linux-build%20from%20src-FCC624?logo=linux&logoColor=black)](#build-from-source)
 [![Built with Tauri](https://img.shields.io/badge/Tauri-2-24C8DB?logo=tauri&logoColor=white)](https://v2.tauri.app)
 [![Rust](https://img.shields.io/badge/Rust-stable-DEA584?logo=rust&logoColor=black)](https://www.rust-lang.org)
 [![Svelte 5](https://img.shields.io/badge/Svelte-5-FF3E00?logo=svelte&logoColor=white)](https://svelte.dev)
@@ -80,8 +80,8 @@ Or grab the installer from [echophrase.com/download](https://echophrase.com/down
 | Platform | Status | GPU |
 |---|---|---|
 | **Windows 11** | Official, signed builds. Windows 10 should work but is not officially supported. | DirectML (any DirectX 12 GPU), bundled |
-| **macOS 13.3+ (Apple Silicon)** | Official, signed and notarized builds. Intel Macs are not supported ([MAC.md](MAC.md)). | CoreML / Metal |
-| **Linux** | Community-supported: [build from source](#build-from-source). No official binaries; PRs welcome. | CPU only today |
+| **macOS 13.3+ (Silicon)** | Official, signed and notarized builds. Intel Macs are not supported ([MAC.md](MAC.md)). | CoreML / Metal |
+| **Linux** | Community-supported: [build from src](#build-from-source). No official binaries; PRs welcome. | CPU only today |
 
 <details>
 <summary><b>Why not the Mac App Store?</b></summary>
