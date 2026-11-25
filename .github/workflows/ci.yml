@@ -28,8 +28,41 @@ jobs:
       # Production build also runs the license guard in vite.config.js.
       - run: bunx --bun vite build --mode production
 
+  # Decides whether the Rust matrix needs to run. Docs-only changes (Markdown,
+  # images, plain text outside the Rust crates) skip it; anything else, or a
+  # base commit we can't resolve, runs it. Plain git, no third-party action.
+  changes:
+    name: Detect docs-only change
+    runs-on: ubuntu-24.04
+    outputs:
+      rust: ${{ steps.filter.outputs.rust }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - id: filter
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [ -z "$BASE" ] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            echo "rust=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          files=$(git diff --name-only "$BASE"...HEAD)
+          echo "$files"
+          # Anything under the Rust trees, or any non-doc file, needs Rust CI.
+          if [ -z "$files" ] \
+            || echo "$files" | grep -qE '^(src-tauri|crates|cli)/' \
+            || echo "$files" | grep -qvE '\.(md|mdx|txt|png|jpe?g|gif|webp|svg)$'; then
+            echo "rust=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "rust=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Docs-only change: skipping the Rust jobs."
+          fi
+
   rust:
     name: Rust (${{ matrix.os }})
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
     strategy:
       fail-fast: false
       matrix:

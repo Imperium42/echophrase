@@ -375,7 +375,8 @@ buttons). Add an entry whenever you work around a bug you do not own.
 
 - **Pushes and PRs never release.** `.github/workflows/release.yml` triggers ONLY on
   `v*` tags and `workflow_dispatch`, so fork PRs never run it or see its secrets.
-  `.github/workflows/ci.yml` runs checks/tests on every PR and push.
+  `.github/workflows/ci.yml` runs checks/tests on every PR and push. Its Rust matrix is skipped
+  when the diff is docs-only (Markdown, images or `.txt` outside `src-tauri/`, `crates/`, `cli/`).
 - All tags release from `main`. A `-beta.N` suffix only changes the build flavor
   (staging vite mode + devtools). Every release publishes to the CrabNebula
   **default** channel. `# TRANSITION:` steps in `release.yml` also publish to the
