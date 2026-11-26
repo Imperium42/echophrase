@@ -17,7 +17,8 @@ logic.
   resampled to 16 kHz).
 - Background-by-default: `record` returns immediately; `stop` finalizes the file.
 - Zero global state: everything lives under one per-user directory you can
-  override with `ECHOPHRASE_HOME`.
+  override with `ECHOPHRASE_HOME`. `ECHOPHRASE_IPC_PORT` overrides the port `transcribe` calls
+  (default 1424, the desktop app's port; for tests and dev setups).
 
 > Scope note: transcription itself still runs inside the desktop app's Rust
 > backend (it owns the loaded model). `echophrase-cli transcribe` and the MCP

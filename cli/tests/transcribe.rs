@@ -26,10 +26,11 @@ struct McpProcess {
 }
 
 impl McpProcess {
-    fn spawn(home: &Path) -> Self {
+    fn spawn(home: &Path, ipc_port: u16) -> Self {
         let mut child = Command::new(env!("CARGO_BIN_EXE_echophrase-cli"))
             .arg("mcp")
             .env("ECHOPHRASE_HOME", home)
+            .env("ECHOPHRASE_IPC_PORT", ipc_port.to_string())
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
@@ -103,9 +104,16 @@ impl Drop for McpProcess {
     }
 }
 
-/// Port `ops::transcribe` (and the real desktop app) use. Kept in sync by
-/// hand with `cli/src/ops.rs::IPC_PORT` / `src-tauri/src/ipc/server.rs`.
-const IPC_PORT: u16 = 1424;
+/// An OS-assigned port nothing listens on, passed to the CLI as
+/// `ECHOPHRASE_IPC_PORT` so a real Echophrase app holding the default port
+/// (1424) can't interfere with these tests.
+fn free_port() -> u16 {
+    TcpListener::bind(("127.0.0.1", 0))
+        .unwrap()
+        .local_addr()
+        .unwrap()
+        .port()
+}
 
 /// Write the token file the CLI reads, under `<home>/run/ipc-token` - the
 /// same layout `paths::ipc_token_file()` resolves to.
@@ -128,13 +136,14 @@ fn write_state_file(home: &Path, state: &str) {
     .unwrap();
 }
 
-/// Accept exactly one HTTP/1.1 request on `IPC_PORT` and reply with a
-/// canned `{"text": "..."}` JSON body, regardless of the request contents.
-/// Returns a handle to join once the CLI/MCP call under test has completed.
-fn serve_one_transcribe_response(text: &'static str) -> std::thread::JoinHandle<()> {
-    let listener = TcpListener::bind(("127.0.0.1", IPC_PORT))
-        .expect("bind IPC_PORT - is a real echophrase app running on this machine?");
-    std::thread::spawn(move || {
+/// Accept exactly one HTTP/1.1 request on an OS-assigned port and reply with
+/// a canned `{"text": "..."}` JSON body, regardless of the request contents.
+/// Returns the port (pass it as `ECHOPHRASE_IPC_PORT`) and a handle to join
+/// once the CLI/MCP call under test has completed.
+fn serve_one_transcribe_response(text: &'static str) -> (u16, std::thread::JoinHandle<()>) {
+    let listener = TcpListener::bind(("127.0.0.1", 0)).expect("bind a free port for the fake app");
+    let port = listener.local_addr().unwrap().port();
+    let handle = std::thread::spawn(move || {
         let (mut stream, _) = listener.accept().expect("accept fake IPC connection");
         read_request(&mut stream);
         let body = json!({ "text": text }).to_string();
@@ -144,7 +153,8 @@ fn serve_one_transcribe_response(text: &'static str) -> std::thread::JoinHandle<
             body
         );
         stream.write_all(response.as_bytes()).unwrap();
-    })
+    });
+    (port, handle)
 }
 
 /// Read a full HTTP/1.1 request (headers + body) off `stream`. We only need
@@ -190,12 +200,13 @@ fn transcribe_command_prints_transcript_from_running_app() {
     let input = home.path().join("in.wav");
     std::fs::write(&input, b"RIFF....WAVEfmt ").unwrap();
 
-    let server = serve_one_transcribe_response("test one two");
+    let (port, server) = serve_one_transcribe_response("test one two");
 
     let output = Command::new(env!("CARGO_BIN_EXE_echophrase-cli"))
         .arg("transcribe")
         .arg(&input)
         .env("ECHOPHRASE_HOME", home.path())
+        .env("ECHOPHRASE_IPC_PORT", port.to_string())
         .output()
         .expect("failed to run echophrase-cli transcribe");
 
@@ -216,6 +227,7 @@ fn transcribe_command_prints_transcript_from_running_app() {
 #[serial]
 fn transcribe_command_errors_when_app_not_running() {
     let home = TempDir::new().unwrap();
+    let port = free_port();
     let input = home.path().join("in.wav");
     std::fs::write(&input, b"RIFF....WAVEfmt ").unwrap();
 
@@ -224,6 +236,7 @@ fn transcribe_command_errors_when_app_not_running() {
         .arg("transcribe")
         .arg(&input)
         .env("ECHOPHRASE_HOME", home.path())
+        .env("ECHOPHRASE_IPC_PORT", port.to_string())
         .output()
         .expect("failed to run echophrase-cli transcribe");
 
@@ -240,6 +253,7 @@ fn transcribe_command_errors_when_app_not_running() {
 #[serial]
 fn transcribe_command_errors_with_settings_message_when_mcp_disabled() {
     let home = TempDir::new().unwrap();
+    let port = free_port();
     write_state_file(home.path(), "disabled");
     let input = home.path().join("in.wav");
     std::fs::write(&input, b"RIFF....WAVEfmt ").unwrap();
@@ -248,6 +262,7 @@ fn transcribe_command_errors_with_settings_message_when_mcp_disabled() {
         .arg("transcribe")
         .arg(&input)
         .env("ECHOPHRASE_HOME", home.path())
+        .env("ECHOPHRASE_IPC_PORT", port.to_string())
         .output()
         .expect("failed to run echophrase-cli transcribe");
 
@@ -264,9 +279,9 @@ fn mcp_transcribe_tool_returns_transcript_from_running_app() {
     let input = home.path().join("in.wav");
     std::fs::write(&input, b"RIFF....WAVEfmt ").unwrap();
 
-    let server = serve_one_transcribe_response("test one two");
+    let (port, server) = serve_one_transcribe_response("test one two");
 
-    let mut mcp = McpProcess::spawn(home.path());
+    let mut mcp = McpProcess::spawn(home.path(), port);
     mcp.initialize();
 
     let response = mcp.call_tool(
@@ -299,10 +314,11 @@ fn mcp_transcribe_tool_returns_transcript_from_running_app() {
 #[serial]
 fn mcp_transcribe_tool_reports_app_not_running() {
     let home = TempDir::new().unwrap();
+    let port = free_port();
     let input = home.path().join("in.wav");
     std::fs::write(&input, b"RIFF....WAVEfmt ").unwrap();
 
-    let mut mcp = McpProcess::spawn(home.path());
+    let mut mcp = McpProcess::spawn(home.path(), port);
     mcp.initialize();
 
     let response = mcp.call_tool(
@@ -325,11 +341,12 @@ fn mcp_transcribe_tool_reports_app_not_running() {
 #[serial]
 fn mcp_transcribe_tool_reports_settings_message_when_mcp_disabled() {
     let home = TempDir::new().unwrap();
+    let port = free_port();
     write_state_file(home.path(), "disabled");
     let input = home.path().join("in.wav");
     std::fs::write(&input, b"RIFF....WAVEfmt ").unwrap();
 
-    let mut mcp = McpProcess::spawn(home.path());
+    let mut mcp = McpProcess::spawn(home.path(), port);
     mcp.initialize();
 
     let response = mcp.call_tool(
