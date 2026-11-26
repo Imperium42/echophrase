@@ -306,12 +306,6 @@
     "termsOfService": "Terms of Service",
     "privacyPolicy": "Privacy Policy"
   },
-  "fileDropZone": {
-    "invalidFile": "Invalid file",
-    "dropHere": "Drop your audio file here",
-    "clickToBrowse": "click to browse",
-    "supportedFormats": "Supports WAV, MP3, M4A, FLAC, OGG, WebM (max 100MB)"
-  },
   "bottomActions": {
     "copyLast": "Copy Last",
     "copyLastAria": "Copy last transcription to clipboard",

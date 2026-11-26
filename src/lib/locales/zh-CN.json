@@ -306,12 +306,6 @@
     "termsOfService": "服务条款",
     "privacyPolicy": "隐私政策"
   },
-  "fileDropZone": {
-    "invalidFile": "无效文件",
-    "dropHere": "将音频文件拖放至此",
-    "clickToBrowse": "点击浏览",
-    "supportedFormats": "支持 WAV、MP3、M4A、FLAC、OGG、WebM（最大 100MB）"
-  },
   "bottomActions": {
     "copyLast": "复制上次",
     "copyLastAria": "复制上次转录到剪贴板",

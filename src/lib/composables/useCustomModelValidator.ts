@@ -7,8 +7,7 @@
  *
  * Instant extension/size checks before invoking the backend - the Rust
  * command (`import_custom_model_from_file`) is always the authoritative
- * check (it loads the file in ONNX Runtime). Mirrors the `useFileValidator`
- * `{ isValid, error }` shape.
+ * check (it loads the file in ONNX Runtime). Returns `{ isValid, error }`.
  *
  * TODO(safetensors): allow `.safetensors` again once the Candle backend
  * returns (ONNX_ONLY_MODE lifted).

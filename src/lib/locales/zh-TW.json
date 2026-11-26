@@ -306,12 +306,6 @@
     "termsOfService": "服務條款",
     "privacyPolicy": "隱私權政策"
   },
-  "fileDropZone": {
-    "invalidFile": "無效檔案",
-    "dropHere": "將音訊檔案拖放至此",
-    "clickToBrowse": "點擊瀏覽",
-    "supportedFormats": "支援 WAV、MP3、M4A、FLAC、OGG、WebM（最大 100MB）"
-  },
   "bottomActions": {
     "copyLast": "複製上次",
     "copyLastAria": "複製上次轉錄到剪貼簿",
