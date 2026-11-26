@@ -651,7 +651,12 @@
     "openFolder": "開啟資料夾"
   },
   "lastRun": {
-    "rawTranscript": "原始轉錄"
+    "rawTranscript": "原始轉錄",
+    "historyHint": "懸停查看歷史記錄",
+    "older": "較舊",
+    "newer": "較新",
+    "latest": "最新",
+    "oldest": "最舊"
   },
   "onboarding": {
     "welcome": "歡迎使用 Echophrase",

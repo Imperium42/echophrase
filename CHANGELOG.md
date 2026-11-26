@@ -6,6 +6,7 @@ All notable changes to Echophrase will be documented in this file.
 
 ### Added
 - Say "question mark" or "exclamation mark" to type ? or ! (on by default, Settings > Recording).
+- History now keeps your last 10 recordings (in memory only, cleared on quit): hover the left side or the Copy Last button and use the arrows to flip through them.
 
 ### Fixed
 - Normalized "echo phrase" -> "Echophrase" when transcribed.
@@ -14,6 +15,9 @@ All notable changes to Echophrase will be documented in this file.
 
 ### Changed
 - The command-line tool is now called `echophrase-cli` (was `echophrase`). If you set up the MCP server, change `"command"` in your `.mcp.json` to `echophrase-cli`.
+
+### Improved
+- The Copy Last button now sits at the top of the bottom-left buttons, in the history color.
 
 ## [v1.0.1] - 2026-11-24
 

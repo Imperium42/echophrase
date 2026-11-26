@@ -11,7 +11,7 @@ import { isMac } from '$lib/utils/platform';
  * The demo never touches the real recorder or the Rust backend, so these
  * stores are OR-ed into the real UI state by the consumers:
  * - `+page.svelte` flips the RecordButton / header timer with the first two.
- * - `OutputToastsContainer` force-shows the speed chip with `demoChipsPinned`.
+ * - `OutputToastsContainer` force-shows the history stack (and its speed readout) with `demoChipsPinned`.
  */
 
 /**

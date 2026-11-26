@@ -192,23 +192,33 @@ SPDX-License-Identifier: MPL-2.0
           >
         </button>
 
-        <!-- Resets ONLY the history peek FTUE bool so the left-side chip stack
-             will auto-fade-in again 5s after the next completed run.
+        <!-- Resets ONLY this session's history hint flag, so the gold "Hover for
+             history" chevron plays again 5s after the next run's toast is gone.
              Grouped with Welcome: both are FTUE resets. -->
         <button
           on:click={() => {
-            try {
-              localStorage.removeItem('echophrase_history_peek_shown');
-            } catch {
-              // localStorage can be unavailable; the reset is best-effort in the debug panel
-            }
             window.dispatchEvent(new CustomEvent('history-peek-reset'));
           }}
           class="bg-purple-800/80 backdrop-blur-sm px-2 py-1 rounded text-xs text-purple-400 hover:text-purple-300 border border-purple-700/50 cursor-pointer whitespace-nowrap"
-          title="Reset the one-time history peek so it replays after the next run"
+          title="Reset this session's history hint so it replays after the next run"
         >
           <span class="inline-flex items-center gap-1"
             ><Icon name="book" size={12} />History FTUE</span
+          >
+        </button>
+
+        <!-- Plays the history hint right now (no run needed, doesn't mark it seen). -->
+        <button
+          on:click={() => {
+            // Collapse the fan-out so it doesn't cover the hint while it plays.
+            showDebugLogs = false;
+            window.dispatchEvent(new CustomEvent('history-hint-preview'));
+          }}
+          class="bg-purple-800/80 backdrop-blur-sm px-2 py-1 rounded text-xs text-purple-400 hover:text-purple-300 border border-purple-700/50 cursor-pointer whitespace-nowrap"
+          title="Show the history hint now (preview only, doesn't count as seen)"
+        >
+          <span class="inline-flex items-center gap-1"
+            ><Icon name="chevron-left" size={12} />History Hint</span
           >
         </button>
 

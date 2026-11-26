@@ -16,6 +16,9 @@ export const showImportCustomModelModal = writable(false);
 // Settings panel initial section (for deep-linking to specific section)
 export const settingsInitialSection = writable<string | null>(null);
 
+// Settings panel initial search query (opens with the search box pre-filled)
+export const settingsInitialSearch = writable<string | null>(null);
+
 // Where closing the import custom model modal should return to (eg reopen the
 // model picker it was launched from). Null = just close (the launcher is
 // still open behind it, or there is nowhere to go back to).
@@ -33,14 +36,22 @@ export const pageStore = {
     }
     showSettingsPanel.set(true);
   },
+  // Open settings filtered by a search query (eg "input"), like the user typed it
+  openSettingsWithSearch: (query: string) => {
+    settingsInitialSection.set(null);
+    settingsInitialSearch.set(query);
+    showSettingsPanel.set(true);
+  },
   closeSettings: () => {
     showSettingsPanel.set(false);
     settingsInitialSection.set(null);
+    settingsInitialSearch.set(null);
   },
   toggleSettings: () => {
     showSettingsPanel.update(v => !v);
     if (!get(showSettingsPanel)) {
       settingsInitialSection.set(null);
+      settingsInitialSearch.set(null);
     }
   },
 

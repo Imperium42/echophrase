@@ -14,7 +14,7 @@ import {
   demoChromeHidden,
   demoModalOpen,
 } from '$lib/stores/demo';
-import { publishRun, lastRun } from '$lib/stores/lastRun';
+import { publishRun, restoreLatestRun } from '$lib/stores/lastRun';
 
 /**
  * Scripted, self-running marketing demo: fake cursor clicks Record, then Stop,
@@ -158,18 +158,21 @@ function publishMockResult(text: string): void {
   window.dispatchEvent(
     new CustomEvent('transcription-preview', { detail: { text, is_final: true } })
   );
-  publishRun({
-    raw: text,
-    transformed: null,
-    output: text,
-    actions: ['copy_to_clipboard'],
-    speed: {
-      transcriptionSeconds: DEMO_COMPUTE_SECONDS,
-      transformSeconds: null,
-      totalSeconds: DEMO_COMPUTE_SECONDS,
+  publishRun(
+    {
+      raw: text,
+      transformed: null,
+      output: text,
+      actions: ['copy_to_clipboard'],
+      speed: {
+        transcriptionSeconds: DEMO_COMPUTE_SECONDS,
+        transformSeconds: null,
+        totalSeconds: DEMO_COMPUTE_SECONDS,
+      },
+      at: Date.now(),
     },
-    at: Date.now(),
-  });
+    { remember: false }
+  );
   demoChipsPinned.set(true);
 }
 
@@ -273,7 +276,7 @@ export async function runDemo(options: DemoOptions = DEFAULT_DEMO_OPTIONS): Prom
     cursor = null;
 
     await sleep(DEMO_CHIPS_PINNED_MS, signal);
-    if (get(demoChipsPinned)) lastRun.clear();
+    if (get(demoChipsPinned)) restoreLatestRun();
     demoChipsPinned.set(false);
 
     // Keep the mocked GPU/model state a bit longer, then `finally` resets it.
