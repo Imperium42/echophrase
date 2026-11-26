@@ -7,6 +7,7 @@ import { sveltekit } from "@sveltejs/kit/vite";
 import tailwindcss from "@tailwindcss/vite";
 import { createViteLicensePlugin } from "rollup-license-plugin";
 import { readFileSync } from "node:fs";
+import { readdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 /**
@@ -113,6 +114,24 @@ const devPort = Number(process.env.DEV_PORT) || 8420;
 const hmrPort = devPort + 1;
 
 // https://vitejs.dev/config/
+/**
+ * Pick a package's license file deterministically: the alphabetically first file
+ * named LICENSE* / LICENCE*. rollup-license-plugin takes the first match in
+ * readdir() order, which depends on the filesystem and install, so a dual-licensed
+ * package shipping both LICENSE_APACHE-2.0 and LICENSE_MIT (eg @tauri-apps/api)
+ * flipped its notice text between CI runs and failed "Attribution is current".
+ * See KNOWN_ISSUES.md.
+ * @param {string} moduleDir
+ * @returns {Promise<string | undefined>}
+ */
+async function pickLicenseFile(moduleDir) {
+  const entries = await readdir(moduleDir, { withFileTypes: true });
+  return entries
+    .filter((entry) => !entry.isDirectory() && /^licen[cs]e/i.test(entry.name))
+    .map((entry) => entry.name)
+    .sort()[0];
+}
+
 export default defineConfig(async () => ({
   plugins: [
     tailwindcss(),
@@ -143,6 +162,9 @@ export default defineConfig(async () => ({
             // Fall back to canonical SPDX license text when a package ships none.
             replenishDefaultLicenseTexts: true,
             licenseOverrides,
+            // Deterministic license file pick (see pickLicenseFile). The plugin only
+            // exposes this through its typed test hook.
+            __mocks__: { getLicenseFileName: pickLicenseFile },
           }),
         ]
       : []),
