@@ -52,6 +52,8 @@ export interface ModalLayer {
   priority: ModalPriority;
   zIndex: number;
   timestamp: number;
+  /** Open order (monotonic). Breaks z-index ties: the later-opened layer is on top. */
+  seq: number;
   /** If false, ESC skips this modal (eg onboarding on step 0) */
   allowEsc: boolean;
 }
@@ -99,19 +101,21 @@ export function setGlobalOverlayBlocking(blocking: boolean): void {
   _isGlobalOverlayBlocking = blocking;
 }
 
+/** Topmost first: higher z-index, then the one opened later. */
+function byTopmost(a: ModalLayer, b: ModalLayer): number {
+  if (b.zIndex !== a.zIndex) return b.zIndex - a.zIndex;
+  return b.seq - a.seq;
+}
+
+let nextSeq = 0;
+
 function createModalController() {
   const { subscribe, set, update } = writable<ModalStore>({ layers: [] });
 
-  // Derived store for top modal
-  const topModal = derived({ subscribe }, $store => {
-    if ($store.layers.length === 0) return null;
-    // Sort by priority (descending), then by timestamp (descending)
-    const sorted = [...$store.layers].sort((a, b) => {
-      if (b.priority !== a.priority) return b.priority - a.priority;
-      return b.timestamp - a.timestamp;
-    });
-    return sorted[0];
-  });
+  // Derived store for top modal (same order ESC uses)
+  const topModal = derived({ subscribe }, $store =>
+    $store.layers.length === 0 ? null : [...$store.layers].sort(byTopmost)[0]
+  );
 
   // Global ESC key listener (only in browser)
   // This is the SINGLE source of truth for ESC modal closing.
@@ -126,9 +130,9 @@ function createModalController() {
       e.preventDefault();
       e.stopImmediatePropagation();
 
-      // Find topmost modal that allows ESC (sorted by z-index descending)
-      const sorted = [...store.layers].sort((a, b) => b.zIndex - a.zIndex);
-      const escapable = sorted.find(layer => layer.allowEsc);
+      // Close only the topmost modal that allows ESC - a modal opened from
+      // Settings closes before Settings itself.
+      const escapable = [...store.layers].sort(byTopmost).find(layer => layer.allowEsc);
       if (escapable) {
         escapable.onClose();
       }
@@ -187,6 +191,7 @@ function createModalController() {
           priority,
           zIndex,
           timestamp,
+          seq: nextSeq++,
           allowEsc,
         };
 

@@ -253,14 +253,8 @@ SPDX-License-Identifier: MPL-2.0
       keyboardCleanup = setupGlobalKeyboard({
         invoke: appInit.invoke,
         isAnyModalOpen: () => pageStore.isAnyModalOpen() || get(downloadEvents.isModalOpen),
-        closeSettings: () => pageStore.closeSettings(),
-        closeDownloadModal: () => downloadEvents.closeModal(),
-        backOrCloseImportCustomModelModal: () => importModalRef?.close(),
         cancelRecording: () => cancelRecording(),
         modalStates: {
-          showSettingsPanel: () => pageStore.getShowSettingsPanel(),
-          showImportCustomModelModal: () => get(showImportCustomModelModal),
-          isDownloadingModel: () => get(downloadEvents.isModalOpen),
           isRecording: () => get(isRecordingStore) || get(isOpenMicActiveStore),
         },
       });
