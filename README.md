@@ -36,6 +36,8 @@ Tap or hold a hotkey, speak, and the text lands wherever your cursor is.
 
 ---
 
+[echophrase-demo.webm](https://github.com/user-attachments/assets/0724dfa7-0117-4311-9645-059953de3d88)
+
 ## Why Echophrase
 
 | | |
