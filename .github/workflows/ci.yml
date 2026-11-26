@@ -12,7 +12,10 @@ permissions:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # Only PR runs are superseded by newer pushes. On main every push must finish:
+  # cancelling a queued macOS run for a quick follow-up merge (which may skip Rust)
+  # would drop that commit's macOS coverage entirely.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   frontend:
@@ -29,9 +32,10 @@ jobs:
       - run: bunx --bun vite build --mode production
 
   # Decides whether the Rust matrix needs to run: only when something Rust can see
-  # changed (the crates, Cargo files, toolchain, the ORT stager the job runs, or this
-  # workflow). Frontend-only and docs-only changes skip it. A base commit we can't
-  # resolve runs it. Plain git, no third-party action.
+  # changed (the crates, Cargo files, toolchain, files compiled or bundled into the
+  # app from the repo root, the ORT stager the job runs, or this workflow).
+  # Frontend-only and docs-only changes skip it. A base commit we can't resolve runs
+  # it. Plain git, no third-party action.
   changes:
     name: Detect Rust changes
     runs-on: ubuntu-24.04
@@ -48,13 +52,19 @@ jobs:
           if [ -z "$BASE" ] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
             echo "rust=true" >> "$GITHUB_OUTPUT"; exit 0
           fi
-          files=$(git diff --name-only "$BASE"...HEAD)
+          # --no-renames: a file moved OUT of a Rust tree must still count (rename
+          # detection would list only its new path). quotePath=false keeps non-ASCII
+          # paths unquoted so the ^ anchors match.
+          files=$(git -c core.quotePath=false diff --no-renames --name-only "$BASE"...HEAD)
           echo "$files"
-          # Rust trees, Cargo/toolchain config, the ORT stager the Rust job runs, or
-          # this workflow. Markdown inside the crates (READMEs, docs) doesn't count.
-          rust_paths='^(src-tauri|crates|cli)/|^Cargo\.(toml|lock)$|^\.cargo/|^rust-toolchain|^scripts/ensure-ort\.mjs$|^\.github/workflows/ci\.yml$'
+          # Rust trees, Cargo/toolchain config, repo-root files the build reads
+          # (include_bytes! mel filters, bundled LICENSE/TRADEMARKS, test fixtures),
+          # the ORT stager the Rust job runs, or this workflow. Markdown INSIDE the
+          # crates (READMEs, docs) doesn't count; everything else listed does.
+          rust_paths='^(src-tauri|crates|cli)/|^Cargo\.(toml|lock)$|^\.cargo/|^rust-toolchain|^mel_filters.*\.bytes$|^LICENSE$|^TRADEMARKS\.md$|^tests/audio/|^scripts/ensure-ort\.mjs$|^\.github/workflows/ci\.yml$'
+          crate_docs='^(src-tauri|crates|cli)/.*\.(md|mdx)$'
           if [ -z "$files" ] \
-            || echo "$files" | grep -E "$rust_paths" | grep -qvE '\.(md|mdx|txt)$'; then
+            || echo "$files" | grep -E "$rust_paths" | grep -qvE "$crate_docs"; then
             echo "rust=true" >> "$GITHUB_OUTPUT"
           else
             echo "rust=false" >> "$GITHUB_OUTPUT"
@@ -69,7 +79,9 @@ jobs:
       fail-fast: false
       matrix:
         # macOS runners often queue for ~10 minutes, so PRs check Linux + Windows and
-        # macOS runs on every push to main (and every release build in release.yml).
+        # macOS runs clippy + tests on every push to main. release.yml only BUILDS on
+        # macOS (no clippy/tests), so macOS-only lint/test failures surface on main,
+        # after merge, not on the PR.
         os: ${{ fromJSON(github.event_name == 'pull_request' && '["ubuntu-24.04","windows-latest"]' || '["ubuntu-24.04","windows-latest","macos-latest"]') }}
     runs-on: ${{ matrix.os }}
     steps:
