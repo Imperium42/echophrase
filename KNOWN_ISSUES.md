@@ -21,6 +21,8 @@ real cause, where the workaround lives, and what would let us drop it.
 | [Tauri: new resource files not copied to dev exe](#tauri-new-resource-files-are-not-copied-next-to-the-dev-exe) | Windows dev | Workaround required |
 | [DirectML: System32 copy too old](#directml-the-copy-in-system32-is-too-old-for-ort-124) | Windows runtime | Workaround required |
 | [tao panics after Windows ends the session](#tao-cannot-move-state-from-destroyed-after-wm_endsession) | Windows shutdown | Workaround required |
+| [Windows: admin windows block paste](#windows-admin-elevated-windows-block-paste-and-injected-hotkeys) | Windows input | OS design, no fix |
+| [Windows: tray pin reset once on 1.0](#windows-tray-always-show-pin-reset-once-on-the-update-to-10) | Windows tray | One-time, by design |
 
 ---
 
@@ -218,3 +220,42 @@ and force-exiting there would kill every relaunch. Decision logic and tests:
 Windows still runs DLL detach for ORT/DirectML and can hang (see `shutdown.rs`), so our
 `TerminateProcess` path stays the better exit. Re-check on the tauri 2.12 bump (blocked on the
 tray-icon GUID fork, see the `[patch.crates-io]` note in the root `Cargo.toml`).
+
+## Windows: admin (elevated) windows block paste and injected hotkeys
+
+**Upstream:** none (Windows User Interface Privilege Isolation, by design)
+**Affects:** Windows, when an app running as administrator (eg an admin terminal) has focus.
+
+**Symptom.** Paste-at-cursor does nothing in an admin window (the text is still on the
+clipboard). A hotkey produced by software (mouse/macro-key remapping tools) may not fire at all.
+
+**Cause.** UIPI silently drops simulated input (`SendInput`) from a normal process into a
+higher-integrity window. Our paste is a simulated Ctrl+V (`commands/output.rs`, enigo), and
+remapping tools generate their keys the same way. Our hotkey uses `RegisterHotKey`, which is
+expected to fire for real keyboard presses over admin windows; a dead hotkey there usually means
+the key was injected by a non-elevated remapping tool.
+
+**Workaround.** None in-app. Run Echophrase (and/or the remapping tool) as administrator. A
+`uiAccess` manifest would avoid it but requires a signed exe installed under Program Files, and we
+install per-user to `AppData\Local`.
+
+**Drop it when:** never (OS design), unless the install location changes.
+
+## Windows: tray "always show" pin reset once on the update to 1.0
+
+**Upstream:** none (Windows tray identity rules)
+**Affects:** Windows installs that pinned the tray icon on a pre-1.0 version.
+
+**Symptom.** After updating to 1.0.x the tray icon moves to the overflow (hidden icons) even
+though it was pinned to the taskbar.
+
+**Cause.** 1.0.0 gave the tray icon a fixed `NOTIFYICONDATA` GUID (`setup/tray.rs`,
+`TRAY_ICON_GUID`) so the pin survives future updates and per-version install folders (Scoop).
+Windows treats a GUID icon as a new identity, separate from the old exe-path + UID one the pin
+was stored on, so it starts unpinned once.
+
+**Workaround.** None needed after one re-pin (Settings > Personalization > Taskbar > Other
+system tray icons). We deliberately don't write `IsPromoted` under
+`HKCU\Control Panel\NotifyIconSettings` ourselves: undocumented, and it overrides a user choice.
+
+**Drop it when:** pre-1.0 installs are gone.
