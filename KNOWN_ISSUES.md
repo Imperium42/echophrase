@@ -25,6 +25,7 @@ real cause, where the workaround lives, and what would let us drop it.
 | [WSLg: Ctrl+Shift+Space is reserved](#wslg-ctrlshiftspace-is-reserved-by-the-compositor) | WSL hotkeys | Upstream, no fix |
 | [Windows: admin windows block paste](#windows-admin-elevated-windows-block-paste-and-injected-hotkeys) | Windows input | OS design, no fix |
 | [Windows: tray pin reset once on 1.0](#windows-tray-always-show-pin-reset-once-on-the-update-to-10) | Windows tray | One-time, by design |
+| [rollup-license-plugin: license file pick is random](#rollup-license-plugin-picks-a-license-file-in-readdir-order) | Attribution CI | Workaround required |
 
 ---
 
@@ -304,3 +305,22 @@ system tray icons). We deliberately don't write `IsPromoted` under
 `HKCU\Control Panel\NotifyIconSettings` ourselves: undocumented, and it overrides a user choice.
 
 **Drop it when:** pre-1.0 installs are gone.
+
+## rollup-license-plugin picks a license file in readdir order
+
+**Upstream:** `rollup-license-plugin` 3.x (`getLicenseFileName` in `dist/index.js`)
+**Affects:** `bun run licenses:generate` and the CI "Attribution is current" check.
+
+**Symptom.** "Attribution is current" fails intermittently with no dependency change: the
+notice block for a dual-licensed npm package (`@tauri-apps/api`, `Apache-2.0 OR MIT`) flips
+between the Apache-2.0 and MIT text, and a re-run passes.
+
+**Cause.** The plugin returns the first `LICENSE*` file in `readdir()` order, which is not
+sorted and varies by filesystem and install. `@tauri-apps/api` ships both `LICENSE_APACHE-2.0`
+and `LICENSE_MIT`.
+
+**Workaround.** `vite.config.js` passes `pickLicenseFile` (alphabetically first `LICENSE*`
+file) through the plugin's typed `__mocks__.getLicenseFileName` hook, the only override it
+exposes. Gated to the attribution build (`GEN_ATTRIBUTION=1`).
+
+**Drop it when:** the plugin sorts its candidates or offers a real option for this.
