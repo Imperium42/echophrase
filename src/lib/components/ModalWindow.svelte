@@ -9,6 +9,7 @@ SPDX-License-Identifier: MPL-2.0
   import { cubicOut } from 'svelte/easing';
   import { onDestroy, tick } from 'svelte';
   import ModalCloseButton from './ModalCloseButton.svelte';
+  import { modalController } from '$lib/stores/modalController';
 
   export let isOpen = false;
   export let maxWidth = 'max-w-2xl';
@@ -43,13 +44,27 @@ SPDX-License-Identifier: MPL-2.0
     }
   }
 
-  function handleKeydown(e: KeyboardEvent) {
-    if (!isOpen) return;
-    if (e.key === 'Escape' && onClose) {
-      e.stopPropagation();
-      onClose();
-      return;
+  // ESC is handled by modalController (the single source of truth): while open,
+  // this window is a layer there, so ESC closes only the topmost modal - a
+  // dialog opened from Settings closes before Settings itself.
+  let layerId: string | null = null;
+  $: syncLayer(isOpen);
+  function syncLayer(open: boolean) {
+    if (open && !layerId) {
+      layerId = modalController.push({
+        onClose: () => onClose?.(),
+        allowEsc: onClose !== undefined,
+      });
+    } else if (!open && layerId) {
+      modalController.pop(layerId);
+      layerId = null;
     }
+  }
+  const topModalId = modalController.topModalId;
+
+  function handleKeydown(e: KeyboardEvent) {
+    // Only the topmost modal traps Tab, or Settings would fight a dialog above it.
+    if (!isOpen || (layerId !== null && $topModalId !== layerId)) return;
     if (e.key === 'Tab') {
       const els = focusableElements();
       if (els.length === 0) {
@@ -89,6 +104,7 @@ SPDX-License-Identifier: MPL-2.0
   }
 
   onDestroy(() => {
+    if (layerId) modalController.pop(layerId);
     if (lastFocusedBeforeOpen) {
       lastFocusedBeforeOpen.focus?.();
       lastFocusedBeforeOpen = null;

@@ -27,6 +27,7 @@ SPDX-License-Identifier: MPL-2.0
   import { pageStore, showImportCustomModelModal } from '$lib/stores/pageStore';
   import { modelDownloadEvents } from '$lib/composables/useModelDownloadEvents';
   import { fade } from 'svelte/transition';
+  import { modalController } from '$lib/stores/modalController';
   import { launchUrl } from '$lib/utils/launchUrl';
   import { cmdOpenDirectory, cmdGetModelsDir } from '$lib/ipc/commands';
   import { useCopyFeedback } from '$lib/composables/useCopyFeedback';
@@ -88,6 +89,15 @@ SPDX-License-Identifier: MPL-2.0
       isDownloading = false;
     }
   }
+
+  // ESC layer: this dialog is a hand-built overlay (not ModalWindow), so it
+  // registers with modalController itself. Opened from Settings (eg enabling
+  // Transform), it sits above Settings and ESC closes it first.
+  $effect(() => {
+    if (!isDownloading) return;
+    const layerId = modalController.push({ onClose: closeModal });
+    return () => modalController.pop(layerId);
+  });
 
   let viewState: ModelDialogState = $state(ModelDialogState.Selection);
   // BYO custom-model downloads hand off to this SAME dialog (see

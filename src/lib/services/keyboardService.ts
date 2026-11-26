@@ -307,21 +307,10 @@ export interface KeyboardContext {
   invoke?: unknown;
   /** Check if any modal is open (includes modalController registrations) */
   isAnyModalOpen: () => boolean;
-  /** Close settings panel */
-  closeSettings: () => void;
-  /** Close download modal */
-  closeDownloadModal: () => void;
-  /** ESC in the custom model import window - step back one level (candidate
-   * list -> URL input -> choose screen -> models list) rather than a blunt
-   * close, matching the window's own visible "Back" link at each depth. */
-  backOrCloseImportCustomModelModal: () => void;
   /** Cancel active recording without transcribing (ESC during recording) */
   cancelRecording: () => void;
-  /** Check modal states for priority handling */
+  /** State the ESC priority needs (modals themselves are modalController layers) */
   modalStates: {
-    showSettingsPanel: () => boolean;
-    showImportCustomModelModal: () => boolean;
-    isDownloadingModel: () => boolean;
     /** Whether a recording is currently active (push-to-talk or open mic) */
     isRecording: () => boolean;
   };
@@ -343,15 +332,9 @@ export interface KeyboardContext {
  */
 export function setupGlobalKeyboard(context: KeyboardContext): () => void {
   async function handleKeydown(e: KeyboardEvent) {
-    const {
-      closeSettings,
-      closeDownloadModal,
-      cancelRecording,
-      backOrCloseImportCustomModelModal,
-      modalStates,
-    } = context;
+    const { cancelRecording, modalStates } = context;
 
-    // ESC - Close modals in priority order (downloads continue in background)
+    // ESC - cancel an active recording; modals are closed by modalController
     if (e.key === 'Escape') {
       e.preventDefault();
 
@@ -363,32 +346,10 @@ export function setupGlobalKeyboard(context: KeyboardContext): () => void {
         return;
       }
 
-      // Priority 2: Custom model import window - steps back one level at a
-      // time instead of closing outright, since it can layer above Settings
-      // (opened from the model picker) or from within Settings itself.
-      if (modalStates.showImportCustomModelModal()) {
-        console.log('[ESC] Custom model import window - back/close');
-        backOrCloseImportCustomModelModal();
-        e.stopImmediatePropagation();
-        return;
-      }
-
-      // Priority 3: Close Settings panel
-      if (modalStates.showSettingsPanel()) {
-        console.log('[ESC] Closing settings');
-        closeSettings();
-        e.stopImmediatePropagation();
-        return;
-      }
-
-      // Priority 4: Close Model Download dialog (download continues in background)
-      if (modalStates.isDownloadingModel()) {
-        console.log('[ESC] Closing model download dialog (download continues in background)');
-        closeDownloadModal();
-        e.stopImmediatePropagation();
-        return;
-      }
-
+      // Everything else (Settings, the model download dialog, the custom model
+      // import window, dropdowns) is a modalController layer: its window
+      // listener closes ONLY the topmost one, so a dialog opened from Settings
+      // closes before Settings. Don't close modals here.
       return;
     }
 
