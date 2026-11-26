@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
-//! End-to-end tests for `echophrase transcode`, driving the real compiled
-//! binary (via `CARGO_BIN_EXE_echophrase`) against synthetic WAV inputs.
+//! End-to-end tests for `echophrase-cli transcode`, driving the real compiled
+//! binary (via `CARGO_BIN_EXE_echophrase-cli`) against synthetic WAV inputs.
 
 use std::path::Path;
 use std::process::Command;
@@ -38,7 +38,7 @@ fn tone_frames() -> Vec<(i16, i16)> {
 }
 
 fn run_transcode(args: &[&std::ffi::OsStr]) -> std::process::Output {
-    Command::new(env!("CARGO_BIN_EXE_echophrase"))
+    Command::new(env!("CARGO_BIN_EXE_echophrase-cli"))
         .arg("transcode")
         .args(args)
         .output()

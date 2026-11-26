@@ -2,11 +2,11 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
-//! `echophrase worker` - the detached background capture process.
+//! `echophrase-cli worker` - the detached background capture process.
 //!
 //! This subcommand is hidden from `--help`; it is spawned by `record` and is
 //! not meant to be run by hand. It captures audio until the stop flag appears
-//! (set by `echophrase stop`) or it receives a termination signal, then clears
+//! (set by `echophrase-cli stop`) or it receives a termination signal, then clears
 //! the session so `stop`/`status` see an idle system.
 
 use anyhow::Result;
@@ -26,7 +26,7 @@ pub fn run(args: WorkerArgs) -> Result<()> {
     let on_signal = stop.clone();
     let _ = ctrlc::set_handler(move || on_signal.store(true, Ordering::SeqCst));
 
-    // Poll the stop flag written by `echophrase stop`.
+    // Poll the stop flag written by `echophrase-cli stop`.
     let on_flag = stop.clone();
     std::thread::spawn(move || {
         while !on_flag.load(Ordering::SeqCst) {

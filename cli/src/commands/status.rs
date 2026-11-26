@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
-//! `echophrase status` - report whether a recording is in progress.
+//! `echophrase-cli status` - report whether a recording is in progress.
 
 use anyhow::Result;
 

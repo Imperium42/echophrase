@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
-//! End-to-end tests for `echophrase transcribe` and the MCP `transcribe`
+//! End-to-end tests for `echophrase-cli transcribe` and the MCP `transcribe`
 //! tool, against a fake local HTTP server standing in for the desktop app's
 //! IPC server (real transcription needs a GPU/model - see cli/README.md for
 //! the manual QA step against the real app).
@@ -27,14 +27,14 @@ struct McpProcess {
 
 impl McpProcess {
     fn spawn(home: &Path) -> Self {
-        let mut child = Command::new(env!("CARGO_BIN_EXE_echophrase"))
+        let mut child = Command::new(env!("CARGO_BIN_EXE_echophrase-cli"))
             .arg("mcp")
             .env("ECHOPHRASE_HOME", home)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
-            .expect("failed to spawn echophrase mcp");
+            .expect("failed to spawn echophrase-cli mcp");
         let stdin = child.stdin.take().expect("child stdin");
         let stdout = BufReader::new(child.stdout.take().expect("child stdout"));
         Self {
@@ -192,12 +192,12 @@ fn transcribe_command_prints_transcript_from_running_app() {
 
     let server = serve_one_transcribe_response("test one two");
 
-    let output = Command::new(env!("CARGO_BIN_EXE_echophrase"))
+    let output = Command::new(env!("CARGO_BIN_EXE_echophrase-cli"))
         .arg("transcribe")
         .arg(&input)
         .env("ECHOPHRASE_HOME", home.path())
         .output()
-        .expect("failed to run echophrase transcribe");
+        .expect("failed to run echophrase-cli transcribe");
 
     server.join().unwrap();
 
@@ -220,12 +220,12 @@ fn transcribe_command_errors_when_app_not_running() {
     std::fs::write(&input, b"RIFF....WAVEfmt ").unwrap();
 
     // No token file, no fake server: the app is "not running".
-    let output = Command::new(env!("CARGO_BIN_EXE_echophrase"))
+    let output = Command::new(env!("CARGO_BIN_EXE_echophrase-cli"))
         .arg("transcribe")
         .arg(&input)
         .env("ECHOPHRASE_HOME", home.path())
         .output()
-        .expect("failed to run echophrase transcribe");
+        .expect("failed to run echophrase-cli transcribe");
 
     assert!(!output.status.success());
     assert!(
@@ -244,12 +244,12 @@ fn transcribe_command_errors_with_settings_message_when_mcp_disabled() {
     let input = home.path().join("in.wav");
     std::fs::write(&input, b"RIFF....WAVEfmt ").unwrap();
 
-    let output = Command::new(env!("CARGO_BIN_EXE_echophrase"))
+    let output = Command::new(env!("CARGO_BIN_EXE_echophrase-cli"))
         .arg("transcribe")
         .arg(&input)
         .env("ECHOPHRASE_HOME", home.path())
         .output()
-        .expect("failed to run echophrase transcribe");
+        .expect("failed to run echophrase-cli transcribe");
 
     assert!(!output.status.success());
     let stderr = String::from_utf8_lossy(&output.stderr);

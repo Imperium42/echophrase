@@ -9,7 +9,7 @@ SPDX-License-Identifier: MPL-2.0
    * MCP Server Section
    *
    * Toggles the localhost-only IPC server (127.0.0.1:1424) that the CLI's
-   * `echophrase transcribe` command and the MCP `transcribe` tool use to
+   * `echophrase-cli transcribe` command and the MCP `transcribe` tool use to
    * drive this already-running app's transcription pipeline, instead of
    * loading a second copy of the model.
    */

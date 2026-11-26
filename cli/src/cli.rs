@@ -13,7 +13,7 @@ use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
 #[command(
-    name = "echophrase",
+    name = "echophrase-cli",
     version,
     about = "Echophrase CLI - record your microphone from the terminal.",
     long_about = "Echophrase CLI is a small, cross-platform helper for capturing microphone \
@@ -36,7 +36,7 @@ pub enum Command {
     /// Start recording the microphone.
     ///
     /// By default this detaches a background worker and returns immediately, so
-    /// you can keep using the terminal and stop later with `echophrase stop`.
+    /// you can keep using the terminal and stop later with `echophrase-cli stop`.
     /// Use --foreground to record in the current process until Ctrl+C instead.
     Record(RecordArgs),
 

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
-//! Localhost-only IPC server so the CLI (`echophrase transcribe`) and the
+//! Localhost-only IPC server so the CLI (`echophrase-cli transcribe`) and the
 //! MCP `transcribe` tool can drive the desktop app's already-loaded
 //! transcription model without a second copy of it.
 //!

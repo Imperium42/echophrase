@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
-//! `echophrase stop` - end the active recording and finalize the WAV.
+//! `echophrase-cli stop` - end the active recording and finalize the WAV.
 
 use anyhow::Result;
 

@@ -13,7 +13,7 @@ repository = "https://github.com/Imperium42/echophrase"
 readme = "README.md"
 
 [[bin]]
-name = "echophrase"
+name = "echophrase-cli"
 path = "src/main.rs"
 
 [features]
@@ -21,7 +21,7 @@ path = "src/main.rs"
 # Disable it (`--no-default-features`) to build the orchestration without
 # audio hardware, e.g. in CI or for the MCP server's headless tests. Without
 # it, the recorder writes silence so the record/stop/session flow (and the
-# `echophrase mcp` server) stay testable.
+# `echophrase-cli mcp` server) stay testable.
 default = ["mic"]
 mic = ["echo-audio/capture"]
 
@@ -33,7 +33,7 @@ ctrlc = "3.5"
 anyhow = { workspace = true }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-# Minimal MCP server (`echophrase mcp`): stdio transport, tool router/macros.
+# Minimal MCP server (`echophrase-cli mcp`): stdio transport, tool router/macros.
 rmcp = { version = "3.0", features = ["server", "transport-io", "macros"] }
 # Async runtime for the MCP server loop only; every other command stays sync.
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "io-std"] }

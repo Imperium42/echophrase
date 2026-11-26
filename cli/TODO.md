@@ -23,7 +23,7 @@ in sync when you add or resolve an item.
   rate/bit-depth/format if non-pipeline consumers need it.
 - **Streaming I/O** (`src/cli.rs`, `TranscodeArgs`): add `--stdin`/`--stdout`
   streaming (and an MCP tool for it) so audio can be piped without temp files.
-- ~~**Transcription tool**~~: DONE. `echophrase transcribe <file.wav>` and the
+- ~~**Transcription tool**~~: DONE. `echophrase-cli transcribe <file.wav>` and the
   MCP `transcribe` tool call the running desktop app over a localhost-only
   IPC connection (`src-tauri/src/ipc/`), reusing its already-loaded Candle
   Whisper model. Requires the desktop app to be running.

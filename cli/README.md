@@ -6,7 +6,7 @@ Echophrase desktop app.
 
 It **records** the mic (`record`/`stop`/`status`) and **transcodes** existing
 WAV files into the canonical format. It also runs as a **minimal MCP server**
-(`echophrase mcp`) that exposes those same actions as tools, so AI agents like
+(`echophrase-cli mcp`) that exposes those same actions as tools, so AI agents like
 Claude Code can drive voice capture without rewriting the audio or session
 logic.
 
@@ -20,18 +20,23 @@ logic.
   override with `ECHOPHRASE_HOME`.
 
 > Scope note: transcription itself still runs inside the desktop app's Rust
-> backend (it owns the loaded model). `echophrase transcribe` and the MCP
+> backend (it owns the loaded model). `echophrase-cli transcribe` and the MCP
 > `transcribe` tool talk to the running app over a localhost-only IPC
 > connection - the desktop app must be running for either to work.
 
 ## Install / build
 
-This is a standalone Cargo crate under `cli/`; it does not touch the Tauri build.
+The CLI is the `echophrase-cli` member of the repo's cargo workspace. Like every
+workspace member, it builds into `src-tauri/target` (see `.cargo/config.toml`), next
+to the desktop app, so its binary is named `echophrase-cli` to never overwrite the
+app's `echophrase` binary.
 
 ```bash
-cd cli
-cargo build --release
-# binary: cli/target/release/echophrase
+# from the repo root
+cargo install --path cli          # installs echophrase-cli into ~/.cargo/bin (on PATH)
+# or just build it:
+cargo build --release -p echophrase-cli
+# binary: src-tauri/target/release/echophrase-cli
 ```
 
 ### System audio dependencies (the default `mic` feature)
@@ -55,7 +60,7 @@ cargo build --no-default-features
 ## Usage
 
 ```text
-echophrase <COMMAND>
+echophrase-cli <COMMAND>
 
 Commands:
   record      Start recording the microphone
@@ -71,51 +76,51 @@ Commands:
 
 ```bash
 # Downmix to mono, resample to 16 kHz, peak-normalize -> <input>.16k.wav
-echophrase transcode meeting.wav
+echophrase-cli transcode meeting.wav
 # ■ Wrote meeting.16k.wav (63s, 1.9 MiB, 16000 Hz mono) (resampled from 48000 Hz)
 
-echophrase transcode in.wav -o out.wav   # explicit output
-echophrase transcode in.wav --no-normalize  # preserve original levels
+echophrase-cli transcode in.wav -o out.wav   # explicit output
+echophrase-cli transcode in.wav --no-normalize  # preserve original levels
 ```
 
 Every command has detailed help:
 
 ```bash
-echophrase --help
-echophrase record --help
-echophrase stop --help
+echophrase-cli --help
+echophrase-cli record --help
+echophrase-cli stop --help
 ```
 
 ### Record and stop
 
 ```bash
 # Start recording in the background; returns immediately.
-echophrase record
+echophrase-cli record
 # ● Recording started (pid 12345).
 #   Output: /home/you/.local/share/echophrase-cli/recordings/echophrase-1750000000.wav
-#   Stop with: echophrase stop
+#   Stop with: echophrase-cli stop
 
 # Check on it any time.
-echophrase status
+echophrase-cli status
 
 # Finish and finalize the WAV.
-echophrase stop
+echophrase-cli stop
 # ■ Saved .../echophrase-1750000000.wav (7s, 224.1 KiB)
 ```
 
 ### Record to a specific file or device
 
 ```bash
-echophrase record --output ./meeting.wav --device "USB Microphone"
+echophrase-cli record --output ./meeting.wav --device "USB Microphone"
 ```
 
 ### Foreground mode
 
-Record in the current terminal and stop with Ctrl+C (or `echophrase stop` from
+Record in the current terminal and stop with Ctrl+C (or `echophrase-cli stop` from
 another terminal):
 
 ```bash
-echophrase record --foreground
+echophrase-cli record --foreground
 # ● Recording... press Ctrl+C to stop.
 ```
 
@@ -124,7 +129,7 @@ echophrase record --foreground
 If a previous recording did not shut down cleanly:
 
 ```bash
-echophrase record --force   # clears the stale session and starts fresh
+echophrase-cli record --force   # clears the stale session and starts fresh
 ```
 
 ### Transcribe an existing file (requires the desktop app running)
@@ -134,7 +139,7 @@ over a localhost-only IPC connection and prints back the transcript. The
 desktop app owns the loaded transcription model, so it must be running:
 
 ```bash
-echophrase transcribe meeting.16k.wav
+echophrase-cli transcribe meeting.16k.wav
 # test one two
 ```
 
@@ -146,7 +151,7 @@ error: The Echophrase desktop app must be running to transcribe. Start the app a
 
 ### MCP server
 
-Run `echophrase mcp` to expose `record`, `stop`, `status`, `transcode`, and
+Run `echophrase-cli mcp` to expose `record`, `stop`, `status`, `transcode`, and
 `transcribe` as MCP tools over stdio. The hidden `worker` subcommand is never
 exposed. Every tool shares the same session and audio logic as the CLI
 commands above, so behavior never drifts between the two front ends. Like the
@@ -159,7 +164,7 @@ Add it to a client's `.mcp.json` (Claude Code, for example):
 {
   "mcpServers": {
     "echophrase": {
-      "command": "/absolute/path/to/echophrase",
+      "command": "echophrase-cli",
       "args": ["mcp"]
     }
   }

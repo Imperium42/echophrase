@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
-//! End-to-end tests for `echophrase mcp`, driving the real compiled binary
+//! End-to-end tests for `echophrase-cli mcp`, driving the real compiled binary
 //! headless over stdio: a JSON-RPC `initialize` handshake, `tools/list`, and
 //! a `tools/call` on the `transcode` tool against a fixture WAV.
 
@@ -15,7 +15,7 @@ use serde_json::{Value, json};
 use serial_test::serial;
 use tempfile::TempDir;
 
-/// A running `echophrase mcp` process plus its stdio handles.
+/// A running `echophrase-cli mcp` process plus its stdio handles.
 struct McpProcess {
     child: Child,
     stdin: ChildStdin,
@@ -23,17 +23,17 @@ struct McpProcess {
 }
 
 impl McpProcess {
-    /// Spawn `echophrase mcp` with `ECHOPHRASE_HOME` pointed at an isolated
+    /// Spawn `echophrase-cli mcp` with `ECHOPHRASE_HOME` pointed at an isolated
     /// temp dir so this test never touches real session state.
     fn spawn(home: &Path) -> Self {
-        let mut child = Command::new(env!("CARGO_BIN_EXE_echophrase"))
+        let mut child = Command::new(env!("CARGO_BIN_EXE_echophrase-cli"))
             .arg("mcp")
             .env("ECHOPHRASE_HOME", home)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
-            .expect("failed to spawn echophrase mcp");
+            .expect("failed to spawn echophrase-cli mcp");
         let stdin = child.stdin.take().expect("child stdin");
         let stdout = BufReader::new(child.stdout.take().expect("child stdout"));
         Self {

@@ -7,7 +7,7 @@ agents can drive voice capture.
 ## Synopsis
 
 ```text
-echophrase <COMMAND> [OPTIONS]
+echophrase-cli <COMMAND> [OPTIONS]
 ```
 
 ## Global behaviour
@@ -23,7 +23,7 @@ echophrase <COMMAND> [OPTIONS]
 
 ## Commands
 
-### `echophrase record`
+### `echophrase-cli record`
 
 Start recording the microphone.
 
@@ -35,11 +35,11 @@ Start recording the microphone.
 | `--force` | Clear a stale session and start a new recording. |
 
 Default (background) mode spawns a detached worker and returns immediately.
-Foreground mode blocks and can be stopped with Ctrl+C or `echophrase stop`.
+Foreground mode blocks and can be stopped with Ctrl+C or `echophrase-cli stop`.
 
 Errors if a recording is already in progress (unless `--force`).
 
-### `echophrase stop`
+### `echophrase-cli stop`
 
 Stop the active recording and finalize the WAV file.
 
@@ -52,12 +52,12 @@ foreground process prints its own summary.
 
 Errors if there is no active recording.
 
-### `echophrase status`
+### `echophrase-cli status`
 
 Print whether a recording is in progress, and if so its pid, mode
 (foreground/background), elapsed time, and output path.
 
-### `echophrase transcribe <FILE>`
+### `echophrase-cli transcribe <FILE>`
 
 Transcribe a WAV file using the running desktop app's already-loaded
 transcription model.
@@ -73,7 +73,7 @@ error: The Echophrase desktop app must be running to transcribe. Start the app a
 
 Prints the transcript to stdout on success.
 
-### `echophrase mcp`
+### `echophrase-cli mcp`
 
 Run as a minimal MCP (Model Context Protocol) server over stdio.
 
@@ -92,7 +92,7 @@ The hidden `worker` subcommand is never exposed as a tool. Runs until stdin
 closes. See [`README.md`](../README.md#mcp-server) for a Claude Code
 `.mcp.json` example.
 
-### `echophrase help [COMMAND]`
+### `echophrase-cli help [COMMAND]`
 
 Print help for the CLI or a specific subcommand. Equivalent to `--help`.
 
@@ -100,21 +100,21 @@ Print help for the CLI or a specific subcommand. Equivalent to `--help`.
 
 ```bash
 # Background record, then stop.
-echophrase record
-echophrase status
-echophrase stop
+echophrase-cli record
+echophrase-cli status
+echophrase-cli stop
 
 # Named output and explicit device.
-echophrase record -o ./take1.wav -d "USB Microphone"
+echophrase-cli record -o ./take1.wav -d "USB Microphone"
 
 # Foreground (Ctrl+C to stop).
-echophrase record --foreground
+echophrase-cli record --foreground
 
 # Recover after an unclean shutdown.
-echophrase record --force
+echophrase-cli record --force
 
 # Use a custom state directory.
-ECHOPHRASE_HOME=/tmp/ep echophrase record
+ECHOPHRASE_HOME=/tmp/ep echophrase-cli record
 ```
 
 ## Notes
