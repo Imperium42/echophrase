@@ -450,8 +450,9 @@ pub async fn get_audio_input_devices() -> Result<Vec<serde_json::Value>, String>
 
 #[tauri::command]
 pub async fn transcribe_audio(app_handle: AppHandle, file_path: String) -> Result<String, String> {
-    // Native (macOS/Windows) recording transcribes via this file-based path.
-    // Flip the tray to Transcribing for the duration and back to Idle on every
+    // Transcribes an audio FILE (WAV only today: decoding goes through
+    // echo_audio::read_wav / hound). Live recording never comes through here;
+    // capture is in memory on every platform. Flip the tray to Transcribing for the duration and back to Idle on every
     // exit (Ok, Err, panic-unwind) so the indicator matches the WSL buffer path.
     let _tray_guard = crate::tray_status::StatusGuard::new(
         app_handle.clone(),

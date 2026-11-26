@@ -100,15 +100,6 @@ export const AUDIO_PRESETS: Record<AudioQuality, AudioConfig> = {
   },
 };
 
-/** Recording constraints */
-export const RECORDING_CONSTRAINTS = {
-  MAX_DURATION_SECONDS: 60,
-  MIN_DURATION_SECONDS: 0.5,
-  MAX_FILE_SIZE_MB: 100,
-  DEFAULT_SAMPLE_RATE: 16000,
-  DEFAULT_CHANNELS: 1,
-} as const;
-
 /** Audio level thresholds */
 export const AUDIO_LEVELS = {
   SILENCE_THRESHOLD: -50, // dB
@@ -116,47 +107,6 @@ export const AUDIO_LEVELS = {
   PEAK_WARNING: -3, // dB
   CLIPPING_THRESHOLD: 0, // dB
 } as const;
-
-/** Supported audio formats for transcription */
-export const SUPPORTED_AUDIO_FORMATS = ['.wav', '.mp3', '.m4a', '.webm', '.ogg', '.flac'] as const;
-
-/** Maximum file sizes by format (MB) */
-export const MAX_FILE_SIZES: Record<string, number> = {
-  '.wav': 100,
-  '.mp3': 50,
-  '.m4a': 50,
-  '.webm': 50,
-  '.ogg': 50,
-  '.flac': 100,
-};
-
-/**
- * Validate audio file
- */
-export function validateAudioFile(file: File): { valid: boolean; error?: string } {
-  // Check file extension
-  const extension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
-
-  if (!(SUPPORTED_AUDIO_FORMATS as readonly string[]).includes(extension)) {
-    return {
-      valid: false,
-      error: `Unsupported format. Supported: ${SUPPORTED_AUDIO_FORMATS.join(', ')}`,
-    };
-  }
-
-  // Check file size
-  const maxSize = MAX_FILE_SIZES[extension] || 50;
-  const fileSizeMB = file.size / (1024 * 1024);
-
-  if (fileSizeMB > maxSize) {
-    return {
-      valid: false,
-      error: `File too large. Maximum size: ${maxSize}MB`,
-    };
-  }
-
-  return { valid: true };
-}
 
 /**
  * Calculate audio duration from file size and config
