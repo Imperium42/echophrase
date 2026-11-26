@@ -9,6 +9,7 @@ All notable changes to Echophrase will be documented in this file.
 
 ### Fixed
 - Normalized "echo phrase" -> "Echophrase" when transcribed.
+- Transcription speed now shows for Open Mic recordings stopped with the hotkey.
 
 ### Changed
 - The command-line tool is now called `echophrase-cli` (was `echophrase`). If you set up the MCP server, change `"command"` in your `.mcp.json` to `echophrase-cli`.
