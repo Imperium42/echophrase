@@ -288,7 +288,19 @@ pub fn default_transcode_output(input: &Path) -> PathBuf {
 /// Kept in sync by hand with `src-tauri/src/ipc/server.rs::IPC_PORT` - the
 /// two crates do not share a dependency edge, so this is a plain duplicate
 /// constant rather than an import.
-const IPC_PORT: u16 = 1424;
+const DEFAULT_IPC_PORT: u16 = 1424;
+
+/// Overrides [`DEFAULT_IPC_PORT`]. For tests (so a running app holding 1424
+/// can't interfere) and dev setups; the desktop app itself always uses 1424.
+const IPC_PORT_ENV: &str = "ECHOPHRASE_IPC_PORT";
+
+/// The IPC port to call: `$ECHOPHRASE_IPC_PORT` if it parses, else the default.
+fn ipc_port() -> u16 {
+    std::env::var(IPC_PORT_ENV)
+        .ok()
+        .and_then(|v| v.trim().parse().ok())
+        .unwrap_or(DEFAULT_IPC_PORT)
+}
 
 /// The message shown whenever the desktop app is not reachable at all: not
 /// running, or running but its IPC listener crashed (a stale `"running"`
@@ -356,7 +368,7 @@ pub fn transcribe(input: &Path) -> Result<TranscribeResult> {
         bail!(down_reason_message());
     }
 
-    let url = format!("http://127.0.0.1:{IPC_PORT}/v1/transcribe");
+    let url = format!("http://127.0.0.1:{}/v1/transcribe", ipc_port());
     let body = serde_json::json!({ "wav_path": input.to_string_lossy() });
 
     let response = ureq::post(&url)
@@ -389,14 +401,41 @@ mod tests {
     use serial_test::serial;
     use tempfile::TempDir;
 
+    /// Isolated ECHOPHRASE_HOME, plus an IPC port nothing listens on, so a real
+    /// Echophrase app holding the default port can't change these results.
     fn isolated_home() -> TempDir {
         let dir = TempDir::new().unwrap();
-        unsafe { std::env::set_var("ECHOPHRASE_HOME", dir.path()) };
+        let free_port = std::net::TcpListener::bind(("127.0.0.1", 0))
+            .unwrap()
+            .local_addr()
+            .unwrap()
+            .port();
+        // SAFETY: these tests are #[serial], so no other thread reads the env meanwhile.
+        unsafe {
+            std::env::set_var("ECHOPHRASE_HOME", dir.path());
+            std::env::set_var(IPC_PORT_ENV, free_port.to_string());
+        }
         dir
     }
 
     fn clear_home() {
-        unsafe { std::env::remove_var("ECHOPHRASE_HOME") };
+        // SAFETY: see isolated_home.
+        unsafe {
+            std::env::remove_var("ECHOPHRASE_HOME");
+            std::env::remove_var(IPC_PORT_ENV);
+        }
+    }
+
+    #[test]
+    #[serial]
+    fn ipc_port_uses_the_override_and_falls_back_to_the_default() {
+        // SAFETY: #[serial], see isolated_home.
+        unsafe { std::env::set_var(IPC_PORT_ENV, " 5123 ") };
+        assert_eq!(ipc_port(), 5123);
+        unsafe { std::env::set_var(IPC_PORT_ENV, "not-a-port") };
+        assert_eq!(ipc_port(), DEFAULT_IPC_PORT);
+        unsafe { std::env::remove_var(IPC_PORT_ENV) };
+        assert_eq!(ipc_port(), DEFAULT_IPC_PORT);
     }
 
     #[test]
@@ -459,7 +498,7 @@ mod tests {
     #[serial]
     fn transcribe_errors_with_friendly_message_when_app_not_listening() {
         let home = isolated_home();
-        // A token file exists but nothing is listening on IPC_PORT - same
+        // A token file exists but nothing is listening on the IPC port - same
         // user-facing message as "app not running", since from the CLI's
         // point of view both cases mean "can't reach the app".
         paths::ensure_dirs().unwrap();
