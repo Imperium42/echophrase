@@ -258,6 +258,10 @@
     "showTranscriptionSpeedHint": "在最近一次运行的历史记录中加入速度标签，显示转录（与转换）耗时",
     "showLastOnHover": "悬停显示上次转录",
     "showLastOnHoverHint": "将鼠标移至录音按钮附近时显示上次转录内容",
+    "historyLabel": "转录历史记录",
+    "historyPrefix": "保留最近",
+    "historyHint": "让你翻阅最近的转录内容。只保存在内存中：绝不写入磁盘，退出程序后即清除。关闭时只会显示最新一条转录。",
+    "historyCountAria": "要保留的最近转录数量",
     "minimizeToTrayOnClose": "关闭时最小化到系统匣",
     "minimizeToTrayOnCloseHint": "点击 X 时将应用程序隐藏至系统匣，而非直接结束"
   },

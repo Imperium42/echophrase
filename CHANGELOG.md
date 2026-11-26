@@ -2,6 +2,11 @@
 
 All notable changes to Echophrase will be documented in this file.
 
+## [Unreleased]
+
+### Added
+- Choose how many recent transcripts the history keeps (1-10), or turn it off: Settings > Customize > Transcript History.
+
 ## [v1.1.0] - 2026-11-26
 
 ### Added

@@ -11,7 +11,8 @@ SPDX-License-Identifier: MPL-2.0
    * UI customization toggles (show/hide various elements).
    */
 
-  import { SettingsSection, SettingToggle } from '../primitives';
+  import { SettingsSection, SettingToggle, SettingNumberInput } from '../primitives';
+  import { HISTORY_LIMIT, MIN_HISTORY_LIMIT } from '$lib/stores/lastRun';
   import { getSettingsContext } from '../context';
   import { t } from '$lib/locales';
 
@@ -71,7 +72,22 @@ SPDX-License-Identifier: MPL-2.0
       defaultValue: true,
     },
   ]);
+
+  const historyEnabled = $derived($settings?.history_enabled ?? true);
 </script>
+
+{#snippet historyCount()}
+  <SettingNumberInput
+    value={$settings?.history_limit}
+    fallback={HISTORY_LIMIT}
+    min={MIN_HISTORY_LIMIT}
+    max={HISTORY_LIMIT}
+    prefix={t('customize.historyPrefix')}
+    disabled={!historyEnabled}
+    ariaLabel={t('customize.historyCountAria')}
+    oncommit={v => updateSetting('history_limit', v)}
+  />
+{/snippet}
 
 <SettingsSection title={t('customize.title')} icon="customize">
   {#each customizeToggles as toggle (toggle.key)}
@@ -82,6 +98,15 @@ SPDX-License-Identifier: MPL-2.0
       onchange={v => updateSetting(toggle.key, v)}
     />
   {/each}
+
+  <!-- Remember recent transcripts for the history pager (in memory only) -->
+  <SettingToggle
+    label={t('customize.historyLabel')}
+    hint={t('customize.historyHint')}
+    checked={historyEnabled}
+    onchange={v => updateSetting('history_enabled', v)}
+    afterLabel={historyCount}
+  />
 
   <!-- Minimize to tray on close -->
   <SettingToggle

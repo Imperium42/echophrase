@@ -14,7 +14,7 @@ SPDX-License-Identifier: MPL-2.0
    * which re-reads these settings on every pass, so no restart is needed.
    */
 
-  import { SettingsSection, SettingToggle } from '../primitives';
+  import { SettingsSection, SettingToggle, SettingNumberInput } from '../primitives';
   import { getSettingsContext } from '../context';
   import { t } from '$lib/locales';
 
@@ -26,39 +26,20 @@ SPDX-License-Identifier: MPL-2.0
   const DEFAULT_MINUTES = 10;
 
   const enabled = $derived($settings?.idle_unload_enabled ?? false);
-
-  // Local draft so typing (including an empty field mid-edit) never writes junk;
-  // committed on change/blur only.
-  let minutesDraft = $derived(String($settings?.idle_unload_minutes ?? DEFAULT_MINUTES));
-
-  function commitMinutes() {
-    const parsed = Math.round(Number(minutesDraft));
-    const next = Number.isFinite(parsed)
-      ? Math.min(MAX_MINUTES, Math.max(MIN_MINUTES, parsed))
-      : ($settings?.idle_unload_minutes ?? DEFAULT_MINUTES);
-    minutesDraft = String(next);
-    if (next !== ($settings?.idle_unload_minutes ?? DEFAULT_MINUTES)) {
-      updateSetting('idle_unload_minutes', next);
-    }
-  }
 </script>
 
 {#snippet afterLabel()}
-  <span class="idle-prefix" class:dim={!enabled}>{t('optimization.idleUnloadPrefix')}</span>
-  <input
-    type="number"
-    class="idle-minutes"
+  <SettingNumberInput
+    value={$settings?.idle_unload_minutes}
+    fallback={DEFAULT_MINUTES}
     min={MIN_MINUTES}
     max={MAX_MINUTES}
-    step="1"
-    inputmode="numeric"
-    bind:value={minutesDraft}
-    onchange={commitMinutes}
-    onblur={commitMinutes}
+    prefix={t('optimization.idleUnloadPrefix')}
+    suffix={t('optimization.idleUnloadSuffix')}
     disabled={!enabled}
-    aria-label={t('optimization.idleUnloadMinutesAria')}
+    ariaLabel={t('optimization.idleUnloadMinutesAria')}
+    oncommit={v => updateSetting('idle_unload_minutes', v)}
   />
-  <span class="idle-suffix" class:dim={!enabled}>{t('optimization.idleUnloadSuffix')}</span>
 {/snippet}
 
 <SettingsSection id="optimization-section" title={t('optimization.title')} icon="optimization">
@@ -70,47 +51,3 @@ SPDX-License-Identifier: MPL-2.0
     {afterLabel}
   />
 </SettingsSection>
-
-<style>
-  .idle-minutes {
-    width: 3rem;
-    padding: 0.25rem 0.375rem;
-    appearance: textfield;
-    -moz-appearance: textfield;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 0.375rem;
-    color: #e4e4e7;
-    font-size: 0.8125rem;
-    text-align: center;
-  }
-
-  /* Hide the browser's native spinner - it renders as a bright block on the dark theme. */
-  .idle-minutes::-webkit-inner-spin-button,
-  .idle-minutes::-webkit-outer-spin-button {
-    -webkit-appearance: none;
-    appearance: none;
-    margin: 0;
-  }
-
-  .idle-minutes:focus-visible {
-    outline: 2px solid rgba(132, 204, 22, 0.6);
-    outline-offset: 1px;
-  }
-
-  .idle-minutes:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-
-  .idle-prefix,
-  .idle-suffix {
-    font-size: 0.8125rem;
-    color: #d4d4d8;
-  }
-
-  .idle-prefix.dim,
-  .idle-suffix.dim {
-    color: #71717a;
-  }
-</style>
