@@ -974,8 +974,11 @@ export function useRecording(getModelExists?: () => boolean, showDownloadDialog?
       isRecording.set(false);
       isProcessing.set(true);
 
-      // Stop recording and get any remaining audio
+      // Stop recording and get any remaining audio. Timed like a VAD chunk so
+      // a session stopped by the hotkey still gets its speed chip and toast.
+      const transcriptionStart = performance.now();
       const remainingText = await safeInvoke<string>('stop_audio_recording_and_transcribe');
+      const transcriptionSeconds = (performance.now() - transcriptionStart) / 1000;
 
       isProcessing.set(false);
 
@@ -985,7 +988,10 @@ export function useRecording(getModelExists?: () => boolean, showDownloadDialog?
         remainingText.trim().length > 0 &&
         remainingText !== 'No speech detected'
       ) {
-        await handleOpenMicOutput(remainingText);
+        await handleOpenMicOutput(remainingText, transcriptionSeconds);
+        if (get(tauriSettings)?.show_transcription_speed === true) {
+          showSpeedToast(transcriptionSeconds);
+        }
       }
     } catch (error) {
       console.error('Error stopping open mic session:', error);
