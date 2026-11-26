@@ -18,6 +18,7 @@ All notable changes to Echophrase will be documented in this file.
 
 ### Improved
 - The Copy Last button now sits at the top of the bottom-left buttons, in the history color.
+- The bottom-left hotkey button now opens Settings > Hotkeys. Picking a new hotkey there: re-picking the same one works, a combo another app already uses shakes and says so, your current hotkey is shown, single function keys like F15 can be set, Ctrl+C, Ctrl+V and Ctrl+A are refused (reserved for copy, paste and select all), and Esc, a click or switching away cancels picking (Esc no longer closes Settings).
 
 ## [v1.0.1] - 2026-11-24
 

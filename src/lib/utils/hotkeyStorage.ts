@@ -42,13 +42,6 @@ export async function setHotkey(hotkey: string): Promise<void> {
 }
 
 /**
- * Reset hotkey to default in Tauri settings.
- */
-export async function resetHotkey(): Promise<void> {
-  await setHotkey(getDefaultHotkey());
-}
-
-/**
  * One-time migration: if localStorage has a custom hotkey and Tauri settings
  * still has the default, adopt the localStorage value then delete it.
  */

@@ -262,6 +262,29 @@ export function hasActiveGlobalShortcut(): boolean {
 }
 
 /**
+ * Whether `hotkey` (hotkeys-js format) can be registered right now: registers
+ * it with a no-op handler, then releases it. Our own active hotkey counts as
+ * available (re-picking the same combo). True when the plugin isn't loaded,
+ * since there's nothing to check against (the save path reports failures).
+ */
+export async function isShortcutAvailable(hotkey: string): Promise<boolean> {
+  if (!register || !unregister) return true;
+  const accelerator = convertToAccelerator(hotkey);
+  if (accelerator === currentShortcut) return true;
+  try {
+    await register(accelerator, () => {});
+  } catch {
+    return false; // another app (or OS) holds it
+  }
+  try {
+    await unregister(accelerator);
+  } catch {
+    // Best effort: the next registerShortcut unregisters stale shortcuts anyway
+  }
+  return true;
+}
+
+/**
  * Unregister the currently active global shortcut.
  */
 export async function unregisterCurrent(): Promise<void> {

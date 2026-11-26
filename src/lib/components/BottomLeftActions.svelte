@@ -63,44 +63,18 @@ SPDX-License-Identifier: MPL-2.0
     pageStore.openSettingsWithSearch('input');
   }
 
-  // Hotkey button - extract stores from composable
+  // Hotkey button: opens Settings filtered to "hotkeys", like the mic button does
+  // for "input". The one hotkey recorder lives in Settings > Hotkeys.
   const hotkeyFade = useFadeOnIdle({ delay: 5000 });
   const hotkeyFading = hotkeyFade.fading;
   const hotkeyHovered = hotkeyFade.hovered;
-  let hotkeyButtonRef: HTMLButtonElement | null = null;
 
-  // Initialize hotkeys composable
-  const {
-    isRecordingHotkey: isRecordingHotkeyStore,
-    recordedKeys: recordedKeysStore,
-    displayHotkey: displayHotkeyStore,
-    countdown: countdownStore,
-    hotkeyShake: hotkeyShakeStore,
-    startHotkeyRecording,
-    stopHotkeyRecording,
-  } = useHotkeys();
+  // The saved hotkey (not the recorder's live label, so a capture running in
+  // Settings doesn't flash "Press keys..." on this button behind the modal).
+  const { currentHotkeyLabel } = useHotkeys();
 
-  $: isRecordingHotkey = $isRecordingHotkeyStore;
-  $: recordedKeys = $recordedKeysStore;
-  $: displayHotkey = $displayHotkeyStore;
-  $: countdown = $countdownStore;
-  $: hotkeyShake = $hotkeyShakeStore;
-
-  // Click-outside handler for hotkey recording - saves on click outside
-  function handleHotkeyClickOutside(event: MouseEvent) {
-    if (!hotkeyButtonRef || !isRecordingHotkey) return;
-    if (!hotkeyButtonRef.contains(event.target as Node)) {
-      stopHotkeyRecording();
-    }
-  }
-
-  // Add/remove click-outside listener when recording state changes
-  $: if (isRecordingHotkey) {
-    setTimeout(() => {
-      document.addEventListener('click', handleHotkeyClickOutside);
-    }, 100);
-  } else {
-    document.removeEventListener('click', handleHotkeyClickOutside);
+  function openHotkeySettings() {
+    pageStore.openSettingsWithSearch('hotkeys');
   }
 
   // Track window focus state to collapse buttons when unfocused
@@ -130,7 +104,6 @@ SPDX-License-Identifier: MPL-2.0
     copyFeedback.cleanup();
     inputChangerFade.cleanup();
     hotkeyFade.cleanup();
-    document.removeEventListener('click', handleHotkeyClickOutside);
     window.removeEventListener('blur', handleWindowBlur);
     window.removeEventListener('focus', handleWindowFocus);
   });
@@ -141,45 +114,29 @@ SPDX-License-Identifier: MPL-2.0
     ? 'opacity-100'
     : 'opacity-0'}"
 >
-  <!-- Hotkey Button -->
+  <!-- Hotkey Button: opens Settings filtered to "hotkeys" -->
   {#if showHotkeyChanger}
     <div class="group/hotkey">
       <button
-        bind:this={hotkeyButtonRef}
-        on:click={startHotkeyRecording}
+        on:click={openHotkeySettings}
         on:mouseenter={hotkeyFade.handleEnter}
         on:mouseleave={hotkeyFade.handleLeave}
-        class="flex items-center justify-center size-10 {isRecordingHotkey
-          ? 'w-[14rem]'
-          : windowFocused
-            ? 'group-hover/hotkey:w-[12rem]'
-            : ''} bg-zinc-900/90 hover:bg-zinc-800/95 rounded-full border transition-[color,background-color,border-color,width] duration-200 text-sm cursor-pointer shadow-lg shadow-black/30 outline-none focus:outline-none
-          {isHistoryHovering && !isRecordingHotkey
+        class="flex items-center justify-center size-10 {windowFocused
+          ? 'group-hover/hotkey:w-[12rem]'
+          : ''} bg-zinc-900/90 hover:bg-zinc-800/95 rounded-full border transition-[color,background-color,border-color,width] duration-200 text-sm cursor-pointer shadow-lg shadow-black/30 outline-none focus:outline-none
+          {isHistoryHovering
           ? 'border-amber-700/30 text-amber-400/60 hover:border-amber-500/40 hover:text-amber-400'
           : 'border-zinc-700/40 text-zinc-400 hover:border-cyan-500/40 hover:text-cyan-400'}
-          {$hotkeyFading && !$hotkeyHovered && !isRecordingHotkey ? 'opacity-40' : 'opacity-100'}
-          {isRecordingHotkey
-          ? 'animate-pulse !bg-orange-800/70 !border-orange-600/50 !text-orange-300'
-          : ''}
-          {hotkeyShake ? 'hotkey-shake' : ''}"
+          {$hotkeyFading && !$hotkeyHovered ? 'opacity-40' : 'opacity-100'}"
         aria-label={t('bottomActions.changeHotkeyAria')}
       >
-        <!-- Keyboard icon -->
         <Icon name="keyboard" class="w-4 h-4 flex-shrink-0" strokeWidth={2} />
         <span
-          class="{isRecordingHotkey
-            ? 'w-40 ml-2'
-            : windowFocused
-              ? 'w-0 group-hover/hotkey:w-32 group-hover/hotkey:ml-2'
-              : 'w-0'} overflow-hidden whitespace-nowrap hotkey-label"
+          class="{windowFocused
+            ? 'w-0 group-hover/hotkey:w-32 group-hover/hotkey:ml-2'
+            : 'w-0'} overflow-hidden whitespace-nowrap hotkey-label"
         >
-          {#if isRecordingHotkey && recordedKeys.length > 0}
-            {displayHotkey} ({countdown}s)
-          {:else if isRecordingHotkey}
-            Press keys...
-          {:else}
-            {displayHotkey}
-          {/if}
+          {$currentHotkeyLabel}
         </span>
       </button>
     </div>
@@ -280,38 +237,5 @@ SPDX-License-Identifier: MPL-2.0
     font-size: 0.875rem; /* 14px */
     font-weight: 500;
     letter-spacing: 0.02em;
-  }
-
-  /* Red-outline shake when an invalid/undetected hotkey is pressed during capture. */
-  :global(.hotkey-shake) {
-    animation: hotkey-shake 0.4s ease-in-out;
-    border-color: rgb(239 68 68) !important; /* red-500 */
-    color: rgb(248 113 113) !important; /* red-400 */
-    box-shadow: 0 0 0 1px rgb(239 68 68 / 0.6) !important;
-  }
-
-  @keyframes hotkey-shake {
-    0%,
-    100% {
-      transform: translateX(0);
-    }
-    20% {
-      transform: translateX(-4px);
-    }
-    40% {
-      transform: translateX(4px);
-    }
-    60% {
-      transform: translateX(-3px);
-    }
-    80% {
-      transform: translateX(3px);
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    :global(.hotkey-shake) {
-      animation: none;
-    }
   }
 </style>

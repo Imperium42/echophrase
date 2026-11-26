@@ -21,6 +21,8 @@ real cause, where the workaround lives, and what would let us drop it.
 | [Tauri: new resource files not copied to dev exe](#tauri-new-resource-files-are-not-copied-next-to-the-dev-exe) | Windows dev | Workaround required |
 | [DirectML: System32 copy too old](#directml-the-copy-in-system32-is-too-old-for-ort-124) | Windows runtime | Workaround required |
 | [tao panics after Windows ends the session](#tao-cannot-move-state-from-destroyed-after-wm_endsession) | Windows shutdown | Workaround required |
+| [Linux: F13-F24 hotkeys don't register](#linux-f13-f24-hotkeys-dont-register-on-a-stock-keymap) | Linux hotkeys | User keymap fix |
+| [WSLg: Ctrl+Shift+Space is reserved](#wslg-ctrlshiftspace-is-reserved-by-the-compositor) | WSL hotkeys | Upstream, no fix |
 | [Windows: admin windows block paste](#windows-admin-elevated-windows-block-paste-and-injected-hotkeys) | Windows input | OS design, no fix |
 | [Windows: tray pin reset once on 1.0](#windows-tray-always-show-pin-reset-once-on-the-update-to-10) | Windows tray | One-time, by design |
 
@@ -220,6 +222,49 @@ and force-exiting there would kill every relaunch. Decision logic and tests:
 Windows still runs DLL detach for ORT/DirectML and can hang (see `shutdown.rs`), so our
 `TerminateProcess` path stays the better exit. Re-check on the tauri 2.12 bump (blocked on the
 tray-icon GUID fork, see the `[patch.crates-io]` note in the root `Cargo.toml`).
+
+## Linux: F13-F24 hotkeys don't register on a stock keymap
+
+**Upstream:** none (xkb default keymap + `global-hotkey` 0.8 X11 backend design)
+**Affects:** Linux X11 (and XWayland). Macro keys, mouse buttons remapped to F13+.
+
+**Symptom.** Recording F15 (or F13-F24) as the hotkey either records the wrong key or saves
+"F15" but the hotkey never fires.
+
+**Cause.** The default xkb keymap gives F13+ launcher keysyms instead of `F13`-`F24`
+(`/usr/share/X11/xkb/symbols/inet`: `<FK13>` = `XF86Tools`, `<FK15>` = `XF86Launch6`, ...). So the
+webview reports the launcher name in `event.key`, and `global-hotkey` (which grabs by looking up
+the keycode that holds the `F15` keysym) finds no such keycode and fails to register.
+
+**Workaround.** The recorder takes F1-F24 from the physical `event.code`
+(`src/lib/utils/hotkeyKey.ts`), so it records `f15` correctly. Registration still needs the key to
+carry the `F15` keysym, which only the user's keymap can provide, eg
+`xmodmap -e "keycode 193 = F15"` (keycode = FK15 + 8 on evdev; check with `xev`) in a startup
+script. On WSLg the RDP layer may not forward F13+ at all (untested).
+
+**Drop it when:** `global-hotkey` can grab by keycode, or we read raw evdev input on Linux.
+
+## WSLg: Ctrl+Shift+Space is reserved by the compositor
+
+**Upstream:** WSLg's Weston RDP backend (`libweston/backend-rdp/rdprail.c`, pinned commit
+`2318feca` in WSLg 1.0.71, see `/mnt/wslg/versions.txt`)
+**Affects:** the Linux build under WSL only (dev setups). Native Windows is unaffected.
+
+**Symptom.** The hotkey recorder stays on "Press keys..." for Ctrl+Shift+Space, and that combo
+never works as a hotkey. Ctrl+Space and Shift+Space are fine. Logging shows the Control and Shift
+keydowns arriving but never the Space.
+
+**Cause.** The RDP backend unconditionally installs Ctrl+Shift+Space as its debug-key trigger
+(`weston_install_debug_key_binding(b->compositor, MODIFIER_CTRL)`), so the compositor consumes
+the Space before any client sees it. There is no config or env switch. Neither X11 nor Windows
+`RegisterHotKey` reports the combo as taken, so our "in use" check can't detect it. After it,
+Weston also swallows a following M, W or D (it writes a debug dump to `/mnt/wslg/weston.log`).
+
+**Workaround.** Pick another combo under WSL. Settings > Hotkeys shows a WSL-only note only when it
+happens: Ctrl+Shift held and released with no third key during a pick (the swallowed Space looks
+exactly like that), or when Ctrl+Shift+Space is the saved hotkey (it is the default).
+
+**Drop it when:** WSLg makes the debug binding optional or removes it.
 
 ## Windows: admin (elevated) windows block paste and injected hotkeys
 
