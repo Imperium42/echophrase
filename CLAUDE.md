@@ -375,8 +375,13 @@ buttons). Add an entry whenever you work around a bug you do not own.
 
 - **Pushes and PRs never release.** `.github/workflows/release.yml` triggers ONLY on
   `v*` tags and `workflow_dispatch`, so fork PRs never run it or see its secrets.
-  `.github/workflows/ci.yml` runs checks/tests on every PR and push. Its Rust matrix is skipped
-  when the diff is docs-only (Markdown, images or `.txt` outside `src-tauri/`, `crates/`, `cli/`).
+  `.github/workflows/ci.yml` runs checks/tests on every PR and push. Its Rust jobs run only when
+  Rust-relevant files change (`src-tauri/`, `crates/`, `cli/` except their Markdown, `Cargo.*`,
+  `.cargo/`, the toolchain file, root files the build reads: `mel_filters*.bytes`, `LICENSE`,
+  `TRADEMARKS.md`, `tests/audio/`; plus `scripts/ensure-ort.mjs` and `ci.yml`); frontend/docs-only
+  diffs skip them. PRs check Linux + Windows; macOS clippy/tests run on pushes to `main` (its
+  runners queue ~10 min), so a macOS-only failure shows up after merge. Runs on `main` are never
+  cancelled by a newer push.
 - All tags release from `main`. A `-beta.N` suffix only changes the build flavor
   (staging vite mode + devtools). Every release publishes to the CrabNebula
   **default** channel. `# TRANSITION:` steps in `release.yml` also publish to the
