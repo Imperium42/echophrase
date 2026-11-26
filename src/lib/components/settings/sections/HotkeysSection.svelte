@@ -5,6 +5,9 @@ SPDX-License-Identifier: MPL-2.0
 -->
 
 <script lang="ts">
+  import { onDestroy } from 'svelte';
+  import { get } from 'svelte/store';
+  import { useHotkeys } from '$lib/composables/useHotkeys';
   /**
    * Hotkeys Section
    *
@@ -17,14 +20,12 @@ SPDX-License-Identifier: MPL-2.0
   import { lastError as hotkeyRegisterError } from '$lib/services/keyboardService';
   import { hotkeyAliases, HOTKEY_ALIAS_MAX_LEN } from '$lib/stores/hotkeyAliases';
   import { platformCache } from '$lib/stores/platformCache';
-  import { formatHotkey, formatKeyToken, tokensToDisplay } from '$lib/utils/hotkeyFormatter';
+  import { formatHotkey, formatKeyToken } from '$lib/utils/hotkeyFormatter';
   import { t } from '$lib/locales';
   import { Icon } from '$lib/icons';
 
   const { settings } = getSettingsContext();
 
-  let isCapturingHotkey = $state(false);
-  let capturedKeys = $state<string[]>([]);
   let isEditingAliases = $state(false);
   const isWSL = platformCache.isWsl;
 
@@ -59,55 +60,39 @@ SPDX-License-Identifier: MPL-2.0
     formatHotkey($hotkeyStore.currentHotkey, { aliases: $hotkeyAliases })
   );
 
+  // Same recorder as the bottom-left hotkey pill (shared state in useHotkeys):
+  // bare F-keys allowed, re-picking the current combo works, a combo another
+  // app holds shakes "in use", and the save runs after the same countdown.
+  const {
+    isRecordingHotkey,
+    recordedKeys,
+    displayHotkey,
+    countdown,
+    hotkeyShake,
+    currentHotkeyLabel,
+    rejection,
+    modifierChordWithoutKey,
+    startHotkeyRecording,
+    cancelHotkeyRecording,
+  } = useHotkeys();
+
+  /** True only for a capture started from this section (so closing Settings cancels it). */
+  let startedHere = false;
+
   function startHotkeyCapture() {
     isEditingAliases = false;
-    isCapturingHotkey = true;
-    capturedKeys = [];
-    window.addEventListener('keydown', handleKeyCapture);
-    window.addEventListener('keyup', handleKeyRelease);
-  }
-
-  function handleKeyCapture(event: KeyboardEvent) {
-    if (!isCapturingHotkey) return;
-    event.preventDefault();
-    event.stopPropagation();
-
-    if (event.key === 'Escape') {
-      cancelHotkeyCapture();
-      return;
-    }
-
-    // Build canonical lowercase tokens (hotkeys-js format). The primary modifier
-    // is stored as `ctrl` for both Ctrl and the macOS Command key: convertToAccelerator
-    // maps `ctrl` -> CommandOrControl, which fires Cmd on macOS / Ctrl elsewhere.
-    const keys: string[] = [];
-    if (event.ctrlKey || event.metaKey) keys.push('ctrl');
-    if (event.altKey) keys.push('alt');
-    if (event.shiftKey) keys.push('shift');
-
-    if (!['Control', 'Alt', 'Shift', 'Meta'].includes(event.key)) {
-      // event.key for the spacebar is ' ' - normalize to the `space` token.
-      const raw = event.key === ' ' ? 'Space' : event.key;
-      keys.push(raw.toLowerCase());
-    }
-    capturedKeys = keys;
-  }
-
-  function handleKeyRelease(_event: KeyboardEvent) {
-    if (!isCapturingHotkey || capturedKeys.length === 0) return;
-    if (capturedKeys.length >= 2) {
-      const hotkeyString = capturedKeys.join('+');
-      hotkeyStore.setHotkey(hotkeyString);
-      cancelHotkeyCapture();
-    }
+    startedHere = true;
+    startHotkeyRecording();
   }
 
   function cancelHotkeyCapture() {
-    isCapturingHotkey = false;
-    capturedKeys = [];
-    window.removeEventListener('keydown', handleKeyCapture);
-    window.removeEventListener('keyup', handleKeyRelease);
+    startedHere = false;
+    cancelHotkeyRecording();
   }
+
+  onDestroy(() => {
+    if (startedHere && get(isRecordingHotkey)) cancelHotkeyRecording();
+  });
 </script>
 
 <SettingsSection title={t('hotkeys.title')} icon="hotkeys">
@@ -118,17 +103,20 @@ SPDX-License-Identifier: MPL-2.0
         <span class="hotkey-hint">{t('hotkeys.globalHint')}</span>
         <span class="hotkey-hint-alt">{t('hotkeys.focusHint')}</span>
       </div>
-      {#if isCapturingHotkey}
+      {#if $isRecordingHotkey}
         <div class="hotkey-capture">
-          <span class="hotkey-keys"
-            >{capturedKeys.length > 0
-              ? tokensToDisplay(capturedKeys)
-              : t('hotkeys.pressKeys')}</span
-          >
+          <span class="hotkey-current">{t('hotkeys.current', { combo: $currentHotkeyLabel })}</span>
+          <span class="hotkey-keys" class:hotkey-shake={$hotkeyShake}>
+            {#if $recordedKeys.length > 0}
+              {$displayHotkey} ({$countdown}s)
+            {:else}
+              {t('hotkeys.pressKeys')}
+            {/if}
+          </span>
           <button
             class="hotkey-cancel"
             onclick={cancelHotkeyCapture}
-            aria-label="Cancel hotkey capture"
+            aria-label={t('common.cancel')}
           >
             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
@@ -165,13 +153,21 @@ SPDX-License-Identifier: MPL-2.0
         </div>
       {/if}
     </div>
-    {#if $hotkeyRegisterError && !isCapturingHotkey}
+    <!-- Why the last combo was refused: below the row (the box itself keeps
+         saying "Press keys..." and just shakes), cleared after a moment. -->
+    {#if $isRecordingHotkey && $rejection}
+      <p class="register-error" role="alert">
+        <Icon name="warning" size={14} class="inline align-text-bottom" />
+        {t(`hotkeys.${$rejection.reason}`, { combo: $rejection.label })}
+      </p>
+    {/if}
+    {#if $hotkeyRegisterError && !$isRecordingHotkey}
       <p class="register-error" role="alert" title={$hotkeyRegisterError}>
         <Icon name="warning" size={14} class="inline align-text-bottom" />
         {t('hotkeys.registerFailed')}
       </p>
     {/if}
-    {#if isEditingAliases && !isCapturingHotkey}
+    {#if isEditingAliases && !$isRecordingHotkey}
       <div class="alias-editor">
         <p class="alias-hint">{t('hotkeys.aliasHint')}</p>
         {#each aliasableKeys as key (key)}
@@ -194,6 +190,14 @@ SPDX-License-Identifier: MPL-2.0
         <Icon name="warning" size={14} class="inline align-text-bottom" />
         {t('hotkeys.wslWarning')}
       </p>
+      <!-- Only after a Ctrl+Shift attempt WSLg swallowed, or when it's the saved
+           hotkey (the default), since it can never fire under WSL. -->
+      {#if $modifierChordWithoutKey || $hotkeyStore.currentHotkey === 'ctrl+shift+space'}
+        <p class="wsl-warning">
+          <Icon name="warning" size={14} class="inline align-text-bottom" />
+          {t('hotkeys.wslReservedCombo')}
+        </p>
+      {/if}
     {/if}
   {:else}
     <p class="hotkey-hint-static">
@@ -349,12 +353,29 @@ SPDX-License-Identifier: MPL-2.0
   .hotkey-keys {
     padding: 0.375rem 0.625rem;
     background: rgba(132, 204, 22, 0.08);
+    transition:
+      background 0.35s ease,
+      color 0.35s ease;
     border: none;
     border-radius: 0.25rem;
     font-size: 0.6875rem;
     font-weight: 500;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     color: #84cc16;
+  }
+
+  /* Invalid combo: a soft red with the shared shake, then the transition above
+     fades it back to green. Overrides the pill-style hard red outline. */
+  .hotkey-keys:global(.hotkey-shake) {
+    background: rgba(239, 68, 68, 0.12);
+    color: #f87171 !important;
+    box-shadow: none !important;
+  }
+
+  .hotkey-current {
+    font-size: 0.625rem;
+    color: #71717a;
+    white-space: nowrap;
   }
 
   .hotkey-cancel {

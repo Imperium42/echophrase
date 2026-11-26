@@ -12,6 +12,7 @@ export {
   convertToAccelerator,
   init,
   registerShortcut,
+  isShortcutAvailable,
   unregisterCurrent,
   hasActiveGlobalShortcut,
   cleanup,

@@ -2,12 +2,14 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
+import { mainKeyFromEvent } from '$lib/utils/hotkeyKey';
 import { writable, derived, get } from 'svelte/store';
 import hotkeys from 'hotkeys-js';
 import { invoke } from '@tauri-apps/api/core';
 import { hotkeyStore } from '$lib/stores/hotkeys';
 import { hotkeyAliases } from '$lib/stores/hotkeyAliases';
 import { formatHotkey } from '$lib/utils/hotkeyFormatter';
+import { translate } from '$lib/locales';
 import { platformCache } from '$lib/stores/platformCache';
 import { isMac } from '$lib/utils/platform';
 import * as globalShortcutService from '$lib/services/globalShortcutService';
@@ -16,6 +18,7 @@ import * as globalShortcutService from '$lib/services/globalShortcutService';
 const HOTKEY_SAVE_COUNTDOWN_SECONDS = 3;
 const RECORDING_TIME_UPDATE_INTERVAL_MS = 1000;
 const HOTKEY_SHAKE_MS = 600; // red-outline shake duration when an invalid combo is pressed
+const HOTKEY_IN_USE_LABEL_MS = 1800; // how long "{combo} is in use" stays on the pill
 
 /**
  * The macOS dedicated Dictation (mic-icon) key. We remap it at the HID layer to
@@ -198,53 +201,320 @@ const MODIFIER_TOKENS = new Set([
   'super',
 ]);
 
+// ---------------------------------------------------------------------------
+// Shared hotkey recorder (module level, one per app)
+//
+// useHotkeys() is called more than once (useAppInit registers the global
+// hotkey, BottomLeftActions and Settings > Hotkeys drive the recorder). The
+// global hotkey handler feeds a re-picked combo into the recorder, so the
+// countdown, shake and "in use" state must be shared, not per instance.
+// ---------------------------------------------------------------------------
+
+// Reactive state
+const countdown = writable(HOTKEY_SAVE_COUNTDOWN_SECONDS);
+let countdownInterval: NodeJS.Timeout | null = null;
+
+// Pulses true for a moment to drive a red-outline shake when the user presses
+// an invalid combo (e.g. a key with no modifier, or modifiers only).
+const hotkeyShake = writable(false);
+let shakeTimeout: NodeJS.Timeout | null = null;
+function triggerShake() {
+  if (shakeTimeout) clearTimeout(shakeTimeout);
+  hotkeyShake.set(true);
+  shakeTimeout = setTimeout(() => hotkeyShake.set(false), HOTKEY_SHAKE_MS);
+}
+
+/** Why a pressed combo was refused (shown for a moment, then cleared). */
+export type HotkeyRejection = 'inUse' | 'reservedCopy' | 'reservedPaste' | 'reservedSelectAll';
+
+/**
+ * Combos the recorder refuses outright: grabbing them globally would break
+ * copy/paste/select-all everywhere (paste-at-cursor itself simulates Ctrl+V).
+ * Exact matches only - Ctrl+Shift+C etc. stay allowed. `meta` = Cmd on macOS.
+ */
+const RESERVED_COMBOS: Readonly<Record<string, HotkeyRejection>> = {
+  'ctrl+c': 'reservedCopy',
+  'meta+c': 'reservedCopy',
+  'ctrl+v': 'reservedPaste',
+  'meta+v': 'reservedPaste',
+  'ctrl+a': 'reservedSelectAll',
+  'meta+a': 'reservedSelectAll',
+};
+
+/** The reason `combo` is reserved, or null when it isn't. */
+export function reservedComboReason(combo: string): HotkeyRejection | null {
+  return RESERVED_COMBOS[combo.toLowerCase()] ?? null;
+}
+
+// A refused combo (in use by another app, or reserved): shake, and name it with
+// the reason for a moment so the "Nope" is explained instead of looking unresponsive.
+const rejectedHotkey = writable<{ combo: string; reason: HotkeyRejection } | null>(null);
+let rejectedTimeout: NodeJS.Timeout | null = null;
+function rejectCombo(combo: string, reason: HotkeyRejection) {
+  if (rejectedTimeout) clearTimeout(rejectedTimeout);
+  rejectedHotkey.set({ combo, reason });
+  rejectedTimeout = setTimeout(() => rejectedHotkey.set(null), HOTKEY_IN_USE_LABEL_MS);
+  triggerShake();
+}
+
+// Derived state from hotkey store
+const currentHotkey = derived(hotkeyStore, $hotkeyStore => $hotkeyStore.currentHotkey);
+const isRecordingHotkey = derived(hotkeyStore, $hotkeyStore => $hotkeyStore.isRecording);
+const recordedKeys = derived(hotkeyStore, $hotkeyStore => $hotkeyStore.recordedKeys);
+
+// Display hotkey logic
+// hotkeyAliases is a dependency (not just read inside formatHotkey, which uses
+// a non-reactive snapshot) so renaming a key refreshes this label immediately.
+const displayHotkey = derived(
+  [isRecordingHotkey, recordedKeys, currentHotkey, hotkeyAliases],
+  ([$isRecordingHotkey, $recordedKeys, $currentHotkey, $hotkeyAliases]) => {
+    // recordedKeys holds the full combo as one string (e.g. ["ctrl+alt+space"]).
+    // Route both it and the saved hotkey through formatHotkey for platform glyphs.
+    const options = { aliases: $hotkeyAliases };
+    return $isRecordingHotkey
+      ? $recordedKeys.length > 0
+        ? formatHotkey($recordedKeys.join('+'), options)
+        : translate('hotkeys.pressKeys')
+      : formatHotkey($currentHotkey, options);
+  }
+);
+
+/** The saved hotkey, formatted - shown as "Current: ..." while recording a new one. */
+const currentHotkeyLabel = derived(
+  [currentHotkey, hotkeyAliases],
+  ([$currentHotkey, $hotkeyAliases]) => formatHotkey($currentHotkey, { aliases: $hotkeyAliases })
+);
+
+/** The combo just refused (formatted) and why, or null when none. */
+const rejection = derived([rejectedHotkey, hotkeyAliases], ([$rejectedHotkey, $hotkeyAliases]) =>
+  $rejectedHotkey
+    ? {
+        label: formatHotkey($rejectedHotkey.combo, { aliases: $hotkeyAliases }),
+        reason: $rejectedHotkey.reason,
+      }
+    : null
+);
+
+// WSLg's compositor swallows the Space of Ctrl+Shift+Space (KNOWN_ISSUES.md), so
+// that attempt looks like Ctrl+Shift held and released with no third key. Track
+// exactly that during a pick so Settings can explain it only when it happens.
+const modifierChordWithoutKey = writable(false);
+let chordCtrlShift = false;
+let chordGotKey = false;
+
+function handleRecorderKeyUp(event: KeyboardEvent) {
+  if (event.ctrlKey || event.shiftKey) return; // still holding part of the chord
+  if (chordCtrlShift && !chordGotKey) modifierChordWithoutKey.set(true);
+  chordCtrlShift = false;
+  chordGotKey = false;
+}
+
+/**
+ * Handle keyboard events during hotkey recording
+ */
+function handleHotkeyRecording(event: KeyboardEvent) {
+  const $isRecordingHotkey = get(isRecordingHotkey) || false;
+  if (!$isRecordingHotkey) return;
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  // Handle Escape to cancel
+  if (event.key === 'Escape') {
+    cancelHotkeyRecording();
+    return;
+  }
+
+  // Only record when a non-modifier key is pressed (the "main" key)
+  // Spacebar -> "space" (a literal ' ' once broke Ctrl+Opt+Space), F1-F24
+  // from the physical key (Linux renames F13+), unidentified -> event.code.
+  let key = mainKeyFromEvent(event);
+
+  if (['control', 'shift', 'alt', 'meta'].includes(key)) {
+    if (event.ctrlKey && event.shiftKey) chordCtrlShift = true;
+    return; // Don't record just modifier keys
+  }
+  chordGotKey = true;
+
+  // macOS: the dedicated Dictation (mic) key is remapped to F13 at the HID
+  // layer while recording, so it arrives as 'f13'. A plain F5 (fn+F5, or a
+  // keyboard without the mic key) also represents the same intent. Normalize
+  // both to our canonical 'f13' token, which is displayed as "F5".
+  if (onMac() && (key === 'f5' || key === 'f13')) {
+    key = DICTATION_KEY_TOKEN;
+  }
+
+  // Build the complete combination including all active modifiers
+  const modifiers: string[] = [];
+  if (event.ctrlKey) modifiers.push('ctrl');
+  if (event.shiftKey) modifiers.push('shift');
+  if (event.altKey) modifiers.push('alt');
+  if (event.metaKey) modifiers.push('meta');
+
+  // Reject impossible hotkeys: a global shortcut normally needs at least one
+  // modifier plus a real (non-modifier) main key. A bare letter/digit would
+  // clobber normal typing and most OSes refuse to register it.
+  //
+  // EXCEPTION: bare function keys (F1-F24) are fine - they don't collide with
+  // text input, and the OS happily registers them globally. This is what lets
+  // the user bind the dedicated Dictation/mic key (which we remap to F13) or a
+  // plain F5 with no modifier. Shake for anything else bare.
+  const isFunctionKey = /^f([1-9]|1[0-9]|2[0-4])$/.test(key);
+  if ((modifiers.length === 0 && !isFunctionKey) || MODIFIER_TOKENS.has(key)) {
+    triggerShake();
+    return;
+  }
+
+  // Add the main key
+  modifiers.push(key);
+
+  void acceptRecordedCombo(modifiers.join('+'));
+}
+
+// Guards against an older availability check finishing after a newer press.
+let comboCheckId = 0;
+
+/**
+ * Record `combo` and start the save countdown, unless another app already
+ * holds it - then shake "Nope" and keep listening.
+ */
+async function acceptRecordedCombo(combo: string) {
+  const checkId = ++comboCheckId;
+  const reserved = reservedComboReason(combo);
+  if (reserved) {
+    rejectCombo(combo, reserved);
+    return;
+  }
+  const available = await globalShortcutService.isShortcutAvailable(combo);
+  if (checkId !== comboCheckId || !get(isRecordingHotkey)) return;
+  if (!available) {
+    rejectCombo(combo, 'inUse');
+    return;
+  }
+  modifierChordWithoutKey.set(false);
+  rejectedHotkey.set(null);
+  hotkeyStore.addRecordedKey(combo);
+  startCountdown();
+}
+
+/**
+ * Start countdown timer for saving hotkey
+ */
+function startCountdown() {
+  // Clear any existing countdown
+  if (countdownInterval) {
+    clearInterval(countdownInterval);
+  }
+
+  countdown.set(HOTKEY_SAVE_COUNTDOWN_SECONDS);
+  countdownInterval = setInterval(() => {
+    countdown.update(count => {
+      const newCount = count - 1;
+      if (newCount <= 0) {
+        stopHotkeyRecording();
+      }
+      return newCount;
+    });
+  }, RECORDING_TIME_UPDATE_INTERVAL_MS);
+}
+
+/**
+ * Start recording new hotkey
+ */
+// While picking a new hotkey our own global hotkey is released: Windows and
+// macOS hand a registered combo to its owner instead of the window, so
+// re-picking the current hotkey would never reach the recorder. setupHotkey
+// awaits this before re-registering, so a fast cancel can't be undone by a
+// late release. (Ctrl+Shift+Space on WSLg is a different problem: the WSLg
+// compositor reserves it - see KNOWN_ISSUES.md.)
+let globalSuspended: Promise<void> = Promise.resolve();
+
+/** Any click while the recorder still shows "Press keys..." cancels the pick. */
+function handleRecorderPointerDown() {
+  if (get(recordedKeys).length === 0) cancelHotkeyRecording();
+}
+
+/** Leaving the app (window loses focus) cancels the pick. */
+function handleRecorderBlur() {
+  cancelHotkeyRecording();
+}
+
+function removeRecorderListeners() {
+  window.removeEventListener('keydown', handleHotkeyRecording, { capture: true });
+  window.removeEventListener('pointerdown', handleRecorderPointerDown, { capture: true });
+  window.removeEventListener('blur', handleRecorderBlur);
+  window.removeEventListener('keyup', handleRecorderKeyUp, { capture: true });
+}
+
+function startHotkeyRecording() {
+  rejectedHotkey.set(null);
+  modifierChordWithoutKey.set(false);
+  chordCtrlShift = false;
+  chordGotKey = false;
+  hotkeyStore.startRecording();
+  countdown.set(HOTKEY_SAVE_COUNTDOWN_SECONDS);
+  globalSuspended = globalShortcutService.unregisterCurrent();
+
+  // macOS: enable the dictation-key -> F13 remap for the duration of recording
+  // so pressing the mic key is capturable (as F13) instead of launching macOS
+  // Dictation. setupHotkey reconciles the remap to the final binding when
+  // recording stops/cancels (off again unless F13 was actually chosen).
+  void setDictationRemap(true);
+
+  // Add event listeners for recording. The click that started recording has
+  // already fired, so only later clicks reach the pointerdown listener.
+  window.addEventListener('keydown', handleHotkeyRecording, { capture: true });
+  window.addEventListener('pointerdown', handleRecorderPointerDown, { capture: true });
+  window.addEventListener('blur', handleRecorderBlur);
+  window.addEventListener('keyup', handleRecorderKeyUp, { capture: true });
+}
+
+/**
+ * Stop hotkey recording and save
+ */
+function stopHotkeyRecording() {
+  if (countdownInterval) {
+    clearInterval(countdownInterval);
+    countdownInterval = null;
+  }
+  removeRecorderListeners();
+  hotkeyStore.stopRecording();
+}
+
+/**
+ * Cancel hotkey recording without saving
+ */
+function cancelHotkeyRecording() {
+  if (countdownInterval) {
+    clearInterval(countdownInterval);
+    countdownInterval = null;
+  }
+  removeRecorderListeners();
+  hotkeyStore.cancelRecording();
+}
+
+/** Clear the recorder timers and its keydown listener (used by cleanup). */
+function stopRecorderTimers() {
+  if (rejectedTimeout) clearTimeout(rejectedTimeout);
+  if (shakeTimeout) clearTimeout(shakeTimeout);
+  if (countdownInterval) {
+    clearInterval(countdownInterval);
+    countdownInterval = null;
+  }
+  removeRecorderListeners();
+}
+
 /**
  * Modern composable for hotkey management
  * Handles global hotkey registration, recording new hotkeys, and countdown logic
  */
 export function useHotkeys() {
-  // Reactive state
-  const countdown = writable(HOTKEY_SAVE_COUNTDOWN_SECONDS);
-  let countdownInterval: NodeJS.Timeout | null = null;
-
-  // Pulses true for a moment to drive a red-outline shake when the user presses
-  // an invalid combo (e.g. a key with no modifier, or modifiers only).
-  const hotkeyShake = writable(false);
-  let shakeTimeout: NodeJS.Timeout | null = null;
-  function triggerShake() {
-    if (shakeTimeout) clearTimeout(shakeTimeout);
-    hotkeyShake.set(true);
-    shakeTimeout = setTimeout(() => hotkeyShake.set(false), HOTKEY_SHAKE_MS);
-  }
-
   // Teardown for the in-window release listeners installed by setupHotkey.
   let releaseListenersCleanup: (() => void) | null = null;
   function removeReleaseListeners() {
     releaseListenersCleanup?.();
     releaseListenersCleanup = null;
   }
-
-  // Derived state from hotkey store
-  const currentHotkey = derived(hotkeyStore, $hotkeyStore => $hotkeyStore.currentHotkey);
-  const isRecordingHotkey = derived(hotkeyStore, $hotkeyStore => $hotkeyStore.isRecording);
-  const recordedKeys = derived(hotkeyStore, $hotkeyStore => $hotkeyStore.recordedKeys);
-
-  // Display hotkey logic
-  // hotkeyAliases is a dependency (not just read inside formatHotkey, which uses
-  // a non-reactive snapshot) so renaming a key refreshes this label immediately.
-  const displayHotkey = derived(
-    [isRecordingHotkey, recordedKeys, currentHotkey, hotkeyAliases],
-    ([$isRecordingHotkey, $recordedKeys, $currentHotkey, $hotkeyAliases]) => {
-      // recordedKeys holds the full combo as one string (e.g. ["ctrl+alt+space"]).
-      // Route both it and the saved hotkey through formatHotkey for platform glyphs.
-      const options = { aliases: $hotkeyAliases };
-      return $isRecordingHotkey
-        ? $recordedKeys.length > 0
-          ? formatHotkey($recordedKeys.join('+'), options)
-          : 'press keys...'
-        : formatHotkey($currentHotkey, options);
-    }
-  );
 
   /**
    * Set up global hotkey listener (both browser-level and OS-level)
@@ -320,6 +590,8 @@ export function useHotkeys() {
       return $isRecordingHotkey || shouldDisable;
     };
 
+    // Wait for a release from startHotkeyRecording to finish first (see globalSuspended).
+    await globalSuspended;
     await globalShortcutService.registerShortcut(hotkey, onPress, shouldDisableGlobal, onRelease);
   }
 
@@ -354,152 +626,12 @@ export function useHotkeys() {
   }
 
   /**
-   * Handle keyboard events during hotkey recording
-   */
-  function handleHotkeyRecording(event: KeyboardEvent) {
-    const $isRecordingHotkey = get(isRecordingHotkey) || false;
-    if (!$isRecordingHotkey) return;
-
-    event.preventDefault();
-    event.stopPropagation();
-
-    // Handle Escape to cancel
-    if (event.key === 'Escape') {
-      cancelHotkeyRecording();
-      return;
-    }
-
-    // Only record when a non-modifier key is pressed (the "main" key)
-    let key = event.key.toLowerCase();
-
-    // Normalize the spacebar: event.key is ' ' (a literal space), which would
-    // otherwise record an invalid token and produce a broken accelerator like
-    // "ctrl+alt+ " - this is why e.g. Ctrl+Opt+Space could not be set.
-    if (key === ' ' || key === 'spacebar') key = 'space';
-
-    // Use event.code as fallback for unidentified keys (e.g., Tab in some browsers)
-    if (key === 'unidentified' && event.code) {
-      // Convert KeyA -> a, Tab -> tab, Space -> space, etc.
-      key = event.code
-        .replace(/^Key/, '')
-        .replace(/^Digit/, '')
-        .toLowerCase();
-    }
-
-    if (['control', 'shift', 'alt', 'meta'].includes(key)) {
-      return; // Don't record just modifier keys
-    }
-
-    // macOS: the dedicated Dictation (mic) key is remapped to F13 at the HID
-    // layer while recording, so it arrives as 'f13'. A plain F5 (fn+F5, or a
-    // keyboard without the mic key) also represents the same intent. Normalize
-    // both to our canonical 'f13' token, which is displayed as "F5".
-    if (onMac() && (key === 'f5' || key === 'f13')) {
-      key = DICTATION_KEY_TOKEN;
-    }
-
-    // Build the complete combination including all active modifiers
-    const modifiers: string[] = [];
-    if (event.ctrlKey) modifiers.push('ctrl');
-    if (event.shiftKey) modifiers.push('shift');
-    if (event.altKey) modifiers.push('alt');
-    if (event.metaKey) modifiers.push('meta');
-
-    // Reject impossible hotkeys: a global shortcut normally needs at least one
-    // modifier plus a real (non-modifier) main key. A bare letter/digit would
-    // clobber normal typing and most OSes refuse to register it.
-    //
-    // EXCEPTION: bare function keys (F1-F24) are fine - they don't collide with
-    // text input, and the OS happily registers them globally. This is what lets
-    // the user bind the dedicated Dictation/mic key (which we remap to F13) or a
-    // plain F5 with no modifier. Shake for anything else bare.
-    const isFunctionKey = /^f([1-9]|1[0-9]|2[0-4])$/.test(key);
-    if ((modifiers.length === 0 && !isFunctionKey) || MODIFIER_TOKENS.has(key)) {
-      triggerShake();
-      return;
-    }
-
-    // Add the main key
-    modifiers.push(key);
-
-    // Clear any previous recording and set this as the new combination
-    hotkeyStore.addRecordedKey(modifiers.join('+'));
-    startCountdown();
-  }
-
-  /**
-   * Start countdown timer for saving hotkey
-   */
-  function startCountdown() {
-    // Clear any existing countdown
-    if (countdownInterval) {
-      clearInterval(countdownInterval);
-    }
-
-    countdown.set(HOTKEY_SAVE_COUNTDOWN_SECONDS);
-    countdownInterval = setInterval(() => {
-      countdown.update(count => {
-        const newCount = count - 1;
-        if (newCount <= 0) {
-          stopHotkeyRecording();
-        }
-        return newCount;
-      });
-    }, RECORDING_TIME_UPDATE_INTERVAL_MS);
-  }
-
-  /**
-   * Start recording new hotkey
-   */
-  function startHotkeyRecording() {
-    hotkeyStore.startRecording();
-    countdown.set(HOTKEY_SAVE_COUNTDOWN_SECONDS);
-
-    // macOS: enable the dictation-key -> F13 remap for the duration of recording
-    // so pressing the mic key is capturable (as F13) instead of launching macOS
-    // Dictation. setupHotkey reconciles the remap to the final binding when
-    // recording stops/cancels (off again unless F13 was actually chosen).
-    void setDictationRemap(true);
-
-    // Add event listener for recording
-    window.addEventListener('keydown', handleHotkeyRecording, { capture: true });
-  }
-
-  /**
-   * Stop hotkey recording and save
-   */
-  function stopHotkeyRecording() {
-    if (countdownInterval) {
-      clearInterval(countdownInterval);
-      countdownInterval = null;
-    }
-    window.removeEventListener('keydown', handleHotkeyRecording, { capture: true });
-    hotkeyStore.stopRecording();
-  }
-
-  /**
-   * Cancel hotkey recording without saving
-   */
-  function cancelHotkeyRecording() {
-    if (countdownInterval) {
-      clearInterval(countdownInterval);
-      countdownInterval = null;
-    }
-    window.removeEventListener('keydown', handleHotkeyRecording, { capture: true });
-    hotkeyStore.cancelRecording();
-  }
-
-  /**
    * Cleanup function
    */
   async function cleanup() {
-    if (countdownInterval) {
-      clearInterval(countdownInterval);
-      countdownInterval = null;
-    }
+    stopRecorderTimers();
     hotkeys.unbind();
     removeReleaseListeners();
-    window.removeEventListener('keydown', handleHotkeyRecording, { capture: true });
 
     // Cleanup global shortcuts
     await globalShortcutService.cleanup();
@@ -513,6 +645,9 @@ export function useHotkeys() {
     displayHotkey: { subscribe: displayHotkey.subscribe },
     countdown: { subscribe: countdown.subscribe },
     hotkeyShake: { subscribe: hotkeyShake.subscribe },
+    currentHotkeyLabel: { subscribe: currentHotkeyLabel.subscribe },
+    rejection: { subscribe: rejection.subscribe },
+    modifierChordWithoutKey: { subscribe: modifierChordWithoutKey.subscribe },
 
     // Actions
     initializeHotkeys,

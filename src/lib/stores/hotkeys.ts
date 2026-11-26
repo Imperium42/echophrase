@@ -7,13 +7,7 @@
  * Backed by Tauri settings (YAML) - single source of truth.
  */
 import { writable } from 'svelte/store';
-import {
-  getHotkey,
-  setHotkey,
-  resetHotkey,
-  getDefaultHotkey,
-  DEFAULT_HOTKEY,
-} from '$lib/utils/hotkeyStorage';
+import { getHotkey, setHotkey, DEFAULT_HOTKEY } from '$lib/utils/hotkeyStorage';
 
 interface HotkeyState {
   currentHotkey: string;
@@ -34,7 +28,7 @@ function createHotkeyStore() {
     initialized: false,
   };
 
-  const { subscribe, set, update } = writable(initialState);
+  const { subscribe, update } = writable(initialState);
 
   return {
     subscribe,
@@ -106,29 +100,6 @@ function createHotkeyStore() {
           recordedKeys: [normalizedKey], // Replace, don't accumulate
         };
       });
-    },
-
-    /** Reset to default hotkey */
-    async resetToDefault() {
-      set({
-        currentHotkey: getDefaultHotkey(),
-        isRecording: false,
-        recordedKeys: [],
-        initialized: true,
-      });
-
-      await resetHotkey();
-    },
-
-    /** Set hotkey directly (used by HotkeysSection) */
-    async setHotkey(hotkey: string) {
-      const normalized = hotkey.toLowerCase();
-      update(state => ({
-        ...state,
-        currentHotkey: normalized,
-        initialized: true,
-      }));
-      await setHotkey(normalized);
     },
   };
 }
