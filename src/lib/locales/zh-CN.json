@@ -651,7 +651,12 @@
     "openFolder": "打开文件夹"
   },
   "lastRun": {
-    "rawTranscript": "原始转录"
+    "rawTranscript": "原始转录",
+    "historyHint": "悬停查看历史记录",
+    "older": "较旧",
+    "newer": "较新",
+    "latest": "最新",
+    "oldest": "最旧"
   },
   "onboarding": {
     "welcome": "欢迎使用 Echophrase",

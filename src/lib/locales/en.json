@@ -651,7 +651,12 @@
     "openFolder": "Open folder"
   },
   "lastRun": {
-    "rawTranscript": "Raw Transcript"
+    "rawTranscript": "Raw Transcript",
+    "historyHint": "Hover for history",
+    "older": "Older",
+    "newer": "Newer",
+    "latest": "Latest",
+    "oldest": "Oldest"
   },
   "onboarding": {
     "welcome": "Welcome to Echophrase",

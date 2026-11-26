@@ -8,6 +8,7 @@
  */
 
 import { writable, get } from 'svelte/store';
+import { resetHistoryPeekSeen } from '$lib/utils/historyPeek';
 
 interface OnboardingState {
   completed: boolean;
@@ -20,16 +21,18 @@ const STORAGE_KEY = 'echophrase_onboarding';
 /**
  * All FTUE-related localStorage keys - cleared together on reset.
  * Keep in sync with: DebugPanel.svelte "Welcome" button and any component
- * that persists FTUE state (e.g. OutputToastsContainer's history peek).
+ * that persists FTUE state in localStorage.
  */
-const FTUE_KEYS = [STORAGE_KEY, 'echophrase_history_peek_shown'];
+const FTUE_KEYS = [STORAGE_KEY];
 
 /**
  * Keys that used to be FTUE state but no longer exist. Removed once on init so
  * stale installs don't keep them around forever.
  * - echophrase_has_transcribed: the empty-state hint is per-session now (in-memory).
+ * - echophrase_history_peek_shown: the history hint is per-session now (sessionStorage,
+ *   see utils/historyPeek.ts).
  */
-const LEGACY_FTUE_KEYS = ['echophrase_has_transcribed'];
+const LEGACY_FTUE_KEYS = ['echophrase_has_transcribed', 'echophrase_history_peek_shown'];
 
 function purgeLegacyKeys() {
   if (typeof window === 'undefined') return;
@@ -115,6 +118,7 @@ function createOnboardingStore() {
           // localStorage may be unavailable; nothing to clear
         }
       }
+      resetHistoryPeekSeen();
       // Notify any mounted components that FTUE was reset
       window.dispatchEvent(new CustomEvent('ftue-reset'));
     },

@@ -13,6 +13,7 @@ SPDX-License-Identifier: MPL-2.0
   import { bottomLeftReady } from '$lib/composables/usePageLoadAnimation';
   import { transcription } from '$lib/stores/transcription';
   import { pageStore } from '$lib/stores/pageStore';
+  import { requestHistoryPeek } from '$lib/stores/lastRun';
   import { onMount, onDestroy } from 'svelte';
   import { Icon } from '$lib/icons';
 
@@ -57,8 +58,9 @@ SPDX-License-Identifier: MPL-2.0
   const inputChangerFading = inputChangerFade.fading;
   const inputChangerHovered = inputChangerFade.hovered;
 
+  // Opens Settings filtered to "input" so the mic picker is right there
   function openRecordingSettings() {
-    pageStore.openSettings('audio-input-section');
+    pageStore.openSettingsWithSearch('input');
   }
 
   // Hotkey button - extract stores from composable
@@ -139,60 +141,6 @@ SPDX-License-Identifier: MPL-2.0
     ? 'opacity-100'
     : 'opacity-0'}"
 >
-  <!-- Copy Last Transcription Button -->
-  {#if showCopyLastButton && (!isRecording || isOpenMicActive) && !isProcessing && $transcription.currentResult?.text}
-    {@const trimmedText = $transcription.currentResult.text.trim()}
-    {@const previewText = trimmedText.length > 50 ? trimmedText.slice(0, 50) + '...' : trimmedText}
-    <div class="group/copy relative">
-      <button
-        on:click={copyLastTranscription}
-        on:mouseenter={() => {
-          copyLastFade.handleEnter();
-          isHistoryHovering = true;
-          onHistoryHoverChange?.(true);
-        }}
-        on:mouseleave={() => {
-          copyLastFade.handleLeave();
-          isHistoryHovering = false;
-          onHistoryHoverChange?.(false);
-        }}
-        class="flex items-center justify-center size-10 {windowFocused
-          ? 'group-hover/copy:w-[8rem]'
-          : ''} bg-zinc-900/90 rounded-full border transition-[color,background-color,border-color,width] duration-200 text-sm cursor-pointer shadow-lg shadow-black/30
-          {isHistoryHovering || $isCopied
-          ? 'border-amber-500/40 text-amber-400 hover:bg-amber-950/30'
-          : 'border-zinc-700/40 text-zinc-400 hover:bg-zinc-800/95 hover:border-amber-500/40 hover:text-amber-400'}
-          {$copyLastFading && !$copyLastHovered ? 'opacity-40' : 'opacity-100'}"
-        aria-label={t('bottomActions.copyLastAria')}
-      >
-        {#if $isCopied}
-          <Icon name="check" class="w-4 h-4 text-amber-400 flex-shrink-0" strokeWidth={2} />
-          <span
-            class="w-0 {windowFocused
-              ? 'group-hover/copy:w-14 group-hover/copy:ml-2'
-              : ''} overflow-hidden whitespace-nowrap text-amber-400">{t('common.copied')}</span
-          >
-        {:else}
-          <Icon name="copy" class="w-4 h-4 flex-shrink-0" strokeWidth={2} />
-          <span
-            class="w-0 {windowFocused
-              ? 'group-hover/copy:w-[4.5rem] group-hover/copy:ml-2'
-              : ''} overflow-hidden whitespace-nowrap">{t('bottomActions.copyLast')}</span
-          >
-        {/if}
-      </button>
-
-      <!-- Tooltip with preview (shows above, no redundant title, solid background) -->
-      <div
-        class="absolute bottom-full left-0 mb-2 px-3 py-2 bg-zinc-900 rounded-lg border border-amber-700/30 text-xs max-w-[220px] z-[60] opacity-0 pointer-events-none {windowFocused
-          ? 'group-hover/copy:opacity-100'
-          : ''} transition-opacity duration-100 delay-100 shadow-xl shadow-black/50"
-      >
-        <p class="text-amber-300/80 italic truncate">"{previewText}"</p>
-      </div>
-    </div>
-  {/if}
-
   <!-- Hotkey Button -->
   {#if showHotkeyChanger}
     <div class="group/hotkey">
@@ -237,7 +185,7 @@ SPDX-License-Identifier: MPL-2.0
     </div>
   {/if}
 
-  <!-- Input Changer Button (top - longest text expansion) -->
+  <!-- Input Changer Button (middle - longest text expansion) -->
   {#if showInputChanger}
     <div class="group/mic">
       <button
@@ -260,6 +208,64 @@ SPDX-License-Identifier: MPL-2.0
             : ''} overflow-hidden whitespace-nowrap">{t('bottomActions.systemDefaultMic')}</span
         >
       </button>
+    </div>
+  {/if}
+
+  <!-- Copy Last Transcription Button (top of the stack, history amber). Last in
+       markup because the stack is flex-col-reverse; up here, hiding it while
+       recording doesn't shift the other buttons. -->
+  {#if showCopyLastButton && (!isRecording || isOpenMicActive) && !isProcessing && $transcription.currentResult?.text}
+    {@const trimmedText = $transcription.currentResult.text.trim()}
+    {@const previewText = trimmedText.length > 50 ? trimmedText.slice(0, 50) + '...' : trimmedText}
+    <div class="group/copy relative">
+      <button
+        on:click={copyLastTranscription}
+        on:mouseenter={() => {
+          copyLastFade.handleEnter();
+          isHistoryHovering = true;
+          onHistoryHoverChange?.(true);
+          requestHistoryPeek(true);
+        }}
+        on:mouseleave={() => {
+          copyLastFade.handleLeave();
+          isHistoryHovering = false;
+          onHistoryHoverChange?.(false);
+          requestHistoryPeek(false);
+        }}
+        class="flex items-center justify-center size-10 {windowFocused
+          ? 'group-hover/copy:w-[8rem]'
+          : ''} bg-zinc-900/90 rounded-full border transition-[color,background-color,border-color,width] duration-200 text-sm cursor-pointer shadow-lg shadow-black/30
+          {isHistoryHovering || $isCopied
+          ? 'border-amber-500/40 text-amber-400 hover:bg-amber-950/30'
+          : 'border-amber-700/40 text-amber-400/80 hover:bg-amber-950/30 hover:border-amber-500/40 hover:text-amber-400'}
+          {$copyLastFading && !$copyLastHovered ? 'opacity-40' : 'opacity-100'}"
+        aria-label={t('bottomActions.copyLastAria')}
+      >
+        {#if $isCopied}
+          <Icon name="check" class="w-4 h-4 text-amber-400 flex-shrink-0" strokeWidth={2} />
+          <span
+            class="w-0 {windowFocused
+              ? 'group-hover/copy:w-14 group-hover/copy:ml-2'
+              : ''} overflow-hidden whitespace-nowrap text-amber-400">{t('common.copied')}</span
+          >
+        {:else}
+          <Icon name="copy" class="w-4 h-4 flex-shrink-0" strokeWidth={2} />
+          <span
+            class="w-0 {windowFocused
+              ? 'group-hover/copy:w-[4.5rem] group-hover/copy:ml-2'
+              : ''} overflow-hidden whitespace-nowrap">{t('bottomActions.copyLast')}</span
+          >
+        {/if}
+      </button>
+
+      <!-- Tooltip with preview (shows above, no redundant title, solid background) -->
+      <div
+        class="absolute bottom-full left-0 mb-2 px-3 py-2 bg-zinc-900 rounded-lg border border-amber-700/30 text-xs max-w-[220px] z-[60] opacity-0 pointer-events-none {windowFocused
+          ? 'group-hover/copy:opacity-100'
+          : ''} transition-opacity duration-100 delay-100 shadow-xl shadow-black/50"
+      >
+        <p class="text-amber-300/80 italic truncate">"{previewText}"</p>
+      </div>
     </div>
   {/if}
 </div>

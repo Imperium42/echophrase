@@ -18,6 +18,7 @@ SPDX-License-Identifier: MPL-2.0
     pageStore,
     showSettingsPanel,
     settingsInitialSection,
+    settingsInitialSearch,
     showImportCustomModelModal,
   } from '$lib/stores/pageStore';
   import { modelStore } from '$lib/stores/modelStore';
@@ -31,6 +32,7 @@ SPDX-License-Identifier: MPL-2.0
   import { useAppInit } from '$lib/composables/useAppInit';
   import { useModelDownloadEvents } from '$lib/composables/useModelDownloadEvents';
   import { useRealtimePreview } from '$lib/composables/useRealtimePreview';
+  import { historyPeekRequested } from '$lib/stores/lastRun';
   import { useFadeOnIdle } from '$lib/composables/useFadeOnIdle';
   import { useTauriSettings, tauriSettings } from '$lib/composables/useTauriSettings';
   import { initUiScale } from '$lib/composables/useUiScale';
@@ -134,6 +136,10 @@ SPDX-License-Identifier: MPL-2.0
   $: errorMessage = $errorMessageStore;
   $: serverStatus = $serverStatusStore;
   $: isOpenMicActive = $isOpenMicActiveStore;
+
+  // Hovering Copy Last asks for history: fade the last transcript out early so it
+  // doesn't sit over the history. Never mid-recording (live text stays put).
+  $: if ($historyPeekRequested && !isRecording && !isOpenMicActive) realtimePreview.fadeOutNow();
   $: isOpenMicListening = $isOpenMicListeningStore;
   $: isOpenMicSilenceCounting = $isOpenMicSilenceCountingStore;
 
@@ -468,6 +474,7 @@ SPDX-License-Identifier: MPL-2.0
   <SettingsModal
     bind:isOpen={$showSettingsPanel}
     initialSection={$settingsInitialSection}
+    initialSearch={$settingsInitialSearch}
     onClose={() => pageStore.closeSettings()}
   />
 

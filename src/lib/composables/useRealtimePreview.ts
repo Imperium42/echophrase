@@ -62,6 +62,9 @@ export interface RealtimePreviewActions {
   ) => void;
   /** Reset preview state (call when starting new recording) */
   reset: () => void;
+  /** Start the normal fade-out now instead of after the 10s linger (eg the
+   * user hovered Copy Last to see history). No-op when nothing is shown. */
+  fadeOutNow: () => void;
   /** Cleanup timeouts (call in onDestroy) */
   cleanup: () => void;
 }
@@ -243,6 +246,21 @@ export function useRealtimePreview(): RealtimePreview {
     }
   }
 
+  function fadeOutNow(): void {
+    if (!get(isVisible) || get(isFading)) return;
+    clearTimeouts();
+    isPaginating = false;
+    isFading.set(true);
+    // Same 500ms fade-then-hide as the end of the linger timer above.
+    fadeTimeout = setTimeout(() => {
+      fadeTimeout = null;
+      isVisible.set(false);
+      text.set('');
+      isFading.set(false);
+      pageIndex.set(0);
+    }, 500);
+  }
+
   function reset(): void {
     clearTimeouts();
     text.set('');
@@ -269,6 +287,7 @@ export function useRealtimePreview(): RealtimePreview {
     isSilenceResult: { subscribe: isSilenceResult.subscribe },
     handleSegment,
     reset,
+    fadeOutNow,
     cleanup,
   };
 }

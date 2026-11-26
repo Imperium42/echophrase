@@ -52,11 +52,18 @@ SPDX-License-Identifier: MPL-2.0
     isOpen?: boolean;
     /** Initial section to scroll to */
     initialSection?: string | null;
+    /** Initial search query to pre-fill (eg "input") */
+    initialSearch?: string | null;
     /** Callback when modal closes */
     onClose?: () => void;
   }
 
-  let { isOpen = $bindable(false), initialSection = null, onClose }: Props = $props();
+  let {
+    isOpen = $bindable(false),
+    initialSection = null,
+    initialSearch = null,
+    onClose,
+  }: Props = $props();
 
   // Initialize Tauri settings
   const tauriSettings = useTauriSettings();
@@ -152,6 +159,13 @@ SPDX-License-Identifier: MPL-2.0
     if (!isOpen) {
       searchQuery = '';
       debouncedQuery = '';
+    }
+  });
+
+  // Pre-fill the search box when opened via a search deep-link
+  $effect(() => {
+    if (isOpen && initialSearch) {
+      searchQuery = initialSearch;
     }
   });
 
