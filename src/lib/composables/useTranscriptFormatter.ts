@@ -55,6 +55,42 @@ export function removeFillerWords(text: string): string {
 }
 
 /**
+ * The app's own name, which speech models often split ("Echo phrase") or
+ * lowercase. Matches "echo phrase", "echo-phrase" and "echophrase" in any case;
+ * the trailing `\b` leaves "echo phrases" and "echo phrasebook" alone.
+ */
+const BRAND_NAME_PATTERN = /\becho[\s-]*phrase\b/gi;
+
+/** Always-on fix: spell the app's name "Echophrase". */
+export function fixBrandName(text: string): string {
+  return text.replace(BRAND_NAME_PATTERN, 'Echophrase');
+}
+
+/**
+ * Spoken punctuation phrase -> symbol. Leading whitespace/punctuation the model
+ * put before the phrase and trailing punctuation after it are eaten, so
+ * "working? Question mark." becomes "working?". `\b` on both ends keeps
+ * "question marks" and "questionable" untouched. The optional tail captures the
+ * whitespace + first letter of the next word so it can be capitalized.
+ */
+const SPOKEN_PUNCTUATION_PATTERN =
+  /[\s,.;:!?]*\b(question[\s-]+mark|exclamation[\s-]+(?:mark|point))\b[,.;:!?]*(?:(\s+)(\p{L})?)?/giu;
+
+/**
+ * Convert spoken "question mark" / "exclamation mark" (or "point") into a
+ * literal "?" / "!", capitalizing the word that follows.
+ */
+export function convertSpokenPunctuation(text: string): string {
+  return text.replace(
+    SPOKEN_PUNCTUATION_PATTERN,
+    (_match, phrase: string, space?: string, nextLetter?: string) => {
+      const symbol = phrase.toLowerCase().startsWith('question') ? '?' : '!';
+      return symbol + (space ?? '') + (nextLetter?.toUpperCase() ?? '');
+    }
+  );
+}
+
+/**
  * Append a trailing space when the text does not end with sentence-ending
  * punctuation (. ! ?). Lets the user pause mid-sentence and keep dictating
  * without the next chunk gluing onto the previous one.

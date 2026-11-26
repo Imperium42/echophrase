@@ -290,6 +290,8 @@
     "removeFillerWordsHint": "过滤「嗯」、「呃」、「就是」等词",
     "normalizeNumbers": "数字标准化",
     "normalizeNumbersHint": "否则由模型自行决定",
+    "convertSpokenPunctuation": "转换问号/感叹号",
+    "convertSpokenPunctuationHint": "说出「question mark」或「exclamation mark」时，会直接转成「?」或「!」。",
     "appendSpaceIncomplete": "为未完成的句子附加空格",
     "appendSpaceIncompleteHint": "让你可以在句子中途暂停并继续听写，而不必每次都手动加空格。当转录文字未以 . ! 或 ? 结尾时，会自动附加一个尾随空格。"
   },

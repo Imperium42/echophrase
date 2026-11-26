@@ -10,6 +10,8 @@ import { defaultSettings } from '$lib/types/settings';
 import {
   removeFillerWords,
   convertNumberWordsToDigits,
+  convertSpokenPunctuation,
+  fixBrandName,
   appendTrailingSpaceIfIncomplete,
   useTranscriptFormatter,
 } from '$lib/composables/useTranscriptFormatter';
@@ -682,6 +684,15 @@ export function useRecording(getModelExists?: () => boolean, showDownloadDialog?
             }
           }
 
+          // Always spell the app's name right ("Echo phrase" -> "Echophrase")
+          cleanedText = fixBrandName(cleanedText);
+
+          // Spoken "question mark" / "exclamation mark" -> ? / ! (default: true).
+          // Runs before the trailing-space step so a converted "?" ends the sentence.
+          if (settings?.convert_spoken_punctuation !== false) {
+            cleanedText = convertSpokenPunctuation(cleanedText);
+          }
+
           // Apply number-to-digit conversion if enabled
           if (settings?.use_numeric_digits === true) {
             const beforeConversion = cleanedText;
@@ -1105,6 +1116,14 @@ export function useRecording(getModelExists?: () => boolean, showDownloadDialog?
       let cleanedText = text;
       if (settings?.remove_filler_words !== false) {
         cleanedText = removeFillerWords(text);
+      }
+
+      // Always spell the app's name right ("Echo phrase" -> "Echophrase")
+      cleanedText = fixBrandName(cleanedText);
+
+      // Spoken "question mark" / "exclamation mark" -> ? / ! (default: true)
+      if (settings?.convert_spoken_punctuation !== false) {
+        cleanedText = convertSpokenPunctuation(cleanedText);
       }
 
       // Apply number-to-digit conversion if enabled

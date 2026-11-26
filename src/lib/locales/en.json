@@ -290,6 +290,8 @@
     "removeFillerWordsHint": "Filter out \"umm\", \"uh\", \"like\", etc.",
     "normalizeNumbers": "Normalize Numbers to Digits",
     "normalizeNumbersHint": "Otherwise, the model decides",
+    "convertSpokenPunctuation": "Convert Exclamation/Question Marks",
+    "convertSpokenPunctuationHint": "Say \"question mark\" or \"exclamation mark\" and it becomes a literal \"?\" or \"!\".",
     "appendSpaceIncomplete": "Append Space to Incomplete Sentences",
     "appendSpaceIncompleteHint": "Lets you pause mid-sentence and keep dictating without adding a space each time. When a transcription doesn't end with . ! or ?, a trailing space is added automatically."
   },

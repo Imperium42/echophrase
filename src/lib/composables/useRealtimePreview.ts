@@ -8,7 +8,19 @@
  */
 
 import { writable, type Readable, get } from 'svelte/store';
-import { removeFillerWords, convertNumberWordsToDigits } from './useTranscriptFormatter';
+import {
+  removeFillerWords,
+  convertNumberWordsToDigits,
+  convertSpokenPunctuation,
+  fixBrandName,
+} from './useTranscriptFormatter';
+
+/** The settings subset the live preview formats with. */
+interface PreviewFormatSettings {
+  remove_filler_words?: boolean;
+  use_numeric_digits?: boolean;
+  convert_spoken_punctuation?: boolean;
+}
 
 const WORDS_PER_PAGE = 30;
 
@@ -45,7 +57,7 @@ export interface RealtimePreviewActions {
   handleSegment: (
     text: string,
     isFinal: boolean,
-    settings: { remove_filler_words?: boolean; use_numeric_digits?: boolean } | null,
+    settings: PreviewFormatSettings | null,
     transformInfo?: TransformInfo
   ) => void;
   /** Reset preview state (call when starting new recording) */
@@ -110,7 +122,7 @@ export function useRealtimePreview(): RealtimePreview {
   function handleSegment(
     segmentText: string,
     isFinal: boolean,
-    settings: { remove_filler_words?: boolean; use_numeric_digits?: boolean } | null,
+    settings: PreviewFormatSettings | null,
     transformInfo?: TransformInfo
   ): void {
     // Clear any existing fade timeout
@@ -150,6 +162,14 @@ export function useRealtimePreview(): RealtimePreview {
       // Apply filler word removal if enabled (default: true)
       if (settings?.remove_filler_words !== false) {
         processedText = removeFillerWords(processedText);
+      }
+
+      // Always spell the app's name right ("Echo phrase" -> "Echophrase")
+      processedText = fixBrandName(processedText);
+
+      // Spoken "question mark" / "exclamation mark" -> ? / ! (default: true)
+      if (settings?.convert_spoken_punctuation !== false) {
+        processedText = convertSpokenPunctuation(processedText);
       }
 
       // Apply number-to-digit conversion if enabled
