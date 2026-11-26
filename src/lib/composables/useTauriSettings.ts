@@ -33,6 +33,7 @@ export interface TauriSettings {
   remove_filler_words: boolean; // Remove um, uh, etc. from transcription output
   use_numeric_digits: boolean; // Display numbers as digits (1, 2) instead of text (one, two)
   append_space_incomplete?: boolean; // Append trailing space when output lacks sentence-ending punctuation (default true)
+  convert_spoken_punctuation?: boolean; // Turn spoken "question mark" / "exclamation mark" into ? / !
   hotkey_mode?: 'hybrid' | 'toggle' | 'hold'; // Push to Talk hotkey behavior (default hybrid: tap toggles, hold+release stops)
   restore_clipboard_after_paste?: boolean; // Put the previous clipboard text back after paste at cursor (default false)
   json_metadata_template?: string | null; // Custom JSON template for metadata output
@@ -266,6 +267,7 @@ async function resetToDefaults(): Promise<void> {
     remove_filler_words: true,
     use_numeric_digits: false, // Convert "one, two" to "1, 2"
     append_space_incomplete: true, // Append trailing space for incomplete sentences by default
+    convert_spoken_punctuation: true, // "question mark" -> ?
     hotkey_mode: 'hybrid', // Tap toggles, hold+release stops
     restore_clipboard_after_paste: false, // Keep the transcript on the clipboard
     json_metadata_template: null,

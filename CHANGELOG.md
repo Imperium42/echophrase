@@ -4,6 +4,12 @@ All notable changes to Echophrase will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- Say "question mark" or "exclamation mark" to type ? or ! (on by default, Settings > Recording).
+
+### Fixed
+- Normalized "echo phrase" -> "Echophrase" when transcribed.
+
 ### Changed
 - The command-line tool is now called `echophrase-cli` (was `echophrase`). If you set up the MCP server, change `"command"` in your `.mcp.json` to `echophrase-cli`.
 

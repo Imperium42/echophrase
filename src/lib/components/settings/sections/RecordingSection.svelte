@@ -115,8 +115,16 @@ SPDX-License-Identifier: MPL-2.0
   <SettingToggle
     label={t('recordingSettings.normalizeNumbers')}
     hint={t('recordingSettings.normalizeNumbersHint')}
-    checked={$settings?.use_numeric_digits !== false}
+    checked={$settings?.use_numeric_digits === true}
     onchange={v => updateSetting('use_numeric_digits', v)}
+  />
+
+  <!-- Convert spoken "question mark" / "exclamation mark" to ? / ! -->
+  <SettingToggle
+    label={t('recordingSettings.convertSpokenPunctuation')}
+    hint={t('recordingSettings.convertSpokenPunctuationHint')}
+    checked={$settings?.convert_spoken_punctuation !== false}
+    onchange={v => updateSetting('convert_spoken_punctuation', v)}
   />
 
   <!-- Append Space to Incomplete Sentences -->

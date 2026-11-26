@@ -46,6 +46,7 @@ export interface Settings {
   show_model_switcher?: boolean; // Show model switcher in main UI (default true)
   show_transcription_speed?: boolean; // Show transcription speed toast (default false)
   append_space_incomplete?: boolean; // Append trailing space when output lacks sentence-ending punctuation (default true)
+  convert_spoken_punctuation?: boolean; // Turn spoken "question mark" / "exclamation mark" into ? / !
   hotkey_mode?: 'hybrid' | 'toggle' | 'hold'; // Push to Talk hotkey behavior (default hybrid: tap toggles, hold+release stops)
   restore_clipboard_after_paste?: boolean; // Put the previous clipboard text back after paste at cursor (default false)
   execution_provider?: string; // Preferred execution provider: directml, coreml, cpu
@@ -105,6 +106,7 @@ export const defaultSettings: Settings = {
   show_model_switcher: true, // Show model switcher by default
   show_transcription_speed: false, // Don't show speed by default
   append_space_incomplete: true, // Append trailing space for incomplete sentences by default
+  convert_spoken_punctuation: true, // "question mark" -> ?
   hotkey_mode: 'hybrid', // Tap toggles, hold+release stops
   restore_clipboard_after_paste: false, // Keep the transcript on the clipboard
   // Transform model defaults

@@ -299,6 +299,8 @@ pub struct SettingsPatch {
     #[serde(default)]
     pub append_space_incomplete: Option<bool>,
     #[serde(default)]
+    pub convert_spoken_punctuation: Option<bool>,
+    #[serde(default)]
     pub hotkey_mode: Option<String>,
     #[serde(default)]
     pub restore_clipboard_after_paste: Option<bool>,
@@ -394,6 +396,7 @@ impl SettingsPatch {
             remove_filler_words,
             use_numeric_digits,
             append_space_incomplete,
+            convert_spoken_punctuation,
             restore_clipboard_after_paste,
             auto_detected_model,
             transform_enabled,
@@ -504,6 +507,8 @@ pub struct AppSettings {
     pub use_numeric_digits: bool, // Display numbers as digits (1, 2) instead of text (one, two)
     #[serde(default = "default_true")]
     pub append_space_incomplete: bool, // Append trailing space when output lacks sentence-ending punctuation
+    #[serde(default = "default_true")]
+    pub convert_spoken_punctuation: bool, // Turn spoken "question mark" / "exclamation mark" into ? / !
     /// Push to Talk hotkey behavior: "hybrid" (tap toggles, hold+release stops),
     /// "toggle", or "hold". Unknown values behave as hybrid on the frontend.
     #[serde(default = "default_hotkey_mode")]
@@ -647,6 +652,7 @@ impl Default for AppSettings {
             remove_filler_words: true,            // Remove filler words by default
             use_numeric_digits: false,            // Don't convert numbers to digits by default
             append_space_incomplete: true, // Append trailing space for incomplete sentences by default
+            convert_spoken_punctuation: true, // Spoken "question mark" -> ?
             hotkey_mode: default_hotkey_mode(), // Tap toggles, hold+release stops
             restore_clipboard_after_paste: false, // Keep the transcript on the clipboard
             json_metadata_template: None,  // Use default JSON template
@@ -1054,6 +1060,24 @@ mod tests {
         let patch: SettingsPatch = serde_json::from_str(r#"{"transform_model":null}"#).unwrap();
         patch.apply_to(&mut settings);
         assert_eq!(settings.transform_model, None);
+    }
+
+    #[test]
+    fn convert_spoken_punctuation_defaults_on_and_patches() {
+        // Pre-upgrade settings.yaml without the key must default ON
+        let mut settings: AppSettings =
+            serde_yml::from_str("model: parakeet-tdt-0.6b-v3\n").unwrap();
+        assert!(settings.convert_spoken_punctuation);
+        assert!(AppSettings::default().convert_spoken_punctuation);
+
+        let patch: SettingsPatch =
+            serde_json::from_str(r#"{"convert_spoken_punctuation": false}"#).unwrap();
+        patch.apply_to(&mut settings);
+        assert!(!settings.convert_spoken_punctuation);
+
+        let yaml = serde_yml::to_string(&settings).unwrap();
+        let reloaded: AppSettings = serde_yml::from_str(&yaml).unwrap();
+        assert!(!reloaded.convert_spoken_punctuation);
     }
 
     #[test]
