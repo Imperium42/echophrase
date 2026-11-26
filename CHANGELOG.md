@@ -2,7 +2,7 @@
 
 All notable changes to Echophrase will be documented in this file.
 
-## [Unreleased]
+## [v1.1.0] - 2026-11-26
 
 ### Added
 - Say "question mark" or "exclamation mark" to type ? or ! (on by default, Settings > Recording).
