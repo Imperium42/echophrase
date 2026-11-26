@@ -32,7 +32,7 @@ pub struct RecordStarted {
 
 /// Start (or restart, with `force`) a background recording.
 ///
-/// This is the same logic `echophrase record` (non-foreground) runs; it is
+/// This is the same logic `echophrase-cli record` (non-foreground) runs; it is
 /// factored out here so the MCP `record` tool can call it directly without
 /// duplicating the session bookkeeping.
 pub fn start_background_recording(
@@ -52,7 +52,7 @@ pub fn start_background_recording(
         } else {
             bail!(
                 "a recording is already in progress (pid {}, file {}).\n\
-                 Run `echophrase stop` to finish it, or pass force to override.",
+                 Run `echophrase-cli stop` to finish it, or pass force to override.",
                 existing.pid,
                 existing.output_path
             );
@@ -151,7 +151,7 @@ pub struct StopResult {
 /// for the worker to finalize the file.
 pub fn stop(timeout_secs: u64) -> Result<StopResult> {
     let Some(sess) = Session::load()? else {
-        bail!("no active recording. Start one with `echophrase record`.");
+        bail!("no active recording. Start one with `echophrase-cli record`.");
     };
 
     session::request_stop()?;

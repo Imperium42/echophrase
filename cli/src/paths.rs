@@ -113,7 +113,7 @@ pub fn worker_log() -> PathBuf {
 /// Path to the desktop app's local IPC bearer token file.
 ///
 /// Written by the running desktop app (see `src-tauri/src/ipc/paths.rs`) and
-/// read by `echophrase transcribe` / the MCP `transcribe` tool to
+/// read by `echophrase-cli transcribe` / the MCP `transcribe` tool to
 /// authenticate against the app's localhost-only HTTP server.
 pub fn ipc_token_file() -> PathBuf {
     let mut d = run_dir();
@@ -125,7 +125,7 @@ pub fn ipc_token_file() -> PathBuf {
 /// listener is not currently serving requests (`disabled`, or
 /// `running`). Written by the running desktop app (see
 /// `src-tauri/src/ipc/paths.rs::ipc_state_file`, which mirrors this
-/// resolution order) and read by `echophrase transcribe` / the MCP
+/// resolution order) and read by `echophrase-cli transcribe` / the MCP
 /// `transcribe` tool to turn a bare connection failure into an actionable
 /// error. Missing, empty, or unparseable is treated the same as "app not
 /// running".

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
-//! `echophrase transcode` - convert an existing WAV file to the canonical
+//! `echophrase-cli transcode` - convert an existing WAV file to the canonical
 //! 16 kHz mono format the transcription pipeline expects.
 //!
 //! This is the file-ingest counterpart to `record`: instead of capturing the

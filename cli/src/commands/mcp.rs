@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
-//! `echophrase mcp` - a minimal MCP (Model Context Protocol) server over
+//! `echophrase-cli mcp` - a minimal MCP (Model Context Protocol) server over
 //! stdio, exposing `record`, `stop`, `status`, `transcode`, and `transcribe`
 //! as tools so AI agents can drive voice capture.
 //!

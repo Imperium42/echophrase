@@ -291,7 +291,7 @@ pub fn run() {
         // normal user-hotkey global-shortcut path, not a hardcoded handler.
       }
 
-      // Start the localhost-only IPC server (CLI `echophrase transcribe` /
+      // Start the localhost-only IPC server (CLI `echophrase-cli transcribe` /
       // MCP `transcribe` tool). Routes through transcribe_source so the
       // user's selected model (Qwen3/ONNX/Candle) is honored, same
       // as in-app dictation. Preview-less (no AppHandle).

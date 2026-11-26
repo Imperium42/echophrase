@@ -591,7 +591,7 @@ pub struct AppSettings {
     /// specific microphone and room.
     #[serde(default = "default_voice_threshold")]
     pub voice_threshold: u8,
-    /// Whether the localhost IPC server (CLI `echophrase transcribe` / MCP
+    /// Whether the localhost IPC server (CLI `echophrase-cli transcribe` / MCP
     /// `transcribe` tool) should be running. Off by default so a fresh install
     /// never opens a local port.
     #[serde(default)]

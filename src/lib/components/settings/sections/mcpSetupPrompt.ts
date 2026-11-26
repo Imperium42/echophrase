@@ -20,7 +20,7 @@ export const MCP_SETUP_PROMPT = `Set up Echophrase as an MCP server for this pro
 {
   "mcpServers": {
     "echophrase": {
-      "command": "echophrase",
+      "command": "echophrase-cli",
       "args": ["mcp"]
     }
   }
@@ -29,10 +29,11 @@ export const MCP_SETUP_PROMPT = `Set up Echophrase as an MCP server for this pro
 If a .mcp.json file already exists, merge the "echophrase" entry into its
 existing "mcpServers" object instead of overwriting the file.
 
-2. The "echophrase" command is the Echophrase CLI, which ships with the
-Echophrase desktop app. Make sure it is installed and on PATH (running
-"echophrase --help" should work). If it is not on PATH, use the absolute path
-to the "echophrase" binary as the "command" value instead.
+2. The "echophrase-cli" command is the Echophrase CLI. It is not bundled with
+the desktop app: install it from the Echophrase source with
+"cargo install --path cli" (run in the repo root), which puts it on PATH
+(running "echophrase-cli --help" should work). If it is not on PATH, use the
+absolute path to the "echophrase-cli" binary as the "command" value instead.
 
 3. The Echophrase desktop app must be running, with Settings > MCP Server
 enabled, for the "transcribe" tool to work (it talks to the app over a

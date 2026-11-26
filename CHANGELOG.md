@@ -2,6 +2,11 @@
 
 All notable changes to Echophrase will be documented in this file.
 
+## [Unreleased]
+
+### Changed
+- The command-line tool is now called `echophrase-cli` (was `echophrase`). If you set up the MCP server, change `"command"` in your `.mcp.json` to `echophrase-cli`.
+
 ## [v1.0.1] - 2026-11-24
 
 ### Fixed

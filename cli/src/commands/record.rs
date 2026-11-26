@@ -2,9 +2,9 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
-//! `echophrase record` - start a recording.
+//! `echophrase-cli record` - start a recording.
 //!
-//! Default behaviour detaches a background worker process (`echophrase worker`)
+//! Default behaviour detaches a background worker process (`echophrase-cli worker`)
 //! so the terminal is freed immediately. `--foreground` records in-process and
 //! blocks until Ctrl+C.
 
@@ -31,11 +31,11 @@ pub fn run(args: RecordArgs) -> Result<()> {
     let started = ops::start_background_recording(args.output, args.device, args.force)?;
     println!("\u{25CF} Recording started (pid {}).", started.pid);
     println!("  Output: {}", started.output_path);
-    println!("  Stop with: echophrase stop");
+    println!("  Stop with: echophrase-cli stop");
     Ok(())
 }
 
-/// Record in the current process until Ctrl+C or an external `echophrase stop`.
+/// Record in the current process until Ctrl+C or an external `echophrase-cli stop`.
 fn run_foreground(output: PathBuf, device: Option<String>) -> Result<()> {
     Session {
         pid: std::process::id(),
@@ -51,7 +51,7 @@ fn run_foreground(output: PathBuf, device: Option<String>) -> Result<()> {
     ctrlc::set_handler(move || on_signal.store(true, Ordering::SeqCst))
         .context("installing Ctrl+C handler")?;
 
-    // Also honor an external `echophrase stop` (writes the stop flag).
+    // Also honor an external `echophrase-cli stop` (writes the stop flag).
     let on_flag = stop.clone();
     std::thread::spawn(move || {
         while !on_flag.load(Ordering::SeqCst) {

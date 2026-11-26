@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
-//! `echophrase transcribe` - send a WAV file to the running desktop app's
+//! `echophrase-cli transcribe` - send a WAV file to the running desktop app's
 //! loaded transcription model and print the transcript.
 //!
 //! Unlike `record`/`stop`/`transcode`, this command has nothing to do
