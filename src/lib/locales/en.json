@@ -728,5 +728,23 @@
     "comingSoon": "Coming Soon",
     "alpha": "Alpha",
     "beta": "Beta"
+  },
+  "settingsSearch": {
+    "language": "language, locale, translation, i18n",
+    "model": "model, whisper, download, ai, transcription, distil",
+    "customModel": "custom model, byo, onnx, import, huggingface",
+    "gpu": "gpu, directml, acceleration, nvidia, graphics, vram",
+    "optimization": "optimization, memory, ram, unload, idle, model, gaming, vram",
+    "transform": "transform, grammar, ai, rewrite, rules, post-processing",
+    "output": "output, clipboard, paste, copy, file, save, post-record",
+    "audio": "audio, microphone, mic, input, device, recording device",
+    "recording": "recording, vad, voice activity, silence, filler words, numbers",
+    "hotkeys": "hotkeys, keyboard, shortcut, keybinding, press to talk",
+    "customize": "customize, theme, appearance, ui, preview, speed, toast, history, transcript, privacy, copy last, hover, tray",
+    "mcpServer": "mcp, cli, claude, agent, transcribe",
+    "accessibility": "accessibility, zoom, scale, scaling, text size, a11y",
+    "data": "data, privacy, delete, cache, storage, reset, clear",
+    "debug": "debug, logs, developer, diagnostics, verbose",
+    "about": "about, version, license, credits, update, support, sponsor, donate"
   }
 }

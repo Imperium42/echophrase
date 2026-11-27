@@ -45,6 +45,7 @@ SPDX-License-Identifier: MPL-2.0
   import { setSettingsContext, type SettingsContext } from './context';
   import { useTauriSettings } from '$lib/composables/useTauriSettings';
   import { t } from '$lib/locales';
+  import { matchesSettingsSection } from '$lib/utils/settingsSearch';
   import { isDev } from '$lib/config/environment';
 
   interface Props {
@@ -100,49 +101,11 @@ SPDX-License-Identifier: MPL-2.0
   // Reference to header component - used to focus the search input on open
   let settingsHeader: SettingsHeader | null = null;
 
-  // Section search terms mapping
-  const sectionSearchTerms: Record<string, string[]> = {
-    language: ['language', 'locale', 'translation', 'i18n'],
-    model: ['model', 'whisper', 'download', 'ai', 'transcription', 'distil'],
-    customModel: ['custom model', 'byo', 'onnx', 'import', 'huggingface'],
-    gpu: ['gpu', 'directml', 'acceleration', 'nvidia', 'graphics', 'vram'],
-    optimization: ['optimization', 'memory', 'ram', 'unload', 'idle', 'model', 'gaming', 'vram'],
-    transform: ['transform', 'grammar', 'ai', 'rewrite', 'rules', 'post-processing'],
-    output: ['output', 'clipboard', 'paste', 'copy', 'file', 'save', 'post-record'],
-    audio: ['audio', 'microphone', 'mic', 'input', 'device', 'recording device'],
-    recording: ['recording', 'vad', 'voice activity', 'silence', 'filler words', 'numbers'],
-    hotkeys: ['hotkeys', 'keyboard', 'shortcut', 'keybinding', 'press to talk'],
-    customize: [
-      'customize',
-      'theme',
-      'appearance',
-      'ui',
-      'preview',
-      'speed',
-      'toast',
-      'history',
-      'transcript',
-      'privacy',
-      'copy last',
-      'hover',
-      'tray',
-    ],
-    mcpServer: ['mcp', 'cli', 'claude', 'agent', 'transcribe'],
-    accessibility: ['accessibility', 'zoom', 'scale', 'scaling', 'text size', 'a11y'],
-    data: ['data', 'privacy', 'delete', 'cache', 'storage', 'reset', 'clear'],
-    debug: ['debug', 'logs', 'developer', 'diagnostics', 'verbose'],
-    about: ['about', 'version', 'license', 'credits', 'update', 'support', 'sponsor', 'donate'],
-  };
-
   // Filter sections against the debounced query so each keystroke doesn't
-  // fan out across all 13 matchers + locale lookups.
+  // fan out across all matchers + locale lookups. Keywords live in the locale
+  // files (`settingsSearch.<sectionKey>`); see utils/settingsSearch.ts.
   function matchesSearch(sectionKey: string, sectionTitle: string): boolean {
-    const q = debouncedQuery.trim();
-    if (!q) return true;
-    const query = q.toLowerCase();
-    if (sectionTitle.toLowerCase().includes(query)) return true;
-    const terms = sectionSearchTerms[sectionKey] || [];
-    return terms.some(term => term.includes(query));
+    return matchesSettingsSection(debouncedQuery, sectionKey, sectionTitle);
   }
 
   // Reactive section visibility (uses localized titles for search)
