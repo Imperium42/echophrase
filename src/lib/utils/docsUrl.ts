@@ -18,7 +18,7 @@ import { getCurrentLocale } from '$lib/stores/locale.svelte';
 /**
  * Build a docs.echophrase.com URL localized for the given (or current) locale.
  *
- * @param path - page path, eg '' for root, '/mcp', '/features/custom-models'.
+ * @param path - page path, eg '' for root, '/mcp-server', '/features/custom-models'.
  *   May include a hash fragment, eg '/troubleshooting/permissions#mic'.
  * @param locale - explicit locale to use; defaults to the app's current locale.
  */

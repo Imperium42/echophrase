@@ -2,6 +2,11 @@
 
 All notable changes to Echophrase will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+- The MCP Server docs link in Settings now opens the right page.
+
 ## [v1.1.0] - 2026-11-26
 
 ### Added
