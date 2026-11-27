@@ -366,9 +366,15 @@ fn run_record_loop(
     inner_arc: Arc<Mutex<RecorderInner>>,
     app: tauri::AppHandle,
 ) {
+    let mut meter = crate::overlay::levels::LevelMeter::new();
     loop {
         match events.recv_timeout(Duration::from_millis(100)) {
             Ok(CaptureEvent::Chunk(chunk)) => {
+                if crate::overlay::is_visible() {
+                    if let Some(bands) = meter.push(&chunk) {
+                        crate::overlay::emit_levels(&app, &bands);
+                    }
+                }
                 let mut inner = inner_arc.blocking_lock();
                 if !inner.is_recording {
                     // Stopping: append this and everything already queued so
@@ -426,6 +432,7 @@ fn run_open_mic_loop(
     use tauri::Emitter;
 
     let mut debug_frame_count: u64 = 0;
+    let mut meter = crate::overlay::levels::LevelMeter::new();
     let mut idle_silence_frames: u64 = 0;
 
     if OPEN_MIC_DEBUG {
@@ -457,6 +464,11 @@ fn run_open_mic_loop(
             }
             Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
         };
+        if crate::overlay::is_visible() {
+            if let Some(bands) = meter.push(&chunk) {
+                crate::overlay::emit_levels(&app, &bands);
+            }
+        }
 
         // Event flags, emitted OUTSIDE the lock to avoid deadlocks.
         let mut emit_chunk_ready = false;

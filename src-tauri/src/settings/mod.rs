@@ -72,6 +72,30 @@ fn clamp_idle_unload_minutes(minutes: u32) -> u32 {
 pub const MAX_HISTORY_LIMIT: u32 = 10;
 const MIN_HISTORY_LIMIT: u32 = 1;
 
+/// Where the recording overlay sits on screen. Kept in sync with
+/// `OVERLAY_POSITIONS` in `src/lib/types/settings.ts`.
+pub const OVERLAY_POSITIONS: [&str; 6] = [
+    "top-left",
+    "top-center",
+    "top-right",
+    "bottom-left",
+    "bottom-center",
+    "bottom-right",
+];
+
+fn default_overlay_position() -> String {
+    "bottom-center".to_string()
+}
+
+/// Unknown values fall back to the default instead of failing the patch.
+fn normalize_overlay_position(position: &str) -> String {
+    if OVERLAY_POSITIONS.contains(&position) {
+        position.to_string()
+    } else {
+        default_overlay_position()
+    }
+}
+
 fn default_history_limit() -> u32 {
     MAX_HISTORY_LIMIT
 }
@@ -360,6 +384,10 @@ pub struct SettingsPatch {
     #[serde(default)]
     pub history_limit: Option<u32>,
     #[serde(default)]
+    pub recording_overlay_enabled: Option<bool>,
+    #[serde(default)]
+    pub recording_overlay_position: Option<String>,
+    #[serde(default)]
     pub voice_threshold: Option<u8>,
     /// Legacy keys from the removed cloud-sync and hosted-transcription features.
     /// Accepted and ignored so an old exported settings file still imports despite
@@ -425,6 +453,7 @@ impl SettingsPatch {
             ui_scale_with_window,
             idle_unload_enabled,
             history_enabled,
+            recording_overlay_enabled,
             mcp_server_enabled,
         );
 
@@ -462,6 +491,9 @@ impl SettingsPatch {
         }
         if let Some(minutes) = self.idle_unload_minutes {
             s.idle_unload_minutes = clamp_idle_unload_minutes(minutes);
+        }
+        if let Some(position) = self.recording_overlay_position {
+            s.recording_overlay_position = normalize_overlay_position(&position);
         }
         if let Some(limit) = self.history_limit {
             s.history_limit = clamp_history_limit(limit);
@@ -620,6 +652,13 @@ pub struct AppSettings {
     /// `history_enabled` is true.
     #[serde(default = "default_history_limit")]
     pub history_limit: u32,
+    /// Show the floating recording pill (waveform + cancel) while recording.
+    /// See `overlay`.
+    #[serde(default = "default_true")]
+    pub recording_overlay_enabled: bool,
+    /// One of `OVERLAY_POSITIONS`; only used when the overlay is enabled.
+    #[serde(default = "default_overlay_position")]
+    pub recording_overlay_position: String,
     /// VAD sensitivity as a percentage (0-100): the minimum voice level that
     /// triggers recording. Deliberately NOT cloud-synced - it is tuned to a
     /// specific microphone and room.
@@ -705,6 +744,8 @@ impl Default for AppSettings {
             idle_unload_minutes: default_idle_unload_minutes(),
             history_enabled: true, // Remember recent transcripts (in memory only)
             history_limit: default_history_limit(),
+            recording_overlay_enabled: true, // Floating recording pill on by default
+            recording_overlay_position: default_overlay_position(),
             voice_threshold: default_voice_threshold(), // 50% VAD sensitivity
             mcp_server_enabled: false,                  // Off by default
         }
@@ -1220,6 +1261,33 @@ mod tests {
         let patch: SettingsPatch = serde_json::from_str(r#"{"history_limit": 0}"#).unwrap();
         patch.apply_to(&mut settings);
         assert_eq!(settings.history_limit, 1);
+    }
+
+    #[test]
+    fn recording_overlay_defaults_on_and_patches() {
+        let settings: AppSettings = serde_yml::from_str(
+            "model: parakeet-tdt-0.6b-v3
+",
+        )
+        .unwrap();
+        assert!(settings.recording_overlay_enabled);
+
+        let mut settings = AppSettings::default();
+        let patch: SettingsPatch =
+            serde_json::from_str(r#"{"recording_overlay_enabled": false}"#).unwrap();
+        patch.apply_to(&mut settings);
+        assert!(!settings.recording_overlay_enabled);
+        assert_eq!(settings.recording_overlay_position, "bottom-center");
+
+        let patch: SettingsPatch =
+            serde_json::from_str(r#"{"recording_overlay_position": "top-left"}"#).unwrap();
+        patch.apply_to(&mut settings);
+        assert_eq!(settings.recording_overlay_position, "top-left");
+
+        let patch: SettingsPatch =
+            serde_json::from_str(r#"{"recording_overlay_position": "middle"}"#).unwrap();
+        patch.apply_to(&mut settings);
+        assert_eq!(settings.recording_overlay_position, "bottom-center");
     }
 
     #[test]

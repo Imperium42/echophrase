@@ -24,6 +24,7 @@ mod macos_permissions;
 mod model_detection;
 mod model_download;
 mod models;
+mod overlay;
 mod platform;
 mod settings;
 mod setup;
@@ -400,6 +401,8 @@ pub fn run() {
     .invoke_handler(tauri::generate_handler![
       macos_dictation::set_dictation_key_remap,
       setup::window::show_main_window,
+      overlay::overlay_get_state,
+      overlay::overlay_cancel,
       commands::window::quit_app,
       commands::transcription::transcribe_audio,
       commands::transcription::check_whisper_model_exists,

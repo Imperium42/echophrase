@@ -162,9 +162,16 @@ pub async fn transcribe_open_mic_chunk(
 
 /// Force reset recording state - recovers from stuck "Already recording" errors
 #[tauri::command]
-pub async fn reset_recording_state(state: State<'_, RecorderState>) -> Result<(), String> {
+pub async fn reset_recording_state(
+    state: State<'_, RecorderState>,
+    app: AppHandle,
+) -> Result<(), String> {
     let recorder = state.0.lock().await;
-    recorder.reset_recording_state().await
+    let result = recorder.reset_recording_state().await;
+    // Cancel/discard path: without this the tray (and the recording overlay)
+    // stayed on Recording until the next full record-and-transcribe cycle.
+    tray_status::set(&app, TrayStatus::Idle);
+    result
 }
 
 #[tauri::command]

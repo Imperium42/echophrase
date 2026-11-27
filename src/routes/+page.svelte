@@ -245,6 +245,7 @@ SPDX-License-Identifier: MPL-2.0
         realtimePreview.handleSegment(text, isFinal, $tauriSettings, transformInfo);
       },
       onHotkeyToggle: handleRecordClick,
+      onOverlayCancel: () => cancelRecording(),
       isHotkeyDisabled: () => $isProcessingStore || $serverStatusStore === 'connecting',
       hotkeyMode: {
         mode: () =>

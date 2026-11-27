@@ -5,6 +5,7 @@ All notable changes to Echophrase will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Recording Overlay: a small floating pill with a live waveform shows while you record, in any app, with an X to cancel. Pick its screen corner or turn it off in Settings > Customize.
 - Choose how many recent transcripts the history keeps (1-10), or turn it off: Settings > Customize > Transcript History.
 
 ### Fixed
@@ -12,6 +13,7 @@ All notable changes to Echophrase will be documented in this file.
 - The MCP Server docs link in Settings now opens the right page.
 
 ### Improved
+- Refreshed the startup loading animation.
 - Contributors: Rust test runs are about 5x faster (no more duplicate library build for doctests and the app binary).
 
 ## [v1.1.0] - 2026-11-26

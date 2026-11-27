@@ -74,6 +74,8 @@ export interface InitCallbacks {
   ) => void;
   /** Called when hotkeys should toggle recording */
   onHotkeyToggle: () => void;
+  /** Called when the recording overlay's X is clicked (discard, no transcription) */
+  onOverlayCancel?: () => void;
   /** Called to get processing state for hotkey disable */
   isHotkeyDisabled: () => boolean;
   /** Hotkey press/release mode (hybrid/toggle/hold); omitted = toggle only */
@@ -201,6 +203,7 @@ export function useAppInit(): AppInit {
           unlistenTranscriptionSegment,
           unlistenSettingsChanged,
           unlistenTrayToggle,
+          unlistenOverlayCancel,
           hotkeyResult,
         ] = await Promise.all([
           // Download event listeners
@@ -226,6 +229,8 @@ export function useAppInit(): AppInit {
               callbacks.onHotkeyToggle();
             }
           }),
+          // Recording overlay X (src-tauri/src/overlay): same discard path as Escape.
+          tauriListen('overlay-cancel', () => callbacks.onOverlayCancel?.()),
           // Hotkeys
           import('./useHotkeys').then(async ({ useHotkeys }) => {
             const hotkeys = useHotkeys();
@@ -243,7 +248,8 @@ export function useAppInit(): AppInit {
           cleanupDownloadListeners,
           unlistenTranscriptionSegment,
           unlistenSettingsChanged,
-          unlistenTrayToggle
+          unlistenTrayToggle,
+          unlistenOverlayCancel
         );
         if (typeof hotkeyResult.unsub === 'function') cleanupFns.push(hotkeyResult.unsub);
         cleanupFns.push(hotkeyResult.cleanup);

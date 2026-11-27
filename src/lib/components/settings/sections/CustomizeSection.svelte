@@ -14,6 +14,8 @@ SPDX-License-Identifier: MPL-2.0
   import { SettingsSection, SettingToggle, SettingNumberInput } from '../primitives';
   import { HISTORY_LIMIT, MIN_HISTORY_LIMIT } from '$lib/stores/lastRun';
   import { getSettingsContext } from '../context';
+  import OverlayPositionPicker from './OverlayPositionPicker.svelte';
+  import { OVERLAY_POSITIONS, type OverlayPosition } from '$lib/types/settings';
   import { t } from '$lib/locales';
 
   // Window-size reset moved to the Accessibility section (its Reset also
@@ -74,6 +76,10 @@ SPDX-License-Identifier: MPL-2.0
   ]);
 
   const historyEnabled = $derived($settings?.history_enabled ?? true);
+  const overlayEnabled = $derived($settings?.recording_overlay_enabled ?? true);
+  const overlayPosition = $derived<OverlayPosition>(
+    OVERLAY_POSITIONS.find(p => p === $settings?.recording_overlay_position) ?? 'bottom-center'
+  );
 </script>
 
 {#snippet historyCount()}
@@ -114,5 +120,18 @@ SPDX-License-Identifier: MPL-2.0
     hint={t('customize.minimizeToTrayOnCloseHint')}
     checked={$settings?.minimize_to_tray_on_close ?? true}
     onchange={v => updateSetting('minimize_to_tray_on_close', v)}
+  />
+
+  <!-- Floating recording pill (src-tauri/src/overlay) and where it sits -->
+  <SettingToggle
+    label={t('customize.overlayLabel')}
+    hint={t('customize.overlayHint')}
+    checked={overlayEnabled}
+    onchange={v => updateSetting('recording_overlay_enabled', v)}
+  />
+  <OverlayPositionPicker
+    value={overlayPosition}
+    disabled={!overlayEnabled}
+    onchange={v => updateSetting('recording_overlay_position', v)}
   />
 </SettingsSection>

@@ -104,6 +104,10 @@ transcription/          # ML backends (trait-based, swappable)
 ├── onnx_backend.rs     # ONNX backend (generic ONNX models)
 └── parakeet.rs         # parakeet-rs backend (NVIDIA TDT with RNN-T decoding)
 
+overlay/                # Recording overlay pill (second window `recording_overlay`,
+├── mod.rs              #   route src/routes/overlay); driven by tray_status::set
+└── levels.rs           # FFT voice-band meter fed from the capture loops
+
 vad.rs                  # Voice Activity Detection
                         # VadBackend trait + SileroVad implementation (ort)
                         # Self-implemented to avoid dependency version conflicts

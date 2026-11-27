@@ -35,7 +35,7 @@ serde_json = "^1.0.142"
 serde = { version = "^1.0.217", features = ["derive"] }
 log = "^0.4.27"
 tracing = "0.1"  # Structured logging - auto-bridges to log crate via tauri_plugin_log
-tauri = { version = "2.11.5", features = ["tray-icon", "test", "webview-data-url"] }
+tauri = { version = "2.11.5", features = ["tray-icon", "test", "webview-data-url", "macos-private-api"] }
 
 tauri-plugin-log = "2.8.0"
 tauri-plugin-clipboard-manager = "2.3.2"
@@ -138,7 +138,7 @@ nvml-wrapper = "0.12"
 [target.'cfg(windows)'.dependencies]
 # Direct dep only to reach `set_default_guid` (see workspace [patch.crates-io]).
 tray-icon = "0.24"
-windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging", "Win32_System_LibraryLoader", "Win32_System_Diagnostics_Debug", "Win32_System_Threading"] }
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging", "Win32_System_LibraryLoader", "Win32_System_Diagnostics_Debug", "Win32_System_Threading", "Win32_System_Registry"] }
 parakeet-rs = { version = "0.3.4", default-features = false, features = ["directml", "load-dynamic", "preload-dylibs"] }
 
 [features]

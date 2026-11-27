@@ -91,6 +91,9 @@ pub fn set(app: &AppHandle, status: TrayStatus) {
             return;
         }
         *current = Some(status);
+        // Inside the lock so the overlay sees transitions in the same order as
+        // `current` (two racing setters can't leave it shown while idle).
+        crate::overlay::on_status(app, status);
     }
 
     let (icon, tooltip, menu_label) = match status {

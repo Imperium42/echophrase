@@ -10,22 +10,22 @@ in the version we actually ship.
 Add an entry when you work around a bug you do not own. Include the symptom, the
 real cause, where the workaround lives, and what would let us drop it.
 
-| Issue | Area | Status |
-|-------|------|--------|
-| [data: URL truncated at `#`](#tauri-data-url-truncated-at-the-first-) | Splash | Open upstream |
-| [Titlebar buttons dead after show()](#tao-titlebar-buttons-unresponsive-on-linuxwayland) | Windowing | Open upstream |
-| [WSLg render tearing](#wslg-dma-buf-renderer-tearing) | Linux/WSL | Environment workaround |
-| [ORT static linking ABI](#ort-msvc-stl-abi-coupling-when-statically-linked) | Transcription | Resolved by load-dynamic |
-| [Parakeet TDT drops sentences](#parakeet-tdt-collapses-tokens-without-timestampmodewords) | Transcription | Workaround required |
-| [cpal pulls a conflicting windows-core](#cpal-can-resolve-a-conflicting-windows-core) | Windows build | Held by Cargo.lock only |
-| [Tauri: new resource files not copied to dev exe](#tauri-new-resource-files-are-not-copied-next-to-the-dev-exe) | Windows dev | Workaround required |
-| [DirectML: System32 copy too old](#directml-the-copy-in-system32-is-too-old-for-ort-124) | Windows runtime | Workaround required |
-| [tao panics after Windows ends the session](#tao-cannot-move-state-from-destroyed-after-wm_endsession) | Windows shutdown | Workaround required |
-| [Linux: F13-F24 hotkeys don't register](#linux-f13-f24-hotkeys-dont-register-on-a-stock-keymap) | Linux hotkeys | User keymap fix |
-| [WSLg: Ctrl+Shift+Space is reserved](#wslg-ctrlshiftspace-is-reserved-by-the-compositor) | WSL hotkeys | Upstream, no fix |
-| [Windows: admin windows block paste](#windows-admin-elevated-windows-block-paste-and-injected-hotkeys) | Windows input | OS design, no fix |
-| [Windows: tray pin reset once on 1.0](#windows-tray-always-show-pin-reset-once-on-the-update-to-10) | Windows tray | One-time, by design |
-| [rollup-license-plugin: license file pick is random](#rollup-license-plugin-picks-a-license-file-in-readdir-order) | Attribution CI | Workaround required |
+| Issue                                                                                                              | Area             | Status                   |
+| ------------------------------------------------------------------------------------------------------------------ | ---------------- | ------------------------ |
+| [data: URL truncated at `#`](#tauri-data-url-truncated-at-the-first-)                                              | Splash           | Open upstream            |
+| [Titlebar buttons dead after show()](#tao-titlebar-buttons-unresponsive-on-linuxwayland)                           | Windowing        | Open upstream            |
+| [WSLg render tearing](#wslg-dma-buf-renderer-tearing)                                                              | Linux/WSL        | Environment workaround   |
+| [ORT static linking ABI](#ort-msvc-stl-abi-coupling-when-statically-linked)                                        | Transcription    | Resolved by load-dynamic |
+| [Parakeet TDT drops sentences](#parakeet-tdt-collapses-tokens-without-timestampmodewords)                          | Transcription    | Workaround required      |
+| [cpal pulls a conflicting windows-core](#cpal-can-resolve-a-conflicting-windows-core)                              | Windows build    | Held by Cargo.lock only  |
+| [Tauri: new resource files not copied to dev exe](#tauri-new-resource-files-are-not-copied-next-to-the-dev-exe)    | Windows dev      | Workaround required      |
+| [DirectML: System32 copy too old](#directml-the-copy-in-system32-is-too-old-for-ort-124)                           | Windows runtime  | Workaround required      |
+| [tao panics after Windows ends the session](#tao-cannot-move-state-from-destroyed-after-wm_endsession)             | Windows shutdown | Workaround required      |
+| [Linux: F13-F24 hotkeys don't register](#linux-f13-f24-hotkeys-dont-register-on-a-stock-keymap)                    | Linux hotkeys    | User keymap fix          |
+| [WSLg: Ctrl+Shift+Space is reserved](#wslg-ctrlshiftspace-is-reserved-by-the-compositor)                           | WSL hotkeys      | Upstream, no fix         |
+| [Windows: admin windows block paste](#windows-admin-elevated-windows-block-paste-and-injected-hotkeys)             | Windows input    | OS design, no fix        |
+| [Windows: tray pin reset once on 1.0](#windows-tray-always-show-pin-reset-once-on-the-update-to-10)                | Windows tray     | One-time, by design      |
+| [rollup-license-plugin: license file pick is random](#rollup-license-plugin-picks-a-license-file-in-readdir-order) | Attribution CI   | Workaround required      |
 
 ---
 
@@ -41,7 +41,7 @@ warning, nothing in the log.
 `manager/webview.rs` (~L484-497): it decodes the base64, injects the CSP, then
 re-serializes with `url.set_path(&format!("{},{}", mime::TEXT_HTML, document.html()))`.
 The HTML goes back in raw, so the first `#` in the markup starts the URL
-*fragment* and the webview receives a document truncated at that byte. A hex
+_fragment_ and the webview receives a document truncated at that byte. A hex
 color at byte 86 cut our splash off mid-`<style>`.
 
 **Workaround.** No `#` anywhere in `SPLASH_HTML`: `rgb()` colors, and CSS
@@ -111,14 +111,14 @@ behind the version ORT's DirectML build is made against. If `DirectML.dll` is no
 `onnxruntime.dll`, ORT loads the inbox copy and ops fail (next-plaid#204: Win11 22H2/23H2
 loaded inbox 1.8.0 and `MatMulIntegerToFloat` failed with `0x80070057`).
 
-| Windows build | Inbox DirectML |
-|---|---|
-| Win10 1903 (18362) | 1.0.0 |
-| Win10 2004 (19041) | 1.1.0 |
-| Win11 21H2 (22000) | 1.6.0 |
-| Win11 22H2 / 23H2 (22621 / 22631) | 1.8.0 |
-| Win11 24H2 (26100) | 1.13.1 |
-| 1.15.1-1.15.4 | Redistributable (NuGet) only, never inbox |
+| Windows build                     | Inbox DirectML                            |
+| --------------------------------- | ----------------------------------------- |
+| Win10 1903 (18362)                | 1.0.0                                     |
+| Win10 2004 (19041)                | 1.1.0                                     |
+| Win11 21H2 (22000)                | 1.6.0                                     |
+| Win11 22H2 / 23H2 (22621 / 22631) | 1.8.0                                     |
+| Win11 24H2 (26100)                | 1.13.1                                    |
+| 1.15.1-1.15.4                     | Redistributable (NuGet) only, never inbox |
 
 Per Microsoft's version history, 1.15.4 is "Redistributable only | Microsoft.AI.DirectML.1.15.4".
 The `Microsoft.ML.OnnxRuntime.DirectML` 1.24.4 nuspec depends on `Microsoft.AI.DirectML` 1.15.4.
@@ -324,3 +324,42 @@ file) through the plugin's typed `__mocks__.getLicenseFileName` hook, the only o
 exposes. Gated to the attribution build (`GEN_ATTRIBUTION=1`).
 
 **Drop it when:** the plugin sorts its candidates or offers a real option for this.
+
+---
+
+## WebView2: Windows "Text size" zooms fixed-size windows
+
+**Upstream:** WebView2 behavior, not a bug we can file against our code.
+**Affects:** Windows, any small fixed-size window. Seen on the recording overlay.
+
+**Symptom.** With Settings > Accessibility > Text size above 100%, the recording
+overlay pill renders larger than its window and the right side (the X) is cut off.
+
+**Cause.** WebView2 applies the OS text scale as a page zoom, but the window's
+size is set in logical pixels that only follow the display DPI.
+
+**Workaround.** `overlay::logical_size()` (`src-tauri/src/overlay/mod.rs`) reads
+`HKCU\Software\Microsoft\Accessibility\TextScaleFactor` on every show and grows
+the window by that factor. Handy's overlay does the same.
+
+**Drop it when:** WebView2 exposes the text scale in a way the window size follows
+automatically, or the overlay sizes itself from the page.
+
+---
+
+## tao: `focused(false)` only applies to the first show
+
+**Upstream:** tao `window_state.rs` (`MARKER_DONT_FOCUS` is cleared on first show).
+**Affects:** tao 0.35 on Windows (Tauri 2.11.5).
+
+**Symptom.** None visible yet; found in review. The second and later `show()` of a
+non-focusable window use `SW_SHOW`, which can activate it and pull focus away from
+the app the user is dictating into, so paste-at-cursor lands in the wrong place.
+
+**Workaround.** On Windows the recording overlay shows with
+`ShowWindow(SW_SHOWNOACTIVATE)` and hides with `ShowWindow(SW_HIDE)` directly
+(`platform_show` / `platform_hide` in `src-tauri/src/overlay/mod.rs`). Both
+directions go through Win32 so tao's cached visible flag is never consulted.
+
+**Drop it when:** tao keeps `SW_SHOWNOACTIVATE` for windows built with
+`focused(false)` / `focusable(false)` on every show.

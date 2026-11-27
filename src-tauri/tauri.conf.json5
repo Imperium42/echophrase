@@ -12,6 +12,9 @@
     "beforeBuildCommand": "bunx --bun svelte-check"
   },
   "app": {
+    // Required for the transparent recording overlay on macOS. Rules out the
+    // Mac App Store (not a channel we ship to).
+    "macOSPrivateApi": true,
     "windows": [
       {
         "title": "Echophrase",
