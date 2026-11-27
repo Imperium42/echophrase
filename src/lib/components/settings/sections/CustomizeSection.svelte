@@ -114,6 +114,14 @@ SPDX-License-Identifier: MPL-2.0
     afterLabel={historyCount}
   />
 
+  <!-- Minimize to tray on close -->
+  <SettingToggle
+    label={t('customize.minimizeToTrayOnClose')}
+    hint={t('customize.minimizeToTrayOnCloseHint')}
+    checked={$settings?.minimize_to_tray_on_close ?? true}
+    onchange={v => updateSetting('minimize_to_tray_on_close', v)}
+  />
+
   <!-- Floating recording pill (src-tauri/src/overlay) and where it sits -->
   <SettingToggle
     label={t('customize.overlayLabel')}
@@ -125,13 +133,5 @@ SPDX-License-Identifier: MPL-2.0
     value={overlayPosition}
     disabled={!overlayEnabled}
     onchange={v => updateSetting('recording_overlay_position', v)}
-  />
-
-  <!-- Minimize to tray on close -->
-  <SettingToggle
-    label={t('customize.minimizeToTrayOnClose')}
-    hint={t('customize.minimizeToTrayOnCloseHint')}
-    checked={$settings?.minimize_to_tray_on_close ?? true}
-    onchange={v => updateSetting('minimize_to_tray_on_close', v)}
   />
 </SettingsSection>
