@@ -262,8 +262,20 @@
     "historyPrefix": "保留最近",
     "historyHint": "讓你翻閱最近的轉錄內容。只保存在記憶體中：絕不寫入磁碟，結束程式後即清除。關閉時只會顯示最新一則轉錄。",
     "historyCountAria": "要保留的最近轉錄數量",
+    "overlayLabel": "錄音浮動視窗",
+    "overlayHint": "錄音時顯示一個小型浮動膠囊與即時波形，在任何應用程式中都能看到 Echophrase 正在聆聽。按 X 可取消錄音。可在下方選擇位置。",
+    "overlayPositionAria": "錄音浮動視窗位置",
+    "overlayPositionTopLeft": "左上",
+    "overlayPositionTopCenter": "上方中央",
+    "overlayPositionTopRight": "右上",
+    "overlayPositionBottomLeft": "左下",
+    "overlayPositionBottomCenter": "下方中央",
+    "overlayPositionBottomRight": "右下",
     "minimizeToTrayOnClose": "關閉時最小化到系統匣",
     "minimizeToTrayOnCloseHint": "點擊 X 時將應用程式隱藏至系統匣，而非直接結束"
+  },
+  "overlay": {
+    "cancel": "取消錄音"
   },
   "accessibilityPermission": {
     "title": "為何需要「輔助使用」",
@@ -740,7 +752,7 @@
     "audio": "音訊, 音頻, 麥克風, 輸入, 裝置, 錄音裝置",
     "recording": "錄音, 語音偵測, VAD, 靜音, 贅字, 語氣詞, 數字, 時長",
     "hotkeys": "快捷鍵, 熱鍵, 鍵盤, 按鍵, 按住說話",
-    "customize": "自訂, 個人化, 外觀, 主題, 介面, 預覽, 速度, 通知, 歷史, 歷史紀錄, 轉錄, 隱私, 系統匣, 托盤",
+    "customize": "自訂, 個人化, 外觀, 主題, 介面, 預覽, 速度, 通知, 歷史, 歷史紀錄, 轉錄, 隱私, 系統匣, 托盤, 浮動視窗, 錄音浮動視窗, 波形, 懸浮, 位置, 角落",
     "mcpServer": "MCP, CLI, 命令列, 代理, 智慧代理, Claude, 轉錄",
     "accessibility": "無障礙, 輔助, 縮放, 字體大小, 文字大小",
     "data": "資料, 數據, 隱私, 刪除, 快取, 儲存空間, 重設, 清除",

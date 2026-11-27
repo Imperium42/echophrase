@@ -65,6 +65,9 @@ export interface TauriSettings {
   // Remember recent transcripts in memory for the history pager (never on disk)
   history_enabled?: boolean; // default true
   history_limit?: number; // 1-10, default 10
+  // Floating recording pill while recording
+  recording_overlay_enabled?: boolean; // default true
+  recording_overlay_position?: string; // one of OVERLAY_POSITIONS, default 'bottom-center'
 }
 
 // Single source of truth for the default; mirrors the Rust default in

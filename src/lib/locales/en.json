@@ -262,8 +262,20 @@
     "historyPrefix": "Keep last",
     "historyHint": "Lets you page back through your recent transcripts. Kept in memory only: never saved to disk and cleared when you quit. When off, only your latest transcript is shown.",
     "historyCountAria": "How many recent transcripts to keep",
+    "overlayLabel": "Recording Overlay",
+    "overlayHint": "Shows a small floating pill with a live waveform while you record, so you can see Echophrase is listening from any app. Its X cancels the recording. Pick where it sits below.",
+    "overlayPositionAria": "Recording overlay position",
+    "overlayPositionTopLeft": "Top left",
+    "overlayPositionTopCenter": "Top center",
+    "overlayPositionTopRight": "Top right",
+    "overlayPositionBottomLeft": "Bottom left",
+    "overlayPositionBottomCenter": "Bottom center",
+    "overlayPositionBottomRight": "Bottom right",
     "minimizeToTrayOnClose": "Minimize to Tray on Close",
     "minimizeToTrayOnCloseHint": "Clicking X hides the app to the system tray instead of quitting"
+  },
+  "overlay": {
+    "cancel": "Cancel recording"
   },
   "accessibilityPermission": {
     "title": "Why we need Accessibility",
@@ -740,7 +752,7 @@
     "audio": "audio, microphone, mic, input, device, recording device",
     "recording": "recording, vad, voice activity, silence, filler words, numbers",
     "hotkeys": "hotkeys, keyboard, shortcut, keybinding, press to talk",
-    "customize": "customize, theme, appearance, ui, preview, speed, toast, history, transcript, privacy, copy last, hover, tray",
+    "customize": "customize, theme, appearance, ui, preview, speed, toast, history, transcript, privacy, copy last, hover, tray, overlay, recording overlay, waveform, floating, position, corner",
     "mcpServer": "mcp, cli, claude, agent, transcribe",
     "accessibility": "accessibility, zoom, scale, scaling, text size, a11y",
     "data": "data, privacy, delete, cache, storage, reset, clear",

@@ -74,7 +74,21 @@ export interface Settings {
   // Remember recent transcripts in memory for the history pager (never written to disk)
   history_enabled?: boolean; // default true
   history_limit?: number; // How many to remember, 1-10 (default 10)
+  // Floating recording pill (waveform + cancel) while recording
+  recording_overlay_enabled?: boolean; // default true
+  recording_overlay_position?: OverlayPosition; // default 'bottom-center'
 }
+
+/** Recording overlay anchor. Kept in sync with `OVERLAY_POSITIONS` in settings/mod.rs. */
+export const OVERLAY_POSITIONS = [
+  'top-left',
+  'top-center',
+  'top-right',
+  'bottom-left',
+  'bottom-center',
+  'bottom-right',
+] as const;
+export type OverlayPosition = (typeof OVERLAY_POSITIONS)[number];
 
 /** Dropdown option item structure */
 export interface OptionItem {
@@ -125,6 +139,8 @@ export const defaultSettings: Settings = {
   idle_unload_minutes: 10,
   history_enabled: true,
   history_limit: 10,
+  recording_overlay_enabled: true,
+  recording_overlay_position: 'bottom-center',
 };
 
 /** Available language options for transcription */

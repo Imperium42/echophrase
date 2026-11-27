@@ -24,6 +24,12 @@
   /* "?" hint icons (HintTooltip). Change here to recolor every one. */
   --color-hint: #a78bfa;
   --color-hint-hover: #c4b5fd;
+  /* Recording overlay pill (src/routes/overlay): brand violet, with blue rising
+     from the bar bottoms as the voice gets loud. */
+  --color-overlay-accent: #8b5cf6;
+  --color-overlay-accent-low: #60a5fa;
+  /* Recording dot: a soft rose that sits beside the violet, not an alarm red. */
+  --color-overlay-record: #fb7185;
 
   /* shadcn variables - Light mode (unused, app is always dark) */
   --radius: 0.625rem;

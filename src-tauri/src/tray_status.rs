@@ -122,6 +122,8 @@ pub fn set(app: &AppHandle, status: TrayStatus) {
     if let Err(e) = state.toggle_item.set_text(menu_label) {
         log::warn!("tray menu set_text failed: {e}");
     }
+
+    crate::overlay::on_status(app, status);
 }
 
 /// True while the tray reports a recording or a transcription in progress

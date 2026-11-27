@@ -66,13 +66,13 @@
 
 use base64::{Engine, engine::general_purpose::STANDARD as BASE64};
 
-/// Raw splash screen HTML (a few KB - logo + CSS spinner, no external assets).
+/// Raw splash screen HTML (a few KB - logo with a CSS echo ripple, no external assets).
 ///
 /// MUST NOT contain a `#` character anywhere - a `#` here silently blanks the
 /// splash. See the KNOWN UPSTREAM BUG section in this module's docs for why,
 /// and `splash_html_has_no_hash` for the guard. Hence `rgb()` colors and CSS
 /// `linear-gradient` bars instead of an SVG `fill="url(#g)"`.
-const SPLASH_HTML: &str = r##"<!DOCTYPE html><html><head><style>*{margin:0;padding:0}body{background:rgb(9,9,11);display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;overflow:hidden;gap:24px}.logo{display:flex;align-items:center;gap:4px;height:48px;opacity:0.9}.b{width:4px;border-radius:2px;background:linear-gradient(to top,rgb(6,182,212),rgb(139,92,246),rgb(236,72,153))}.s{width:32px;height:32px;border:3px solid rgba(139,92,246,0.15);border-top-color:rgba(139,92,246,0.7);border-radius:50%;animation:s .8s linear infinite}@keyframes s{to{transform:rotate(360deg)}}</style></head><body><div class="logo"><div class="b" style="height:10px"></div><div class="b" style="height:18px"></div><div class="b" style="height:28px"></div><div class="b" style="height:22px"></div><div class="b" style="height:14px"></div></div><div class="s"></div></body></html>"##;
+const SPLASH_HTML: &str = r##"<!DOCTYPE html><html><head><style>*{margin:0;padding:0}body{background:rgb(9,9,11);display:flex;align-items:center;justify-content:center;height:100vh;overflow:hidden}.logo{display:flex;align-items:center;gap:5px;height:64px}.b{width:5px;border-radius:3px;background:linear-gradient(to top,rgb(6,182,212),rgb(139,92,246),rgb(236,72,153));transform:scaleY(.3);opacity:.4;animation:1.8s ease-in-out infinite}.e0{animation-name:e0}.e1{animation-name:e1}.e2{animation-name:e2}@keyframes e0{0%,100%{transform:scaleY(1);opacity:1}25%,75%{transform:scaleY(.3);opacity:.4}}@keyframes e1{0%,50%,100%{transform:scaleY(.3);opacity:.4}25%,75%{transform:scaleY(1);opacity:1}}@keyframes e2{0%,25%,75%,100%{transform:scaleY(.3);opacity:.4}50%{transform:scaleY(1);opacity:1}}@keyframes p{50%{opacity:.45}}@media(prefers-reduced-motion:reduce){.b{animation:none;transform:none;opacity:1}.logo{animation:p 2s ease-in-out infinite}}</style></head><body><div class="logo"><div class="b e2" style="height:20px"></div><div class="b e1" style="height:36px"></div><div class="b e0" style="height:56px"></div><div class="b e1" style="height:44px"></div><div class="b e2" style="height:28px"></div></div></body></html>"##;
 
 /// Build the splash screen as a `data:text/html;base64,...` URL.
 ///
