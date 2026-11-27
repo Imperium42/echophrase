@@ -13,14 +13,12 @@ Planned work that isn't scheduled yet. Shipped items move to `CHANGELOG.md`.
     normalization and spoken "question mark" / "exclamation mark" are English-only today).
   - Say which models support it in the UI and the docs.
 
-- **Always-on-top recording overlay.** A small indicator that floats above all apps
-  while recording, so you can see it's listening without switching windows.
-  - Research the permissions first, per platform: macOS (floating panel across Spaces and
-    over full-screen apps; does it need Accessibility or Screen Recording?), Windows
-    (topmost window over full-screen/exclusive apps and elevated windows), Linux/Wayland
-    (compositors may refuse always-on-top).
-  - Must not steal focus, or paste-at-cursor lands in the overlay instead of the target app.
-  - Click-through so it never blocks what's under it.
+- **Recording overlay: macOS and Linux polish.** The pill ships (`src-tauri/src/overlay/`),
+  verified on Windows only.
+  - macOS: make it a non-activating NSPanel (`tauri-nspanel`) so it floats over full-screen
+    apps and across Spaces without taking focus; consider the native HUD vibrancy material.
+  - Linux/Wayland: compositors may ignore positioning and always-on-top; decide whether to
+    default it off there.
 
 - **Drop-a-file overlay (file to text).** A small floating drop zone plus a file picker: drop
   an audio file, get the transcript (copy / paste / save, same output modes as recording).

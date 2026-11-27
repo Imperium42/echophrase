@@ -22,7 +22,7 @@
 pub mod levels;
 
 use std::sync::Mutex;
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use tauri::{
@@ -41,12 +41,20 @@ const EDGE_MARGIN: f64 = 18.0;
 /// Must cover the frontend's exit animation before the window hides.
 const HIDE_DELAY: Duration = Duration::from_millis(240);
 
-/// True while the overlay is (or is about to be) on screen; gates level emits.
+/// True while the overlay is (or is about to be) on screen. Lock-free fast
+/// path for the capture loops; `OVERLAY` is the source of truth.
 static VISIBLE: AtomicBool = AtomicBool::new(false);
-/// Bumped on every show/hide so a stale delayed hide never wins.
-static GENERATION: AtomicU64 = AtomicU64::new(0);
-/// Last state sent, so a freshly loaded overlay page can pull it.
-static STATE: Mutex<OverlayState> = Mutex::new(OverlayState::Hidden);
+/// Serializes every show/hide transition, including the delayed hide.
+static OVERLAY: Mutex<Overlay> = Mutex::new(Overlay {
+    state: OverlayState::Hidden,
+    generation: 0,
+});
+
+struct Overlay {
+    state: OverlayState,
+    /// Bumped on every transition so a stale delayed hide never wins.
+    generation: u64,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -56,67 +64,112 @@ pub enum OverlayState {
     Transcribing,
 }
 
-/// React to a recording-state change. Called from `tray_status::set`.
+/// React to a recording-state change. Called from `tray_status::set` while it
+/// holds its own lock, so transitions arrive in order.
 pub fn on_status(app: &AppHandle, status: TrayStatus) {
-    match status {
-        TrayStatus::Recording => {
-            if crate::settings::AppSettings::get().recording_overlay_enabled {
-                show(app, OverlayState::Recording);
-            }
+    let enabled = crate::settings::AppSettings::get().recording_overlay_enabled;
+    let mut overlay = OVERLAY.lock().unwrap();
+    let next = match status {
+        TrayStatus::Recording if enabled => OverlayState::Recording,
+        // Only a visible pill switches to "transcribing"; turning the setting
+        // off mid open-mic session hides it at the next transition.
+        TrayStatus::Transcribing if enabled && overlay.state != OverlayState::Hidden => {
+            OverlayState::Transcribing
         }
-        TrayStatus::Transcribing => {
-            if VISIBLE.load(Ordering::Acquire) {
-                set_state(app, OverlayState::Transcribing);
-            }
-        }
-        TrayStatus::Idle => hide(app),
+        _ => OverlayState::Hidden,
+    };
+    if next == overlay.state {
+        return;
     }
+    let was_hidden = overlay.state == OverlayState::Hidden;
+    overlay.state = next;
+    overlay.generation += 1;
+    VISIBLE.store(next != OverlayState::Hidden, Ordering::Release);
+    let _ = app.emit_to(OVERLAY_LABEL, "overlay-state", next);
+
+    if next == OverlayState::Hidden {
+        schedule_hide(app, overlay.generation);
+    } else if was_hidden {
+        // Place only when appearing: open mic flips Recording/Transcribing per
+        // utterance and the pill must not chase the cursor between monitors.
+        show(app);
+    }
+}
+
+/// True while the pill is on screen; lets the capture loops skip the FFT.
+pub fn is_visible() -> bool {
+    VISIBLE.load(Ordering::Acquire)
 }
 
 /// Forward one waveform frame to the overlay. Cheap no-op while hidden.
 pub fn emit_levels(app: &AppHandle, bands: &[f32; levels::BAND_COUNT]) {
-    if !VISIBLE.load(Ordering::Acquire) {
-        return;
+    if is_visible() {
+        let _ = app.emit_to(OVERLAY_LABEL, "overlay-levels", bands);
     }
-    let _ = app.emit_to(OVERLAY_LABEL, "overlay-levels", bands);
 }
 
-fn set_state(app: &AppHandle, state: OverlayState) {
-    *STATE.lock().unwrap() = state;
-    let _ = app.emit_to(OVERLAY_LABEL, "overlay-state", state);
-}
-
-fn show(app: &AppHandle, state: OverlayState) {
+fn show(app: &AppHandle) {
     let Some(window) = ensure_window(app) else {
         return;
     };
-    GENERATION.fetch_add(1, Ordering::AcqRel);
-    VISIBLE.store(true, Ordering::Release);
     place_on_cursor_monitor(app, &window);
-    set_state(app, state);
-    if let Err(e) = window.show() {
-        log::warn!("[overlay] show failed: {e}");
-    }
+    platform_show(&window);
     // Re-assert topmost: Windows can drop it after the taskbar takes focus.
     let _ = window.set_always_on_top(true);
 }
 
-fn hide(app: &AppHandle) {
-    if !VISIBLE.swap(false, Ordering::AcqRel) {
-        return;
-    }
-    set_state(app, OverlayState::Hidden);
-    let generation = GENERATION.fetch_add(1, Ordering::AcqRel) + 1;
+/// Hide after the page's exit animation, unless something newer happened.
+fn schedule_hide(app: &AppHandle, generation: u64) {
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
         tokio::time::sleep(HIDE_DELAY).await;
-        if GENERATION.load(Ordering::Acquire) != generation {
-            return; // re-shown meanwhile
+        let overlay = OVERLAY.lock().unwrap();
+        if overlay.generation != generation {
+            return; // re-shown (or changed) meanwhile
         }
         if let Some(window) = app.get_webview_window(OVERLAY_LABEL) {
-            let _ = window.hide();
+            platform_hide(&window);
         }
     });
+}
+
+/// Windows: show without activating. tao only honors `focused(false)` on the
+/// first show, so later `show()` calls use SW_SHOW and could take focus from
+/// the app the user is dictating into. Visibility is driven by Win32 alone
+/// (show and hide), so tao's cached visible flag is never consulted.
+#[cfg(windows)]
+fn platform_show(window: &WebviewWindow) {
+    use windows_sys::Win32::UI::WindowsAndMessaging::{SW_SHOWNOACTIVATE, ShowWindow};
+    match window.hwnd() {
+        // SAFETY: the HWND belongs to a live window owned by this process.
+        Ok(hwnd) => unsafe {
+            ShowWindow(hwnd.0 as _, SW_SHOWNOACTIVATE);
+        },
+        Err(e) => log::warn!("[overlay] no HWND to show: {e}"),
+    }
+}
+
+#[cfg(windows)]
+fn platform_hide(window: &WebviewWindow) {
+    use windows_sys::Win32::UI::WindowsAndMessaging::{SW_HIDE, ShowWindow};
+    if let Ok(hwnd) = window.hwnd() {
+        // SAFETY: the HWND belongs to a live window owned by this process.
+        unsafe {
+            ShowWindow(hwnd.0 as _, SW_HIDE);
+        }
+    }
+}
+
+#[cfg(not(windows))]
+fn platform_show(window: &WebviewWindow) {
+    if let Err(e) = window.show() {
+        log::warn!("[overlay] show failed: {e}");
+    }
+}
+
+#[cfg(not(windows))]
+fn platform_hide(window: &WebviewWindow) {
+    let _ = window.hide();
 }
 
 /// Get the overlay window, creating it hidden on first use.
@@ -124,9 +177,10 @@ fn ensure_window(app: &AppHandle) -> Option<WebviewWindow> {
     if let Some(window) = app.get_webview_window(OVERLAY_LABEL) {
         return Some(window);
     }
+    let (width, height) = logical_size();
     let built = WebviewWindowBuilder::new(app, OVERLAY_LABEL, WebviewUrl::App("overlay".into()))
         .title("Echophrase Recording")
-        .inner_size(logical_size().0, logical_size().1)
+        .inner_size(width, height)
         .resizable(false)
         .maximizable(false)
         .minimizable(false)
@@ -142,10 +196,7 @@ fn ensure_window(app: &AppHandle) -> Option<WebviewWindow> {
         .visible(false)
         .build();
     match built {
-        Ok(window) => {
-            log::info!("[overlay] window created");
-            Some(window)
-        }
+        Ok(window) => Some(window),
         Err(e) => {
             log::warn!("[overlay] could not create window: {e}");
             None
@@ -235,7 +286,7 @@ fn text_scale_factor() -> f64 {
 /// Current overlay state, for a page that loaded after the last emit.
 #[tauri::command]
 pub fn overlay_get_state() -> OverlayState {
-    *STATE.lock().unwrap()
+    OVERLAY.lock().unwrap().state
 }
 
 /// The overlay's X: ask the main window to cancel (it owns the recording

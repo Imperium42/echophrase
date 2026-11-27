@@ -175,7 +175,7 @@ mod tests {
             .unwrap();
         let (lo, hi) = band_bins()[loudest];
         let bin_1k = (1_000.0 / (SAMPLE_RATE / FFT_SIZE as f32)) as usize;
-        assert!((lo..=hi).contains(&bin_1k), "band {loudest} = {lo}..{hi}");
+        assert!((lo..hi).contains(&bin_1k), "band {loudest} = {lo}..{hi}");
         assert!(frame[loudest] > 0.5);
     }
 

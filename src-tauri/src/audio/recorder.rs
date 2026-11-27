@@ -370,8 +370,10 @@ fn run_record_loop(
     loop {
         match events.recv_timeout(Duration::from_millis(100)) {
             Ok(CaptureEvent::Chunk(chunk)) => {
-                if let Some(bands) = meter.push(&chunk) {
-                    crate::overlay::emit_levels(&app, &bands);
+                if crate::overlay::is_visible() {
+                    if let Some(bands) = meter.push(&chunk) {
+                        crate::overlay::emit_levels(&app, &bands);
+                    }
                 }
                 let mut inner = inner_arc.blocking_lock();
                 if !inner.is_recording {
@@ -462,8 +464,10 @@ fn run_open_mic_loop(
             }
             Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
         };
-        if let Some(bands) = meter.push(&chunk) {
-            crate::overlay::emit_levels(&app, &bands);
+        if crate::overlay::is_visible() {
+            if let Some(bands) = meter.push(&chunk) {
+                crate::overlay::emit_levels(&app, &bands);
+            }
         }
 
         // Event flags, emitted OUTSIDE the lock to avoid deadlocks.

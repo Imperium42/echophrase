@@ -16,7 +16,7 @@ SPDX-License-Identifier: MPL-2.0
   import { onDestroy, onMount } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';
   import { listen, type UnlistenFn } from '@tauri-apps/api/event';
-  import { t } from '$lib/locales';
+  import { t, initLocale } from '$lib/locales';
 
   type OverlayState = 'hidden' | 'recording' | 'transcribing';
 
@@ -109,7 +109,7 @@ SPDX-License-Identifier: MPL-2.0
       const el = bars[b];
       if (el) {
         el.style.transform = `scaleY(${v.toFixed(3)})`;
-        el.style.setProperty('--v', v.toFixed(3));
+        el.style.setProperty('--blue', Math.min(1, Math.max(0, (v - 0.45) * 1.8)).toFixed(3));
         el.style.opacity = (0.55 + 0.45 * v).toFixed(3);
       }
     }
@@ -128,15 +128,26 @@ SPDX-License-Identifier: MPL-2.0
 
   onMount(async () => {
     document.documentElement.classList.add('dark', 'overlay-root');
+    void initLocale().catch(() => {});
+    let gotEvent = false;
     unlisteners = await Promise.all([
-      listen<OverlayState>('overlay-state', e => applyState(e.payload)),
+      listen<OverlayState>('overlay-state', e => {
+        gotEvent = true;
+        applyState(e.payload);
+      }),
       listen<number[]>('overlay-levels', e => {
         const levels = e.payload;
         for (let i = 0; i < BANDS; i++) target[i] = levels[i] ?? 0;
       }),
     ]);
-    // The first show can emit before this page has loaded: pull it.
-    applyState(await invoke<OverlayState>('overlay_get_state'));
+    // The first show can emit before this page has loaded: pull it, unless a
+    // newer event already arrived while the request was in flight.
+    try {
+      const current = await invoke<OverlayState>('overlay_get_state');
+      if (!gotEvent) applyState(current);
+    } catch (e) {
+      console.warn('[Overlay] state pull failed:', e);
+    }
   });
 
   onDestroy(() => {
@@ -288,17 +299,27 @@ SPDX-License-Identifier: MPL-2.0
     width: 3px;
     height: 24px;
     border-radius: 3px;
-    --v: 0;
-    /* Blue creeps up from the bottom only once a bar is past ~45% height. */
-    --blue: calc(clamp(0, (var(--v) - 0.45) * 1.8, 1) * 100%);
+    position: relative;
     background: linear-gradient(
       0deg,
-      color-mix(in oklch, var(--color-overlay-accent-low) var(--blue), var(--color-overlay-accent)),
+      var(--color-overlay-accent),
       var(--color-overlay-accent) 50%,
       color-mix(in oklch, var(--color-overlay-accent) 72%, white)
     );
     transform: scaleY(0.09);
     transform-origin: center;
+  }
+
+  /* Blue lift from the bottom; its opacity (--blue, set per frame in JS) is 0
+     until a bar passes ~45% height. A plain opacity layer, not calc() inside
+     color-mix(), so older WebKit renders it too. */
+  .bar::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(0deg, var(--color-overlay-accent-low), transparent 60%);
+    opacity: var(--blue, 0);
   }
 
   .timer {
@@ -377,6 +398,12 @@ SPDX-License-Identifier: MPL-2.0
     .dot::after,
     .transcribing .dot {
       animation: none;
+    }
+    .pill,
+    .pill.visible {
+      transform: none;
+      filter: none;
+      transition: opacity 160ms linear;
     }
   }
 </style>

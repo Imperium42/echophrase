@@ -3,5 +3,5 @@
   "identifier": "overlay",
   "description": "Recording overlay pill: listen for state/levels events only (its cancel X is an app command)",
   "windows": ["recording_overlay"],
-  "permissions": ["core:event:default"]
+  "permissions": ["core:event:allow-listen", "core:event:allow-unlisten"]
 }

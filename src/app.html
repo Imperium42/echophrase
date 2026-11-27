@@ -13,7 +13,20 @@ SPDX-License-Identifier: MPL-2.0
     <!-- Emoji font is bundled locally (src/lib/styles/emoji-font.css) - the app window
          must never request fonts from Google. See scripts/fonts/subset-emoji.py. -->
     <title>Echophrase</title>
+    <script>
+      // Recording overlay window (src/routes/overlay): it is see-through, so mark
+      // it before first paint or it flashes an opaque box until hydration.
+      if (location.pathname.startsWith('/overlay')) {
+        document.documentElement.classList.add('overlay-root');
+      }
+    </script>
     <style>
+      html.overlay-root,
+      html.overlay-root body {
+        background: transparent !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+      }
       /* Dark background to prevent white flash on load */
       html,
       body {
