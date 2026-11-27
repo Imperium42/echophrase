@@ -728,5 +728,23 @@
     "comingSoon": "即将推出",
     "alpha": "Alpha",
     "beta": "Beta"
+  },
+  "settingsSearch": {
+    "language": "语言, 界面语言, 翻译, 地区",
+    "model": "模型, 语音模型, 下载, AI, 转录, 识别, whisper",
+    "customModel": "自定义模型, 导入, ONNX, huggingface",
+    "gpu": "GPU, 显卡, 加速, 硬件加速, DirectML, VRAM, 显存",
+    "optimization": "优化, 内存, 卸载, 闲置, 空闲, 游戏, 性能, VRAM",
+    "transform": "转换, 语法, 改写, 规则, 后处理, AI",
+    "output": "输出, 剪贴板, 粘贴, 复制, 文件, 保存",
+    "audio": "音频, 麦克风, 输入, 设备, 录音设备",
+    "recording": "录音, 语音检测, VAD, 静音, 语气词, 填充词, 数字, 时长",
+    "hotkeys": "快捷键, 热键, 键盘, 按键, 按住说话",
+    "customize": "自定义, 个性化, 外观, 主题, 界面, 预览, 速度, 通知, 历史, 历史记录, 转录, 隐私, 系统托盘, 托盘",
+    "mcpServer": "MCP, CLI, 命令行, 代理, 智能体, Claude, 转录",
+    "accessibility": "无障碍, 辅助功能, 缩放, 字体大小, 文字大小",
+    "data": "数据, 隐私, 删除, 缓存, 存储, 重置, 清除",
+    "debug": "调试, 日志, 开发者, 诊断",
+    "about": "关于, 版本, 许可证, 授权, 致谢, 更新, 支持, 赞助, 捐赠"
   }
 }
