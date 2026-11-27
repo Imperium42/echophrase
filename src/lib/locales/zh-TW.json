@@ -258,6 +258,10 @@
     "showTranscriptionSpeedHint": "在最近一次執行的歷史記錄中加入速度標籤，顯示轉錄（與轉換）耗時",
     "showLastOnHover": "懸停顯示上次轉錄",
     "showLastOnHoverHint": "將滑鼠移至錄音按鈕附近時顯示上次轉錄內容",
+    "historyLabel": "轉錄歷史記錄",
+    "historyPrefix": "保留最近",
+    "historyHint": "讓你翻閱最近的轉錄內容。只保存在記憶體中：絕不寫入磁碟，結束程式後即清除。關閉時只會顯示最新一則轉錄。",
+    "historyCountAria": "要保留的最近轉錄數量",
     "minimizeToTrayOnClose": "關閉時最小化到系統匣",
     "minimizeToTrayOnCloseHint": "點擊 X 時將應用程式隱藏至系統匣，而非直接結束"
   },
@@ -724,5 +728,23 @@
     "comingSoon": "即將推出",
     "alpha": "Alpha",
     "beta": "Beta"
+  },
+  "settingsSearch": {
+    "language": "語言, 介面語言, 翻譯, 地區",
+    "model": "模型, 語音模型, 下載, AI, 轉錄, 辨識, whisper",
+    "customModel": "自訂模型, 匯入, 導入, ONNX, huggingface",
+    "gpu": "GPU, 顯示卡, 顯卡, 加速, 硬體加速, DirectML, VRAM, 顯存",
+    "optimization": "最佳化, 優化, 記憶體, 卸載, 閒置, 遊戲, 效能, VRAM",
+    "transform": "轉換, 文法, 語法, 改寫, 規則, 後處理, AI",
+    "output": "輸出, 剪貼簿, 貼上, 複製, 檔案, 儲存",
+    "audio": "音訊, 音頻, 麥克風, 輸入, 裝置, 錄音裝置",
+    "recording": "錄音, 語音偵測, VAD, 靜音, 贅字, 語氣詞, 數字, 時長",
+    "hotkeys": "快捷鍵, 熱鍵, 鍵盤, 按鍵, 按住說話",
+    "customize": "自訂, 個人化, 外觀, 主題, 介面, 預覽, 速度, 通知, 歷史, 歷史紀錄, 轉錄, 隱私, 系統匣, 托盤",
+    "mcpServer": "MCP, CLI, 命令列, 代理, 智慧代理, Claude, 轉錄",
+    "accessibility": "無障礙, 輔助, 縮放, 字體大小, 文字大小",
+    "data": "資料, 數據, 隱私, 刪除, 快取, 儲存空間, 重設, 清除",
+    "debug": "除錯, 調試, 日誌, 記錄檔, 開發者, 診斷",
+    "about": "關於, 版本, 授權, 許可, 致謝, 更新, 支援, 贊助, 捐款"
   }
 }

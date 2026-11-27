@@ -12,6 +12,8 @@ import {
   lastRun,
   lastRuns,
   HISTORY_LIMIT,
+  resolveHistoryLimit,
+  setHistoryLimit,
   type LastRun,
   historyPeekRequested,
   requestHistoryPeek,
@@ -106,5 +108,47 @@ describe('lastRuns history', () => {
     beginRun();
     expect(get(lastRun)).toBeNull();
     expect(get(lastRuns)[0].at).toBe(200);
+  });
+});
+
+describe('resolveHistoryLimit (Remember last N transcripts setting)', () => {
+  it('is 0 when history is turned off', () => {
+    expect(resolveHistoryLimit(false, 5)).toBe(0);
+  });
+
+  it('defaults to the max when the count is missing (old settings file)', () => {
+    expect(resolveHistoryLimit(undefined, undefined)).toBe(HISTORY_LIMIT);
+    expect(resolveHistoryLimit(true, undefined)).toBe(HISTORY_LIMIT);
+  });
+
+  it('clamps the count to 1-10', () => {
+    expect(resolveHistoryLimit(true, 0)).toBe(1);
+    expect(resolveHistoryLimit(true, 99)).toBe(HISTORY_LIMIT);
+    expect(resolveHistoryLimit(true, 4)).toBe(4);
+  });
+});
+
+describe('setHistoryLimit', () => {
+  afterEach(() => setHistoryLimit(HISTORY_LIMIT));
+
+  it('lowering the limit drops the oldest runs from memory immediately', () => {
+    for (let i = 1; i <= 6; i++) publishRun(makeRun(400 + i));
+    setHistoryLimit(3);
+    expect(get(lastRuns).map(r => r.at)).toEqual([406, 405, 404]);
+  });
+
+  it('new runs respect the lowered limit', () => {
+    setHistoryLimit(2);
+    for (let i = 1; i <= 5; i++) publishRun(makeRun(500 + i));
+    expect(get(lastRuns).map(r => r.at)).toEqual([505, 504]);
+  });
+
+  it('turning history off forgets every run but still shows the current one', () => {
+    publishRun(makeRun(600));
+    setHistoryLimit(0);
+    expect(get(lastRuns)).toEqual([]);
+    publishRun(makeRun(601));
+    expect(get(lastRuns)).toEqual([]);
+    expect(get(lastRun)?.at).toBe(601);
   });
 });

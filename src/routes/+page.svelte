@@ -32,7 +32,7 @@ SPDX-License-Identifier: MPL-2.0
   import { useAppInit } from '$lib/composables/useAppInit';
   import { useModelDownloadEvents } from '$lib/composables/useModelDownloadEvents';
   import { useRealtimePreview } from '$lib/composables/useRealtimePreview';
-  import { historyPeekRequested } from '$lib/stores/lastRun';
+  import { historyPeekRequested, resolveHistoryLimit, setHistoryLimit } from '$lib/stores/lastRun';
   import { useFadeOnIdle } from '$lib/composables/useFadeOnIdle';
   import { useTauriSettings, tauriSettings } from '$lib/composables/useTauriSettings';
   import { initUiScale } from '$lib/composables/useUiScale';
@@ -145,6 +145,10 @@ SPDX-License-Identifier: MPL-2.0
 
   // Reactive settings
   $: showRealtimePreview = $tauriSettings?.show_realtime_preview !== false;
+  // Settings > Customize > Remember last N transcripts (in memory only).
+  $: setHistoryLimit(
+    resolveHistoryLimit($tauriSettings?.history_enabled, $tauriSettings?.history_limit)
+  );
 
   // History label state: right side lights up when the left-chip projection is active.
   let isShowingHistoryLeft = false;

@@ -71,6 +71,9 @@ export interface Settings {
   // Optimization: free the model's memory after idle time (opt-in)
   idle_unload_enabled?: boolean; // Unload the speech model when idle (default false)
   idle_unload_minutes?: number; // Idle minutes before unload, 1-120 (default 10)
+  // Remember recent transcripts in memory for the history pager (never written to disk)
+  history_enabled?: boolean; // default true
+  history_limit?: number; // How many to remember, 1-10 (default 10)
 }
 
 /** Dropdown option item structure */
@@ -120,6 +123,8 @@ export const defaultSettings: Settings = {
   ui_scale_with_window: false,
   idle_unload_enabled: false,
   idle_unload_minutes: 10,
+  history_enabled: true,
+  history_limit: 10,
 };
 
 /** Available language options for transcription */
