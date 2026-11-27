@@ -59,7 +59,7 @@ assistants, docs, messages and anything else you would rather say than type.
 - **Local speech models** - auto-downloaded on first use, integrity-checked, [25+ languages](#models)
 - **Grammar cleanup** - optional on-device T5 pass after transcription
 - **Bring your own model** - load any compatible ONNX speech model ([docs](https://docs.echophrase.com/features/custom-models))
-- **CLI and MCP server** - script it, or let AI agents record and transcribe ([CLI](https://docs.echophrase.com/cli), [MCP](https://docs.echophrase.com/mcp))
+- **CLI and MCP server** - script it, or let AI agents record and transcribe ([CLI](https://docs.echophrase.com/cli), [MCP](https://docs.echophrase.com/mcp-server))
 - **JSON output with timestamps** and compute-type selection
 - **Localized** in English and Chinese (Simplified and Traditional) for now; more languages welcome
 

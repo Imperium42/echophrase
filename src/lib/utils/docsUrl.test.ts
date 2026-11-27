@@ -30,15 +30,15 @@ describe('docsUrl', () => {
   });
 
   it('uses the explicit locale argument over the current locale', () => {
-    expect(docsUrl('/mcp', 'zh-TW')).toBe('https://docs.echophrase.com/zh-Hant/mcp');
+    expect(docsUrl('/mcp-server', 'zh-TW')).toBe('https://docs.echophrase.com/zh-Hant/mcp-server');
   });
 
   it('maps zh-CN to the /zh-CN docs prefix', () => {
-    expect(docsUrl('/mcp', 'zh-CN')).toBe('https://docs.echophrase.com/zh-CN/mcp');
+    expect(docsUrl('/mcp-server', 'zh-CN')).toBe('https://docs.echophrase.com/zh-CN/mcp-server');
   });
 
   it('en passthrough when explicit locale is en', () => {
-    expect(docsUrl('/mcp', 'en')).toBe('https://docs.echophrase.com/mcp');
+    expect(docsUrl('/mcp-server', 'en')).toBe('https://docs.echophrase.com/mcp-server');
   });
 
   it('falls back to the current locale when locale is omitted', () => {

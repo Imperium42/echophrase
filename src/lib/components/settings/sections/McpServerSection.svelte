@@ -102,7 +102,7 @@ SPDX-License-Identifier: MPL-2.0
       type="button"
       class="doc-link"
       title={t('mcpServer.openDoc')}
-      onclick={() => launchUrl(docsUrl('/mcp'))}>{t('mcpServer.noteMcp')}</button
+      onclick={() => launchUrl(docsUrl('/mcp-server'))}>{t('mcpServer.noteMcp')}</button
     >{t('mcpServer.notePost')}
   </p>
 

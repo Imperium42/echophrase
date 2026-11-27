@@ -9,6 +9,7 @@ All notable changes to Echophrase will be documented in this file.
 
 ### Fixed
 - Settings search now works with Chinese keywords (eg 歷史, 隱私, 显卡), and English keywords still work in a Chinese UI.
+- The MCP Server docs link in Settings now opens the right page.
 
 ## [v1.1.0] - 2026-11-26
 
