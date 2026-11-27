@@ -15,6 +15,16 @@ categories = ["multimedia", "accessibility"]
 [lib]
 name = "echophrase_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
+# Every doc example is `ignore`, and running rustdoc forces `cargo test` to build
+# the whole lib a second time (non-test rlib/cdylib/staticlib). Re-enable if a
+# real doctest is ever added.
+doctest = false
+
+[[bin]]
+name = "echophrase"
+path = "src/main.rs"
+# main.rs has no tests; its test harness also needs that second lib build.
+test = false
 
 [build-dependencies]
 tauri-build = { version = "2.5.5", features = ["config-json5"] }
