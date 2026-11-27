@@ -258,6 +258,10 @@
     "showTranscriptionSpeedHint": "Add a speed chip to the last-run history showing transcription (and transform) duration",
     "showLastOnHover": "Hover to Reveal Last Transcription",
     "showLastOnHoverHint": "Show previous transcription when hovering near the record button",
+    "historyLabel": "Transcript History",
+    "historyPrefix": "Keep last",
+    "historyHint": "Lets you page back through your recent transcripts. Kept in memory only: never saved to disk and cleared when you quit. When off, only your latest transcript is shown.",
+    "historyCountAria": "How many recent transcripts to keep",
     "minimizeToTrayOnClose": "Minimize to Tray on Close",
     "minimizeToTrayOnCloseHint": "Clicking X hides the app to the system tray instead of quitting"
   },

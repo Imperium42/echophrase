@@ -10,6 +10,7 @@
 
 export { default as FeatureBadge } from './FeatureBadge.svelte';
 export { default as HintTooltip } from './HintTooltip.svelte';
+export { default as SettingNumberInput } from './SettingNumberInput.svelte';
 export { default as SettingRow } from './SettingRow.svelte';
 export { default as SettingSlider } from './SettingSlider.svelte';
 export { default as SettingToggle } from './SettingToggle.svelte';

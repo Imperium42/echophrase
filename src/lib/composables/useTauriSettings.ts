@@ -62,6 +62,9 @@ export interface TauriSettings {
   // Optimization: free the model's memory after idle time (opt-in)
   idle_unload_enabled?: boolean; // default false
   idle_unload_minutes?: number; // 1-120, default 10
+  // Remember recent transcripts in memory for the history pager (never on disk)
+  history_enabled?: boolean; // default true
+  history_limit?: number; // 1-10, default 10
 }
 
 // Single source of truth for the default; mirrors the Rust default in

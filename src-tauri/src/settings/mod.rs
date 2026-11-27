@@ -58,7 +58,6 @@ fn default_ui_scale_mode() -> String {
     "auto".to_string()
 }
 
-/// Default manual UI scale factor (100%).
 fn default_idle_unload_minutes() -> u32 {
     crate::transcription::idle::DEFAULT_IDLE_UNLOAD_MINUTES
 }
@@ -68,6 +67,20 @@ fn clamp_idle_unload_minutes(minutes: u32) -> u32 {
     minutes.clamp(MIN_IDLE_UNLOAD_MINUTES, MAX_IDLE_UNLOAD_MINUTES)
 }
 
+/// Most transcripts the in-memory history can remember. Keep in step with
+/// `HISTORY_LIMIT` in `src/lib/stores/lastRun.ts`.
+pub const MAX_HISTORY_LIMIT: u32 = 10;
+const MIN_HISTORY_LIMIT: u32 = 1;
+
+fn default_history_limit() -> u32 {
+    MAX_HISTORY_LIMIT
+}
+
+fn clamp_history_limit(limit: u32) -> u32 {
+    limit.clamp(MIN_HISTORY_LIMIT, MAX_HISTORY_LIMIT)
+}
+
+/// Default manual UI scale factor (100%).
 fn default_ui_scale_manual() -> f64 {
     1.0
 }
@@ -343,6 +356,10 @@ pub struct SettingsPatch {
     #[serde(default)]
     pub idle_unload_minutes: Option<u32>,
     #[serde(default)]
+    pub history_enabled: Option<bool>,
+    #[serde(default)]
+    pub history_limit: Option<u32>,
+    #[serde(default)]
     pub voice_threshold: Option<u8>,
     /// Legacy keys from the removed cloud-sync and hosted-transcription features.
     /// Accepted and ignored so an old exported settings file still imports despite
@@ -407,6 +424,7 @@ impl SettingsPatch {
             chinese_script,
             ui_scale_with_window,
             idle_unload_enabled,
+            history_enabled,
             mcp_server_enabled,
         );
 
@@ -444,6 +462,9 @@ impl SettingsPatch {
         }
         if let Some(minutes) = self.idle_unload_minutes {
             s.idle_unload_minutes = clamp_idle_unload_minutes(minutes);
+        }
+        if let Some(limit) = self.history_limit {
+            s.history_limit = clamp_history_limit(limit);
         }
         if let Some(scale) = self.ui_scale_manual {
             s.ui_scale_manual = scale.clamp(UI_SCALE_MIN, UI_SCALE_MAX);
@@ -591,6 +612,14 @@ pub struct AppSettings {
     /// `idle_unload_enabled` is true.
     #[serde(default = "default_idle_unload_minutes")]
     pub idle_unload_minutes: u32,
+    /// Remember recent transcripts for the history pager. In memory only: the
+    /// transcripts themselves are never written to disk and are gone on quit.
+    #[serde(default = "default_true")]
+    pub history_enabled: bool,
+    /// How many transcripts to remember (1-10). Only used when
+    /// `history_enabled` is true.
+    #[serde(default = "default_history_limit")]
+    pub history_limit: u32,
     /// VAD sensitivity as a percentage (0-100): the minimum voice level that
     /// triggers recording. Deliberately NOT cloud-synced - it is tuned to a
     /// specific microphone and room.
@@ -674,6 +703,8 @@ impl Default for AppSettings {
             ui_scale_with_window: false,   // Opt-in window-size scaling
             idle_unload_enabled: false,    // Opt-in; keeps the model hot by default
             idle_unload_minutes: default_idle_unload_minutes(),
+            history_enabled: true, // Remember recent transcripts (in memory only)
+            history_limit: default_history_limit(),
             voice_threshold: default_voice_threshold(), // 50% VAD sensitivity
             mcp_server_enabled: false,                  // Off by default
         }
@@ -839,6 +870,7 @@ pub async fn save_settings(settings: AppSettings) -> crate::error::CmdResult<()>
     settings.voice_threshold = settings.voice_threshold.min(VOICE_THRESHOLD_MAX);
     settings.ui_scale_manual = settings.ui_scale_manual.clamp(UI_SCALE_MIN, UI_SCALE_MAX);
     settings.idle_unload_minutes = clamp_idle_unload_minutes(settings.idle_unload_minutes);
+    settings.history_limit = clamp_history_limit(settings.history_limit);
     if settings.ui_scale_mode != "manual" {
         settings.ui_scale_mode = "auto".to_string();
     }
@@ -1162,6 +1194,32 @@ mod tests {
         let patch: SettingsPatch = serde_json::from_str(r#"{"idle_unload_minutes": 0}"#).unwrap();
         patch.apply_to(&mut settings);
         assert_eq!(settings.idle_unload_minutes, 1);
+    }
+
+    #[test]
+    fn history_is_on_by_default_with_ten() {
+        let defaults = AppSettings::default();
+        assert!(defaults.history_enabled);
+        assert_eq!(defaults.history_limit, 10);
+
+        // Pre-upgrade settings.yaml with neither key
+        let settings: AppSettings = serde_yml::from_str("model: parakeet-tdt-0.6b-v3\n").unwrap();
+        assert!(settings.history_enabled);
+        assert_eq!(settings.history_limit, 10);
+    }
+
+    #[test]
+    fn history_patch_toggles_and_clamps_limit() {
+        let mut settings = AppSettings::default();
+        let patch: SettingsPatch =
+            serde_json::from_str(r#"{"history_enabled": false, "history_limit": 99}"#).unwrap();
+        patch.apply_to(&mut settings);
+        assert!(!settings.history_enabled);
+        assert_eq!(settings.history_limit, 10);
+
+        let patch: SettingsPatch = serde_json::from_str(r#"{"history_limit": 0}"#).unwrap();
+        patch.apply_to(&mut settings);
+        assert_eq!(settings.history_limit, 1);
     }
 
     #[test]

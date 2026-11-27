@@ -29,8 +29,25 @@ export interface LastRun {
   at: number;
 }
 
-/** How many completed runs the in-memory history keeps (never written to disk). */
+/** Most completed runs the in-memory history can keep (never written to disk).
+ *  Keep in step with MAX_HISTORY_LIMIT in src-tauri/src/settings/mod.rs. */
 export const HISTORY_LIMIT = 10;
+/** Fewest runs a user can pick while history is on. */
+export const MIN_HISTORY_LIMIT = 1;
+
+/**
+ * Effective history size from the user's settings: 0 when history is off,
+ * else the chosen count clamped to 1-HISTORY_LIMIT (missing = HISTORY_LIMIT).
+ */
+export function resolveHistoryLimit(
+  enabled: boolean | undefined,
+  limit: number | undefined
+): number {
+  if (enabled === false) return 0;
+  const n = Math.round(limit ?? HISTORY_LIMIT);
+  if (!Number.isFinite(n)) return HISTORY_LIMIT;
+  return Math.min(HISTORY_LIMIT, Math.max(MIN_HISTORY_LIMIT, n));
+}
 
 /** Prepend `run` and cap at `limit`. Returns a new array; never mutates `runs`. */
 export function pushRun(
@@ -43,8 +60,18 @@ export function pushRun(
 
 const store = writable<LastRun | null>(null);
 const runsStore = writable<LastRun[]>([]);
+let historyLimit = HISTORY_LIMIT;
 
-/** The last HISTORY_LIMIT completed runs, newest first. In memory only. */
+/**
+ * Apply the user's history settings. Lowering the count (or turning history
+ * off) drops the extra runs from memory right away, not on the next recording.
+ */
+export function setHistoryLimit(limit: number): void {
+  historyLimit = Math.max(0, Math.min(HISTORY_LIMIT, Math.round(limit)));
+  runsStore.update(runs => (runs.length > historyLimit ? runs.slice(0, historyLimit) : runs));
+}
+
+/** The last `historyLimit` completed runs, newest first. In memory only. */
 export const lastRuns = { subscribe: runsStore.subscribe };
 
 /** Subscribe to the most recent completed run (null if none yet). */
@@ -83,7 +110,7 @@ export interface PublishRunOptions {
 /** Finalize and publish a completed run in one atomic update. */
 export function publishRun(run: LastRun, { remember = true }: PublishRunOptions = {}): void {
   store.set(run);
-  if (remember) runsStore.update(runs => pushRun(runs, run));
+  if (remember) runsStore.update(runs => pushRun(runs, run, historyLimit));
 }
 
 /**

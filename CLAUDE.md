@@ -352,6 +352,7 @@ buttons). Add an entry whenever you work around a bug you do not own.
   accident, since it looks almost like a hyphen. Write ranges with a plain hyphen: `2020-2024`.
   The regular hyphen `-` is always correct and is the preferred dash in all our copy.
   Grep for both at once: `grep -rn $'—\|–' <paths>`.
+- **Every new setting must be findable in Settings search.** The search box (`SettingsModal.svelte`) matches only the localized section title and the hardcoded English `sectionSearchTerms` list, never the row labels. When you add a setting, add the words a user would type for it (its name, plus what it does, eg `history`, `transcript`) to its section's terms in the same change, then search for them in the running app to confirm the section shows up.
 - Use forward slashes in paths for cross-platform compatibility
 - Conventional commits for both commits and PR titles: `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`
 - **Before pushing, ask: would a user notice this?** If yes, add a very brief entry to `CHANGELOG.md` under `## [Unreleased]` (`### Added` / `### Fixed` / `### Improved`) **in the same push** - not as a follow-up commit afterwards. `/deploy` turns `[Unreleased]` into the release notes, so anything missing at push time is missing from the release.
