@@ -11,6 +11,9 @@ All notable changes to Echophrase will be documented in this file.
 - Settings search now works with Chinese keywords (eg 歷史, 隱私, 显卡), and English keywords still work in a Chinese UI.
 - The MCP Server docs link in Settings now opens the right page.
 
+### Improved
+- Contributors: Rust test runs are about 5x faster (no more duplicate library build for doctests and the app binary).
+
 ## [v1.1.0] - 2026-11-26
 
 ### Added
