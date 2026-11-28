@@ -14,7 +14,7 @@ SPDX-License-Identifier: MPL-2.0
    * Global hotkey configuration for toggle recording.
    */
 
-  import { SettingsSection } from '../primitives';
+  import { SettingsSection, SettingToggle } from '../primitives';
   import { getSettingsContext } from '../context';
   import { hotkeyStore } from '$lib/stores/hotkeys';
   import { lastError as hotkeyRegisterError } from '$lib/services/keyboardService';
@@ -24,10 +24,12 @@ SPDX-License-Identifier: MPL-2.0
   import { t } from '$lib/locales';
   import { Icon } from '$lib/icons';
 
-  const { settings } = getSettingsContext();
+  const { settings, updateSetting } = getSettingsContext();
 
   let isEditingAliases = $state(false);
   const isWSL = platformCache.isWsl;
+  // Global Esc cancel is not registered on Linux (dynamic shortcuts are unreliable there).
+  const supportsGlobalCancel = !platformCache.os.toLowerCase().includes('linux');
 
   /**
    * Aliasable tokens = the non-modifier keys of the current binding. Modifiers
@@ -166,6 +168,14 @@ SPDX-License-Identifier: MPL-2.0
         <Icon name="warning" size={14} class="inline align-text-bottom" />
         {t('hotkeys.registerFailed')}
       </p>
+    {/if}
+    {#if supportsGlobalCancel}
+      <SettingToggle
+        label={t('hotkeys.cancelEsc')}
+        hint={t('hotkeys.cancelEscHint')}
+        checked={$settings?.hotkey_cancel_enabled ?? true}
+        onchange={v => updateSetting('hotkey_cancel_enabled', v)}
+      />
     {/if}
     {#if isEditingAliases && !$isRecordingHotkey}
       <div class="alias-editor">

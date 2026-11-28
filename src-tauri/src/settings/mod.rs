@@ -340,6 +340,8 @@ pub struct SettingsPatch {
     #[serde(default)]
     pub hotkey_mode: Option<String>,
     #[serde(default)]
+    pub hotkey_cancel_enabled: Option<bool>,
+    #[serde(default)]
     pub restore_clipboard_after_paste: Option<bool>,
     #[serde(default, deserialize_with = "double_option")]
     pub json_metadata_template: Option<Option<String>>,
@@ -455,6 +457,7 @@ impl SettingsPatch {
             history_enabled,
             recording_overlay_enabled,
             mcp_server_enabled,
+            hotkey_cancel_enabled,
         );
 
         // Nullable fields: outer Some means "mentioned", inner value is the
@@ -566,6 +569,10 @@ pub struct AppSettings {
     /// "toggle", or "hold". Unknown values behave as hybrid on the frontend.
     #[serde(default = "default_hotkey_mode")]
     pub hotkey_mode: String,
+    /// Esc cancels an in-progress recording from any app (a global shortcut
+    /// held only while recording/transcribing; ignored on Linux).
+    #[serde(default = "default_true")]
+    pub hotkey_cancel_enabled: bool,
     /// Put the previous clipboard text back after paste at cursor (opt-in;
     /// reading the clipboard may need extra permission on macOS).
     #[serde(default)]
@@ -722,6 +729,7 @@ impl Default for AppSettings {
             append_space_incomplete: true, // Append trailing space for incomplete sentences by default
             convert_spoken_punctuation: true, // Spoken "question mark" -> ?
             hotkey_mode: default_hotkey_mode(), // Tap toggles, hold+release stops
+            hotkey_cancel_enabled: true,   // Global Esc cancels while recording
             restore_clipboard_after_paste: false, // Keep the transcript on the clipboard
             json_metadata_template: None,  // Use default JSON template
             auto_detected_model: false,    // Not auto-detected until first launch detection runs
@@ -1102,6 +1110,16 @@ mod tests {
         assert_eq!(settings.model, "parakeet-tdt-0.6b-v3");
         let yaml = serde_yml::to_string(&settings).unwrap();
         assert!(!yaml.contains("telemetry"), "key is dropped on next save");
+    }
+
+    #[test]
+    fn hotkey_cancel_defaults_on_and_patch_toggles() {
+        let mut settings = AppSettings::default();
+        assert!(settings.hotkey_cancel_enabled, "defaults on");
+        let patch: SettingsPatch =
+            serde_json::from_str(r#"{"hotkey_cancel_enabled":false}"#).unwrap();
+        patch.apply_to(&mut settings);
+        assert!(!settings.hotkey_cancel_enabled);
     }
 
     #[test]

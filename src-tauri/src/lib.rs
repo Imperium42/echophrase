@@ -15,6 +15,7 @@
 // SPDX-License-Identifier: MPL-2.0
 
 mod audio;
+mod cancel_hotkey;
 mod commands;
 mod error;
 mod gpu_probe;

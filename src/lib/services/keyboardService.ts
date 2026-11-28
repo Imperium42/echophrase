@@ -228,8 +228,10 @@ export async function registerShortcut(
         console.warn(
           `[Keyboard] Register attempt ${attempt}/${MAX_ATTEMPTS} failed (${message}) - retrying in ${RETRY_DELAY_MS}ms`
         );
+        // Only this accelerator: unregisterAll would also drop shortcuts Rust
+        // owns (the global Esc cancel, dev F5 reload).
         try {
-          await unregisterAll?.();
+          await unregister(accelerator);
         } catch {
           /* ignore */
         }
