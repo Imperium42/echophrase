@@ -104,6 +104,9 @@ transcription/          # ML backends (trait-based, swappable)
 ├── onnx_backend.rs     # ONNX backend (generic ONNX models)
 └── parakeet.rs         # parakeet-rs backend (NVIDIA TDT with RNN-T decoding)
 
+cancel_hotkey.rs        # Global Esc cancel, registered only while Recording
+                        #   (driven by tray_status::set; no-op on Linux; pattern from Handy)
+
 overlay/                # Recording overlay pill (second window `recording_overlay`,
 ├── mod.rs              #   route src/routes/overlay); driven by tray_status::set
 └── levels.rs           # FFT voice-band meter fed from the capture loops

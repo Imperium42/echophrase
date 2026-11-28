@@ -129,6 +129,8 @@
   "hotkeys": {
     "title": "Hotkeys",
     "toggleRecording": "Toggle Recording",
+    "cancelEsc": "Esc cancels recording",
+    "cancelEscHint": "Press Esc in any app to cancel a hotkey recording and discard it. While you record, Esc goes to Echophrase only; at other times (and in open mic) it works as usual.",
     "registerFailed": "Could not register this hotkey - another app or Echophrase instance may be using it.",
     "globalHint": "Works globally when app is running",
     "focusHint": "Tip: ESC or Spacebar also work when focused",
@@ -751,7 +753,7 @@
     "output": "output, clipboard, paste, copy, file, save, post-record",
     "audio": "audio, microphone, mic, input, device, recording device",
     "recording": "recording, vad, voice activity, silence, filler words, numbers",
-    "hotkeys": "hotkeys, keyboard, shortcut, keybinding, press to talk",
+    "hotkeys": "hotkeys, keyboard, shortcut, keybinding, press to talk, esc, escape, cancel, discard, abort",
     "customize": "customize, theme, appearance, ui, preview, speed, toast, history, transcript, privacy, copy last, hover, tray, overlay, recording overlay, waveform, floating, position, corner",
     "mcpServer": "mcp, cli, claude, agent, transcribe",
     "accessibility": "accessibility, zoom, scale, scaling, text size, a11y",

@@ -44,3 +44,27 @@ describe('isShortcutAvailable (the hotkey recorder checks before accepting a com
     expect(held.has('Shift+Z')).toBe(true); // still ours, not torn down by the probe
   });
 });
+
+describe('registerShortcut retry (a stale hold from a just-exited instance)', () => {
+  beforeEach(async () => {
+    await service.cleanup();
+    held.clear();
+    vi.clearAllMocks();
+    await service.init();
+  });
+
+  it('frees only its own accelerator, keeping shortcuts Rust owns (eg global Esc)', async () => {
+    vi.useFakeTimers();
+    try {
+      held.add('Escape');
+      held.add('CommandOrControl+Shift+J');
+      const pending = service.registerShortcut('ctrl+shift+j', () => {});
+      await vi.runAllTimersAsync();
+      expect(await pending).toBe(true);
+      expect(held.has('Escape')).toBe(true);
+      expect(plugin.unregisterAll).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});

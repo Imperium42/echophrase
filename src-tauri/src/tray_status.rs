@@ -94,6 +94,8 @@ pub fn set(app: &AppHandle, status: TrayStatus) {
         // Inside the lock so the overlay sees transitions in the same order as
         // `current` (two racing setters can't leave it shown while idle).
         crate::overlay::on_status(app, status);
+        // Global Esc cancel follows the same ordering; its (un)registration is spawned.
+        crate::cancel_hotkey::sync(app, status);
     }
 
     let (icon, tooltip, menu_label) = match status {
