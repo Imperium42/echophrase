@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: 2025-2026 Imperium42 LLC
+#
+# SPDX-License-Identifier: MPL-2.0
+
+# One line-ending rule for every machine, whatever its core.autocrlf: LF in the
+# repo and in working trees. Without this, tools writing LF on a Windows
+# autocrlf=true checkout leave phantom "modified" files.
+* text=auto eol=lf
+
+# Windows-only scripts keep CRLF in the working tree.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Third-party license texts stay byte-exact as shipped.
+src-tauri/licenses/** -text
